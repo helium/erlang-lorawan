@@ -1,0 +1,20 @@
+{application, erlang_lorawan, [
+    {description, "An OTP application"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {erlang_lorawan_app, []}},
+    {applications, [
+        kernel,
+        stdlib,
+        syntax_tools,
+        compiler,
+        crypto,
+        ssl,
+        public_key,
+        lager
+    ]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache 2.0"]},
+    {links, []}
+]}.
