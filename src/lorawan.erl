@@ -5,8 +5,6 @@
 %%%-------------------------------------------------------------------
 -module(lorawan).
 
--include_lib("stdlib/include/assert.hrl").
-
 -export([
     devaddr/2,
     devaddr_from_subnet/2,
@@ -15,11 +13,8 @@
     addr_bit_len/1,
     netid_type/1,
     nwk_addr/1,
-    subnet_addr/2,
     netid_addr_range/2,
-    is_local_netid/2,
-    net_id_test/0,
-    netid_test/0
+    is_local_netid/2
 ]).
 
 -type netid() :: non_neg_integer().
@@ -32,8 +27,12 @@
 
 -spec devaddr_from_subnet(subnetaddr(), [netid()]) -> devaddr().
 devaddr_from_subnet(SubnetAddr, NetIDList) ->
+	io:format("devaddr_from_subnet ~8.16.0B~n", [SubnetAddr]),
     NetID = subnet_addr_to_netid(SubnetAddr, NetIDList),
-    {Lower, _Upper} = netid_addr_range(NetID, NetIDList),
+    io:format("NetID ~8.16.0B~n", [NetID]),
+    {Lower, Upper} = netid_addr_range(NetID, NetIDList),
+    io:format("Lower ~8.16.0B~n", [Lower]),
+    io:format("Upper ~8.16.0B~n", [Upper]),
     DevAddr = devaddr(NetID, SubnetAddr - Lower),
     DevAddr.
 
@@ -46,11 +45,19 @@ subnet_from_devaddr(DevAddr, NetIDList) ->
 
 -spec devaddr(netid(), nwkaddr()) -> devaddr().
 devaddr(NetID, NwkAddr) ->
+	io:format("devaddr start~n", []),
+	io:format("NetID ~8.16.0B~n", [NetID]),
+	io:format("NwkAddr ~8.16.0B~n", [NwkAddr]),
     NetClass = NetID bsr 21,
+    io:format("NetClass ~8.16.0B~n", [NetClass]),
     ID = NetID band 2#111111111111111111111,
+    io:format("ID ~8.16.0B~n", [ID]),
     % <<ID:21/integer-unsigned, NetClass:3/integer-unsigned, _Ignore:8/integer-unsigned>> = NetID,
     Addr0 = var_net_class(NetClass) bor ID,
+    io:format("Addr0 ~8.16.0B~n", [Addr0]),
     DevAddr = var_netid(NetClass, Addr0) bor NwkAddr,
+    io:format("DevAddr ~8.16.0B~n", [DevAddr]),
+    io:format("DevAddr end~n", []),
     DevAddr.
 
 -spec subnet_addr_to_netid(subnetaddr(), [netid()]) -> netid().
@@ -183,13 +190,6 @@ nwk_addr(DevAddr) ->
     <<_:IgnoreLen, NwkAddr:AddrBitLen/integer-unsigned>> = DevAddr2,
     NwkAddr.
 
--spec subnet_addr(devaddr(), [netid()]) -> subnetaddr().
-subnet_addr(DevAddr, NetIDList) ->
-    {ok, NetID} = netid(DevAddr),
-    NwkAddr = nwk_addr(DevAddr),
-    {Lower, _Upper} = netid_addr_range(NetID, NetIDList),
-    Lower + NwkAddr.
-
 -spec netid_addr_range(netid(), [netid()]) -> {non_neg_integer(), non_neg_integer()}.
 netid_addr_range(NetID, NetIDList0) ->
     FoundNetID = lists:any(fun(X) -> X == NetID end, NetIDList0),
@@ -227,6 +227,12 @@ netid_size(NetID) ->
 -spec uint32(integer()) -> integer().
 uint32(Num) ->
     Num band 16#FFFFFFFF.
+
+%% ------------------------------------------------------------------
+%% EUNIT Tests
+%% ------------------------------------------------------------------
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
 
 net_id_test() ->
     %% CP data
@@ -278,6 +284,76 @@ net_id_test() ->
     ?assertEqual({ok, 16#000002}, netid(<<4, 16, 190, 163>>)),
     ok.
 
+% validate_devaddr(NetClass, ID, AddrLen, AddrSize) ->
+% 	NetIDBin = <<NetClass:3, ID:21>>,
+% 	<<NetID:32/integer-unsigned>> = NetIDBin,
+% 	NetAddrLen = netid_width(NetID),
+% 	?assertEqual(AddrLen, NetAddrLen),
+% 	NetAddrSize = netid_size(NetID),
+% 	?assertEqual(AddrSize, NetAddrSize),
+% 	ok.
+
+mock_netid_list() ->
+    [ 16#E00001, 16#C00035, 16#60002D ].
+
+insert_item(Item, List, Pos) ->
+	{A, B} = lists:split(Pos, List),
+	NewList = A ++ [Item] ++ B,
+	NewList.
+
+exercise_subnet(DevAddr, NetIDList) ->
+    SubnetAddr = subnet_from_devaddr(DevAddr, NetIDList),
+    DevAddr2 = devaddr_from_subnet(SubnetAddr, NetIDList),
+    ?assertEqual(DevAddr, DevAddr2),
+    ok.
+
+exercise_subnet(DevAddr) ->
+	{ok, NetID} = netid(DevAddr),
+	exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 0)),
+	exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 1)),
+	exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 2)),
+	exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 3)),
+    ok.
+
+exercise_devaddr(NetID, Addr) ->
+	DevAddr = devaddr(NetID, Addr),
+	NetIDType = netid_type(DevAddr),
+    ?assert(NetIDType =< 7),
+    {ok, NetID0} = netid(DevAddr),
+    ?assertEqual(NetID, NetID0),
+    AddrBitLen = addr_bit_len(DevAddr),
+    NwkAddr = nwk_addr(DevAddr),
+    ?assertEqual(Addr, NwkAddr),
+    exercise_subnet(DevAddr),
+    {DevAddr, AddrBitLen}.
+
+exercise_netid(NetClass, ID) ->
+	NetIDBin = <<0:8/integer-unsigned, NetClass:3/integer-unsigned, ID:21/integer-unsigned>>,
+	<<NetID:32/integer-unsigned>> = NetIDBin,
+	NetAddrLen = netid_width(NetID),
+	?assert((NetAddrLen >= 7) and (NetAddrLen =< 25)),
+	MaxNetSize = netid_size(NetID),
+	exercise_devaddr(NetID, 0),
+	exercise_devaddr(NetID, 1),
+	exercise_devaddr(NetID, 8),
+	exercise_devaddr(NetID, 16),
+	exercise_devaddr(NetID, 32),
+	exercise_devaddr(NetID, 33),
+	exercise_devaddr(NetID, 64),
+	exercise_devaddr(NetID, MaxNetSize - 1),
+	ok.
+
+netid_exercise_test() ->
+	exercise_netid(7, 2),
+	exercise_netid(6, 2),
+	exercise_netid(5, 2),
+	exercise_netid(4, 2),
+	exercise_netid(3, 2),
+	exercise_netid(2, 2),
+	exercise_netid(1, 2),
+ 	exercise_netid(0, 2),
+	ok.
+
 netid_test() ->
     LegacyDevAddr = <<$H:7, 0:25>>,
     LegacyNum = 16#90000000,
@@ -295,6 +371,7 @@ netid_test() ->
     NetID02 = 16#60002D,
     NetIDExt = 16#C00050,
 
+    %% Class 6
     DevAddr00 = 16#90000000,
     DevAddr01 = 16#FC00D410,
     DevAddr02 = 16#E05A0008,
@@ -378,12 +455,32 @@ netid_test() ->
     NwkAddr2 = nwk_addr(DevAddr02),
     ?assertEqual(8, NwkAddr2),
 
-    Subnet4 = subnet_addr(DevAddr00, NetIDList),
-    ?assertEqual(0, Subnet4),
+    % Subnet0 = subnet_from_devaddr(DevAddr00, NetIDList),
+    % io:format("Subnet0 ~8.16.0B~n", [Subnet0]),
+    % ?assertEqual(0, Subnet0),
+    % DevAddr000 = devaddr_from_subnet(Subnet0, NetIDList),
+    % io:format("DevAddr00 ~8.16.0B~n", [DevAddr00]),
+    % io:format("DevAddr000 ~8.16.0B~n", [DevAddr000]),
+    % ?assertEqual(DevAddr000, DevAddr00),
 
-    Subnet0 = subnet_addr(DevAddr01, NetIDList),
-    ?assertEqual((1 bsl 7) + 16, Subnet0),
+    Subnet1 = subnet_from_devaddr(DevAddr01, NetIDList),
+    io:format("Subnet1 ~8.16.0B~n", [Subnet1]),
+    ?assertEqual((1 bsl 7) + 16, Subnet1),
+    DevAddr001 = devaddr_from_subnet(Subnet1, NetIDList),
+    io:format("DevAddr01 ~8.16.0B~n", [DevAddr01]),
+    io:format("DevAddr001 ~8.16.0B~n", [DevAddr001]),
+    ?assertEqual(DevAddr001, DevAddr01),
 
-    Subnet2 = subnet_addr(DevAddr02, NetIDList),
+    Subnet1 = subnet_from_devaddr(DevAddr01, NetIDList),
+    ?assertEqual((1 bsl 7) + 16, Subnet1),
+    DevAddr001 = devaddr_from_subnet(Subnet1, NetIDList),
+    ?assertEqual(DevAddr001, DevAddr01),
+
+    Subnet2 = subnet_from_devaddr(DevAddr02, NetIDList),
     ?assertEqual((1 bsl 7) + (1 bsl 10) + 8, Subnet2),
+    DevAddr002 = devaddr_from_subnet(Subnet2, NetIDList),
+    ?assertEqual(DevAddr002, DevAddr02),
+
     ok.
+
+-endif.
