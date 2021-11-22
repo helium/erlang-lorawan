@@ -58,15 +58,6 @@ id_test() ->
     ?assertEqual({ok, 16#000002}, lorawan:netid(<<4, 16, 190, 163>>)),
     ok.
 
-% validate_devaddr(NetClass, ID, AddrLen, AddrSize) ->
-% 	NetIDBin = <<NetClass:3, ID:21>>,
-% 	<<NetID:32/integer-unsigned>> = NetIDBin,
-% 	NetAddrLen = netid_width(NetID),
-% 	?assertEqual(AddrLen, NetAddrLen),
-% 	NetAddrSize = netid_size(NetID),
-% 	?assertEqual(AddrSize, NetAddrSize),
-% 	ok.
-
 mock_netid_list() ->
     [ 16#E00001, 16#C00035, 16#60002D ].
 
@@ -89,43 +80,44 @@ exercise_subnet(DevAddr) ->
 	exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 3)),
     ok.
 
-exercise_devaddr(NetID, Addr) ->
+exercise_devaddr(NetID, Addr, _IDLen, AddrLen) ->
 	DevAddr = lorawan:devaddr(NetID, Addr),
 	NetIDType = lorawan:netid_type(DevAddr),
     ?assert(NetIDType =< 7),
     {ok, NetID0} = lorawan:netid(DevAddr),
     ?assertEqual(NetID, NetID0),
     AddrBitLen = lorawan:addr_bit_len(DevAddr),
+    ?assertEqual(AddrLen, AddrBitLen),
     NwkAddr = lorawan:nwk_addr(DevAddr),
     ?assertEqual(Addr, NwkAddr),
     exercise_subnet(DevAddr),
-    {DevAddr, AddrBitLen}.
+    ok.
 
-exercise_netid(NetClass, ID) ->
+exercise_netid(NetClass, ID, IDLen, AddrLen) ->
 	NetIDBin = <<0:8/integer-unsigned, NetClass:3/integer-unsigned, ID:21/integer-unsigned>>,
 	<<NetID:32/integer-unsigned>> = NetIDBin,
 	NetAddrLen = lorawan:netid_width(NetID),
-	?assert((NetAddrLen >= 7) and (NetAddrLen =< 25)),
+	?assert(NetAddrLen == AddrLen),
 	MaxNetSize = lorawan:netid_size(NetID),
-	exercise_devaddr(NetID, 0),
-	exercise_devaddr(NetID, 1),
-	exercise_devaddr(NetID, 8),
-	exercise_devaddr(NetID, 16),
-	exercise_devaddr(NetID, 32),
-	exercise_devaddr(NetID, 33),
-	exercise_devaddr(NetID, 64),
-	exercise_devaddr(NetID, MaxNetSize - 1),
+	exercise_devaddr(NetID, 0, IDLen, AddrLen),
+	exercise_devaddr(NetID, 1, IDLen, AddrLen),
+	exercise_devaddr(NetID, 8, IDLen, AddrLen),
+	exercise_devaddr(NetID, 16, IDLen, AddrLen),
+	exercise_devaddr(NetID, 32, IDLen, AddrLen),
+	exercise_devaddr(NetID, 33, IDLen, AddrLen),
+	exercise_devaddr(NetID, 64, IDLen, AddrLen),
+	exercise_devaddr(NetID, MaxNetSize - 1, IDLen, AddrLen),
 	ok.
 
-netid_exercise_test() ->
-	exercise_netid(7, 2),
-	exercise_netid(6, 2),
-	exercise_netid(5, 2),
-	exercise_netid(4, 2),
-	exercise_netid(3, 2),
-	exercise_netid(2, 2),
-	exercise_netid(1, 2),
- 	exercise_netid(0, 2),
+devaddr_exercise_test() ->
+	exercise_netid(7, 2, 17, 7),
+	exercise_netid(6, 2, 15, 10),
+	exercise_netid(5, 2, 13, 13),
+	exercise_netid(4, 2, 12, 15),
+	exercise_netid(3, 2, 11, 17),
+	exercise_netid(2, 2, 9, 20),
+	exercise_netid(1, 2, 6, 24),
+ 	exercise_netid(0, 2, 6, 25),
 	ok.
 
 netid_test() ->
