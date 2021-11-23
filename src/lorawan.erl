@@ -93,7 +93,7 @@ is_local_netid(NetID, NetIDList) ->
     end.
 
 -spec var_net_class(netclass()) -> non_neg_integer().
-var_net_class(NetClass) ->
+var_net_class(NetClass) when NetClass =< 7 ->
     case NetClass of
         0 -> 0;
         1 -> 2#10 bsl 6;
@@ -106,7 +106,7 @@ var_net_class(NetClass) ->
     end.
 
 -spec var_netid(netclass(), netid()) -> non_neg_integer().
-var_netid(NetClass, NetID) ->
+var_netid(NetClass, NetID) when NetClass =< 7 ->
     case NetClass of
         0 -> NetID bsl 25;
         1 -> NetID bsl 24;
@@ -141,6 +141,18 @@ netid(DevAddr) ->
             {error, invalid_netid_type}
     end.
 
+-spec get_netid(binary(), non_neg_integer(), non_neg_integer()) -> netid().
+get_netid(DevAddr, PrefixLength, NwkIDBits) ->
+    <<Temp:32/integer-unsigned>> = DevAddr,
+    %% Remove type prefix
+    One = uint32(Temp bsl PrefixLength),
+    %% Remove NwkAddr suffix
+    Two = uint32(One bsr (32 - NwkIDBits)),
+
+    IgnoreSize = 32 - NwkIDBits,
+    <<_:IgnoreSize, NetID:NwkIDBits/integer-unsigned>> = <<Two:32/integer-unsigned>>,
+    NetID.
+
 -spec addr_bit_len(number() | binary()) -> 7 | 10 | 13 | 15 | 17 | 20 | 24 | 25.
 addr_bit_len(DevNum) when erlang:is_number(DevNum) ->
     addr_bit_len(<<DevNum:32/integer-unsigned>>);
@@ -171,18 +183,6 @@ netid_type(Prefix, Index) ->
         0 -> 7 - Index;
         _ -> netid_type(Prefix, Index - 1)
     end.
-
--spec get_netid(binary(), non_neg_integer(), non_neg_integer()) -> netid().
-get_netid(DevAddr, PrefixLength, NwkIDBits) ->
-    <<Temp:32/integer-unsigned>> = DevAddr,
-    %% Remove type prefix
-    One = uint32(Temp bsl PrefixLength),
-    %% Remove NwkAddr suffix
-    Two = uint32(One bsr (32 - NwkIDBits)),
-
-    IgnoreSize = 32 - NwkIDBits,
-    <<_:IgnoreSize, NetID:NwkIDBits/integer-unsigned>> = <<Two:32/integer-unsigned>>,
-    NetID.
 
 -spec nwk_addr(devaddr()) -> nwkaddr().
 nwk_addr(DevAddr) ->
