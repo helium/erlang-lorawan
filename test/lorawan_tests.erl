@@ -117,7 +117,7 @@ exercise_devaddr(NetID, Addr, _IDLen, AddrLen) ->
 exercise_netid(NetClass, ID, IDLen, AddrLen) ->
 	NetIDBin = <<0:8/integer-unsigned, NetClass:3/integer-unsigned, ID:21/integer-unsigned>>,
 	<<NetID:32/integer-unsigned>> = NetIDBin,
-	NetAddrLen = lorawan:netid_width(NetID),
+	NetAddrLen = lorawan:addr_len(NetID),
 	?assert(NetAddrLen == AddrLen),
 	MaxNetSize = lorawan:netid_size(NetID),
 	exercise_devaddr(NetID, 0, IDLen, AddrLen),
@@ -163,11 +163,11 @@ netid_test() ->
     DevAddr01 = 16#FC00D410,
     DevAddr02 = 16#E05A0008,
 
-    NetWidth0 = lorawan:netid_width(NetID00),
+    NetWidth0 = lorawan:addr_len(NetID00),
     ?assertEqual(7, NetWidth0),
-    NetWidth1 = lorawan:netid_width(NetID01),
+    NetWidth1 = lorawan:addr_len(NetID01),
     ?assertEqual(10, NetWidth1),
-    NetWidth2 = lorawan:netid_width(NetID02),
+    NetWidth2 = lorawan:addr_len(NetID02),
     ?assertEqual(17, NetWidth2),
     NetSize0 = lorawan:netid_size(NetID00),
     ?assertEqual(128, NetSize0),

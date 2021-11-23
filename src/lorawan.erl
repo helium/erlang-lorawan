@@ -10,12 +10,12 @@
     devaddr_from_subnet/2,
     subnet_from_devaddr/2,
     netid/1,
+    addr_len/1,
     addr_bit_len/1,
     netid_type/1,
     nwk_addr/1,
     netid_addr_range/2,
     is_local_netid/2,
-    netid_width/1,
     netid_size/1
 ]).
 
@@ -26,6 +26,25 @@
 -type subnetaddr() :: non_neg_integer().
 
 -define(RETIRED_NETID, 16#200010).
+
+-spec netid_class(netid()) -> netclass().
+netid_class(NetID) ->
+    NetClass = NetID bsr 21,
+    NetClass.
+
+-spec addr_len(netid()) -> 7 | 10 | 13 | 15 | 17 | 20 | 24 | 25.
+addr_len(NetID) ->
+    NetClass = netid_class(NetID),
+    case NetClass of
+        0 -> 25;
+        1 -> 24;
+        2 -> 20;
+        3 -> 17;
+        4 -> 15;
+        5 -> 13;
+        6 -> 10;
+        7 -> 7
+    end.
 
 -spec devaddr_from_subnet(subnetaddr(), [netid()]) -> devaddr().
 devaddr_from_subnet(SubnetAddr, NetIDList) ->
@@ -106,6 +125,25 @@ var_netid(NetClass, NetID) when NetClass =< 7 ->
         7 -> NetID bsl 7
     end.
 
+-spec the_netid(number() | binary()) -> netid().
+the_netid(DevNum) when erlang:is_number(DevNum) ->
+    the_netid(<<DevNum:32/integer-unsigned>>);
+the_netid(DevAddr) ->
+    Type = netid_type(DevAddr),
+    BinNetID =
+        case Type of
+            0 -> get_netid(DevAddr, 1, 6);
+            1 -> get_netid(DevAddr, 2, 6);
+            2 -> get_netid(DevAddr, 3, 9);
+            3 -> get_netid(DevAddr, 4, 11);
+            4 -> get_netid(DevAddr, 5, 12);
+            5 -> get_netid(DevAddr, 6, 13);
+            6 -> get_netid(DevAddr, 7, 15);
+            7 -> get_netid(DevAddr, 8, 17)
+        end,
+    NetID = BinNetID bor (Type bsl 21),
+    NetID.
+
 -spec netid(number() | binary()) -> {ok, netid()} | {error, invalid_netid_type}.
 netid(DevNum) when erlang:is_number(DevNum) ->
     netid(<<DevNum:32/integer-unsigned>>);
@@ -129,6 +167,13 @@ netid(DevAddr) ->
             {error, invalid_netid_type}
     end.
 
+-spec addr_bit_len(number() | binary()) -> 7 | 10 | 13 | 15 | 17 | 20 | 24 | 25.
+addr_bit_len(DevNum) when erlang:is_number(DevNum) ->
+    addr_bit_len(<<DevNum:32/integer-unsigned>>);
+addr_bit_len(DevAddr) ->
+	NetID = the_netid(DevAddr),
+	addr_len(NetID).
+
 -spec get_netid(binary(), non_neg_integer(), non_neg_integer()) -> netid().
 get_netid(DevAddr, PrefixLength, NwkIDBits) ->
     <<Temp:32/integer-unsigned>> = DevAddr,
@@ -140,22 +185,6 @@ get_netid(DevAddr, PrefixLength, NwkIDBits) ->
     IgnoreSize = 32 - NwkIDBits,
     <<_:IgnoreSize, NetID:NwkIDBits/integer-unsigned>> = <<Two:32/integer-unsigned>>,
     NetID.
-
--spec addr_bit_len(number() | binary()) -> 7 | 10 | 13 | 15 | 17 | 20 | 24 | 25.
-addr_bit_len(DevNum) when erlang:is_number(DevNum) ->
-    addr_bit_len(<<DevNum:32/integer-unsigned>>);
-addr_bit_len(DevAddr) ->
-    Type = netid_type(DevAddr),
-    case Type of
-        0 -> 25;
-        1 -> 24;
-        2 -> 20;
-        3 -> 17;
-        4 -> 15;
-        5 -> 13;
-        6 -> 10;
-        7 -> 7
-    end.
 
 -spec netid_type(number() | binary()) -> 0..7.
 netid_type(NetID) when erlang:is_number(NetID) ->
@@ -174,7 +203,8 @@ netid_type(Prefix, Index) ->
 
 -spec nwk_addr(devaddr()) -> nwkaddr().
 nwk_addr(DevAddr) ->
-    AddrBitLen = addr_bit_len(DevAddr),
+	NetID = the_netid(DevAddr),
+    AddrBitLen = addr_len(NetID),
     IgnoreLen = 32 - AddrBitLen,
     DevAddr2 = <<DevAddr:32/integer-unsigned>>,
     <<_:IgnoreLen, NwkAddr:AddrBitLen/integer-unsigned>> = DevAddr2,
@@ -194,24 +224,9 @@ netid_addr_range(NetID, NetIDList0) ->
             {Lower, Upper}
     end.
 
--spec netid_width(netid()) -> 7 | 10 | 13 | 15 | 17 | 20 | 24 | 25.
-netid_width(NetID) ->
-    NetClass = NetID bsr 21,
-    % <<_ID:21, NetClass:3, _Ignore:8>> = NetID,
-    case NetClass of
-        0 -> 25;
-        1 -> 24;
-        2 -> 20;
-        3 -> 17;
-        4 -> 15;
-        5 -> 13;
-        6 -> 10;
-        7 -> 7
-    end.
-
 -spec netid_size(netid()) -> non_neg_integer().
 netid_size(NetID) ->
-    Size = 1 bsl netid_width(NetID),
+    Size = 1 bsl addr_len(NetID),
     Size.
 
 -spec uint32(integer()) -> integer().
