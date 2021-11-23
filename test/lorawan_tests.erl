@@ -58,6 +58,15 @@ id_test() ->
     ?assertEqual({ok, 16#000002}, lorawan:netid(<<4, 16, 190, 163>>)),
     ok.
 
+create_netid(NetClass, ID) ->
+    NetIDBin = <<0:8/integer-unsigned, NetClass:3/integer-unsigned, ID:21/integer-unsigned>>,
+    <<NetID:32/integer-unsigned>> = NetIDBin,
+    NetID.
+
+mock_random_netids() ->
+    Len = rand:uniform(10),
+    [create_netid(rand:uniform(7), rand:uniform(64)) || _ <- lists:seq(1, Len)].
+
 mock_netid_list() ->
     [ 16#E00001, 16#C00035, 16#60002D ].
 
@@ -65,6 +74,12 @@ insert_item(Item, List, Pos) ->
 	{A, B} = lists:split(Pos, List),
 	NewList = A ++ [Item] ++ B,
 	NewList.
+
+insert_rand(Item, List) ->
+    Pos = rand:uniform(length(List)),
+    {A, B} = lists:split(Pos, List),
+    NewList = A ++ [Item] ++ B,
+    NewList.
 
 exercise_subnet(DevAddr, NetIDList) ->
     SubnetAddr = lorawan:subnet_from_devaddr(DevAddr, NetIDList),
@@ -80,6 +95,11 @@ exercise_subnet(DevAddr) ->
 	exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 3)),
     ok.
 
+random_subnet(DevAddr) ->
+    {ok, NetID} = lorawan:netid(DevAddr),
+    [exercise_subnet(DevAddr, insert_rand(NetID, mock_random_netids())) || _ <- lists:seq(1, 400)],
+    ok.
+
 exercise_devaddr(NetID, Addr, _IDLen, AddrLen) ->
 	DevAddr = lorawan:devaddr(NetID, Addr),
 	NetIDType = lorawan:netid_type(DevAddr),
@@ -91,6 +111,7 @@ exercise_devaddr(NetID, Addr, _IDLen, AddrLen) ->
     NwkAddr = lorawan:nwk_addr(DevAddr),
     ?assertEqual(Addr, NwkAddr),
     exercise_subnet(DevAddr),
+    random_subnet(DevAddr),
     ok.
 
 exercise_netid(NetClass, ID, IDLen, AddrLen) ->
