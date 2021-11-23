@@ -242,13 +242,22 @@ netid_test() ->
     NwkAddr2 = lorawan:nwk_addr(DevAddr02),
     ?assertEqual(8, NwkAddr2),
 
-    % Subnet0 = subnet_from_devaddr(DevAddr00, NetIDList),
-    % io:format("Subnet0 ~8.16.0B~n", [Subnet0]),
-    % ?assertEqual(0, Subnet0),
-    % DevAddr000 = devaddr_from_subnet(Subnet0, NetIDList),
-    % io:format("DevAddr00 ~8.16.0B~n", [DevAddr00]),
-    % io:format("DevAddr000 ~8.16.0B~n", [DevAddr000]),
-    % ?assertEqual(DevAddr000, DevAddr00),
+    %% Backwards DevAddr compatibility test
+    %% DevAddr00 is a legacy Helium Devaddr.  The NetID is retired.
+    %% By design we do compute a proper subnet (giving us a correct OUI route),
+    %% but if we compute the associated DevAddr for this subnet (for the Join request)
+    %% we'll get a new one associated with a current and proper NetID
+    Subnet0 = lorawan:subnet_from_devaddr(DevAddr00, NetIDList),
+    io:format("Subnet0 ~8.16.0B~n", [Subnet0]),
+    ?assertEqual(0, Subnet0),
+    DevAddr000 = lorawan:devaddr_from_subnet(Subnet0, NetIDList),
+    io:format("DevAddr00 ~8.16.0B~n", [DevAddr00]),
+    io:format("DevAddr000 ~8.16.0B~n", [DevAddr000]),
+    %% By design the reverse DevAddr will have a correct NetID
+    ?assertNotEqual(DevAddr000, DevAddr00),
+    ?assertEqual(16#FE000080, DevAddr000),
+    {ok, DevAddr000NetID} = lorawan:netid(DevAddr000),
+    ?assertEqual(NetID00, DevAddr000NetID),
 
     Subnet1 = lorawan:subnet_from_devaddr(DevAddr01, NetIDList),
     io:format("Subnet1 ~8.16.0B~n", [Subnet1]),

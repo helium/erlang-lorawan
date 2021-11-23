@@ -29,12 +29,8 @@
 
 -spec devaddr_from_subnet(subnetaddr(), [netid()]) -> devaddr().
 devaddr_from_subnet(SubnetAddr, NetIDList) ->
-	io:format("devaddr_from_subnet ~8.16.0B~n", [SubnetAddr]),
     NetID = subnet_addr_to_netid(SubnetAddr, NetIDList),
-    io:format("NetID ~8.16.0B~n", [NetID]),
-    {Lower, Upper} = netid_addr_range(NetID, NetIDList),
-    io:format("Lower ~8.16.0B~n", [Lower]),
-    io:format("Upper ~8.16.0B~n", [Upper]),
+    {Lower, _Upper} = netid_addr_range(NetID, NetIDList),
     DevAddr = devaddr(NetID, SubnetAddr - Lower),
     DevAddr.
 
@@ -47,19 +43,11 @@ subnet_from_devaddr(DevAddr, NetIDList) ->
 
 -spec devaddr(netid(), nwkaddr()) -> devaddr().
 devaddr(NetID, NwkAddr) ->
-	io:format("devaddr start~n", []),
-	io:format("NetID ~8.16.0B~n", [NetID]),
-	io:format("NwkAddr ~8.16.0B~n", [NwkAddr]),
     NetClass = NetID bsr 21,
-    io:format("NetClass ~8.16.0B~n", [NetClass]),
     ID = NetID band 2#111111111111111111111,
-    io:format("ID ~8.16.0B~n", [ID]),
     % <<ID:21/integer-unsigned, NetClass:3/integer-unsigned, _Ignore:8/integer-unsigned>> = NetID,
     Addr0 = var_net_class(NetClass) bor ID,
-    io:format("Addr0 ~8.16.0B~n", [Addr0]),
     DevAddr = var_netid(NetClass, Addr0) bor NwkAddr,
-    io:format("DevAddr ~8.16.0B~n", [DevAddr]),
-    io:format("DevAddr end~n", []),
     DevAddr.
 
 -spec subnet_addr_to_netid(subnetaddr(), [netid()]) -> netid().
