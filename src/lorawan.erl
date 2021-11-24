@@ -10,6 +10,7 @@
     devaddr_from_subnet/2,
     subnet_from_devaddr/2,
     netid/1,
+    netid_class/1,
     addr_len/1,
     addr_bit_len/1,
     netid_type/1,
@@ -32,9 +33,8 @@ netid_class(NetID) ->
     NetClass = NetID bsr 21,
     NetClass.
 
--spec addr_len(netid()) -> 7 | 10 | 13 | 15 | 17 | 20 | 24 | 25.
-addr_len(NetID) ->
-    NetClass = netid_class(NetID),
+-spec addr_len(netclass()) -> 7 | 10 | 13 | 15 | 17 | 20 | 24 | 25.
+addr_len(NetClass) ->
     case NetClass of
         0 -> 25;
         1 -> 24;
@@ -46,6 +46,19 @@ addr_len(NetID) ->
         7 -> 7
     end.
 
+-spec id_len(netclass()) -> 6 | 9 | 11 | 12 | 13 | 15 | 17.
+id_len(NetClass) ->
+    case NetClass of
+        0 -> 6;
+        1 -> 6;
+        2 -> 9;
+        3 -> 11;
+        4 -> 12;
+        5 -> 13;
+        6 -> 15;
+        7 -> 17
+    end.
+
 -spec devaddr_from_subnet(subnetaddr(), [netid()]) -> devaddr().
 devaddr_from_subnet(SubnetAddr, NetIDList) ->
     NetID = subnet_addr_to_netid(SubnetAddr, NetIDList),
@@ -55,7 +68,7 @@ devaddr_from_subnet(SubnetAddr, NetIDList) ->
 
 -spec subnet_from_devaddr(devaddr(), [netid()]) -> subnetaddr().
 subnet_from_devaddr(DevAddr, NetIDList) ->
-    {ok, NetID} = netid(DevAddr),
+    NetID = the_netid(DevAddr),
     {Lower, _Upper} = netid_addr_range(NetID, NetIDList),
     SubnetAddr = Lower + nwk_addr(DevAddr),
     SubnetAddr.
@@ -101,46 +114,28 @@ is_local_netid(NetID, NetIDList) ->
 
 -spec var_net_class(netclass()) -> non_neg_integer().
 var_net_class(NetClass) when NetClass =< 7 ->
+    IDLen = id_len(NetClass),
     case NetClass of
         0 -> 0;
-        1 -> 2#10 bsl 6;
-        2 -> 2#110 bsl 9;
-        3 -> 2#1110 bsl 11;
-        4 -> 2#11110 bsl 12;
-        5 -> 2#111110 bsl 13;
-        6 -> 2#1111110 bsl 15;
-        7 -> 2#11111110 bsl 17
+        1 -> 2#10 bsl IDLen;
+        2 -> 2#110 bsl IDLen;
+        3 -> 2#1110 bsl IDLen;
+        4 -> 2#11110 bsl IDLen;
+        5 -> 2#111110 bsl IDLen;
+        6 -> 2#1111110 bsl IDLen;
+        7 -> 2#11111110 bsl IDLen
     end.
 
 -spec var_netid(netclass(), netid()) -> non_neg_integer().
 var_netid(NetClass, NetID) when NetClass =< 7 ->
-    case NetClass of
-        0 -> NetID bsl 25;
-        1 -> NetID bsl 24;
-        2 -> NetID bsl 20;
-        3 -> NetID bsl 17;
-        4 -> NetID bsl 15;
-        5 -> NetID bsl 13;
-        6 -> NetID bsl 10;
-        7 -> NetID bsl 7
-    end.
+    NetID bsl addr_len(NetClass).
 
 -spec the_netid(number() | binary()) -> netid().
 the_netid(DevNum) when erlang:is_number(DevNum) ->
     the_netid(<<DevNum:32/integer-unsigned>>);
 the_netid(DevAddr) ->
     Type = netid_type(DevAddr),
-    BinNetID =
-        case Type of
-            0 -> get_netid(DevAddr, 1, 6);
-            1 -> get_netid(DevAddr, 2, 6);
-            2 -> get_netid(DevAddr, 3, 9);
-            3 -> get_netid(DevAddr, 4, 11);
-            4 -> get_netid(DevAddr, 5, 12);
-            5 -> get_netid(DevAddr, 6, 13);
-            6 -> get_netid(DevAddr, 7, 15);
-            7 -> get_netid(DevAddr, 8, 17)
-        end,
+    BinNetID = get_netid(DevAddr, Type + 1, id_len(Type)),
     NetID = BinNetID bor (Type bsl 21),
     NetID.
 
@@ -150,17 +145,7 @@ netid(DevNum) when erlang:is_number(DevNum) ->
 netid(DevAddr) ->
     try
         Type = netid_type(DevAddr),
-        NetID =
-            case Type of
-                0 -> get_netid(DevAddr, 1, 6);
-                1 -> get_netid(DevAddr, 2, 6);
-                2 -> get_netid(DevAddr, 3, 9);
-                3 -> get_netid(DevAddr, 4, 11);
-                4 -> get_netid(DevAddr, 5, 12);
-                5 -> get_netid(DevAddr, 6, 13);
-                6 -> get_netid(DevAddr, 7, 15);
-                7 -> get_netid(DevAddr, 8, 17)
-            end,
+        NetID = get_netid(DevAddr, Type + 1, id_len(Type)),
         {ok, NetID bor (Type bsl 21)}
     catch
         throw:invalid_netid_type:_ ->
@@ -171,8 +156,8 @@ netid(DevAddr) ->
 addr_bit_len(DevNum) when erlang:is_number(DevNum) ->
     addr_bit_len(<<DevNum:32/integer-unsigned>>);
 addr_bit_len(DevAddr) ->
-	NetID = the_netid(DevAddr),
-	addr_len(NetID).
+    NetID = the_netid(DevAddr),
+    addr_len(netid_class(NetID)).
 
 -spec get_netid(binary(), non_neg_integer(), non_neg_integer()) -> netid().
 get_netid(DevAddr, PrefixLength, NwkIDBits) ->
@@ -203,8 +188,8 @@ netid_type(Prefix, Index) ->
 
 -spec nwk_addr(devaddr()) -> nwkaddr().
 nwk_addr(DevAddr) ->
-	NetID = the_netid(DevAddr),
-    AddrBitLen = addr_len(NetID),
+    NetID = the_netid(DevAddr),
+    AddrBitLen = addr_len(netid_class(NetID)),
     IgnoreLen = 32 - AddrBitLen,
     DevAddr2 = <<DevAddr:32/integer-unsigned>>,
     <<_:IgnoreLen, NwkAddr:AddrBitLen/integer-unsigned>> = DevAddr2,
@@ -226,10 +211,9 @@ netid_addr_range(NetID, NetIDList0) ->
 
 -spec netid_size(netid()) -> non_neg_integer().
 netid_size(NetID) ->
-    Size = 1 bsl addr_len(NetID),
+    Size = 1 bsl addr_len(netid_class(NetID)),
     Size.
 
 -spec uint32(integer()) -> integer().
 uint32(Num) ->
     Num band 16#FFFFFFFF.
-

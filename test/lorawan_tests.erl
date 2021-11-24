@@ -12,8 +12,12 @@ id_test() ->
     %% CP data
     ?assertEqual({ok, 16#00002D}, lorawan:netid(<<91, 255, 255, 255>>), "[45] == 2D == 45 type 0"),
     ?assertEqual({ok, 16#20002D}, lorawan:netid(<<173, 255, 255, 255>>), "[45] == 2D == 45 type 1"),
-    ?assertEqual({ok, 16#40016D}, lorawan:netid(<<214, 223, 255, 255>>), "[1,109] == 16D == 365 type 2"),
-    ?assertEqual({ok, 16#6005B7}, lorawan:netid(<<235, 111, 255, 255>>), "[5,183] == 5B7 == 1463 type 3"),
+    ?assertEqual(
+        {ok, 16#40016D}, lorawan:netid(<<214, 223, 255, 255>>), "[1,109] == 16D == 365 type 2"
+    ),
+    ?assertEqual(
+        {ok, 16#6005B7}, lorawan:netid(<<235, 111, 255, 255>>), "[5,183] == 5B7 == 1463 type 3"
+    ),
     ?assertEqual(
         {ok, 16#800B6D},
         lorawan:netid(<<245, 182, 255, 255>>),
@@ -46,9 +50,13 @@ id_test() ->
     ?assertEqual({ok, 2}, lorawan:netid(<<0:1, 0:1, 0:1, 0:1, 0:1, 1:1, 0:1, 0:25>>)),
 
     %% Mis-parsed as netid 4 of type 3
-    ?assertEqual({ok, 16#600004}, lorawan:netid(<<224, 9, 171, 205>>), "hex_to_binary(<<'E009ABCD'>>)"),
+    ?assertEqual(
+        {ok, 16#600004}, lorawan:netid(<<224, 9, 171, 205>>), "hex_to_binary(<<'E009ABCD'>>)"
+    ),
     %% Valid DevAddr, NetID not assigned
-    ?assertEqual({ok, 16#20002D}, lorawan:netid(<<173, 255, 255, 255>>), "hex_to_binary(<<'ADFFFFFF'>>)"),
+    ?assertEqual(
+        {ok, 16#20002D}, lorawan:netid(<<173, 255, 255, 255>>), "hex_to_binary(<<'ADFFFFFF'>>)"
+    ),
     %% Less than 32 bit number
     ?assertEqual({ok, 0}, lorawan:netid(46377)),
 
@@ -68,12 +76,12 @@ mock_random_netids() ->
     [create_netid(rand:uniform(7), rand:uniform(64)) || _ <- lists:seq(1, Len)].
 
 mock_netid_list() ->
-    [ 16#E00001, 16#C00035, 16#60002D ].
+    [16#E00001, 16#C00035, 16#60002D].
 
 insert_item(Item, List, Pos) ->
-	{A, B} = lists:split(Pos, List),
-	NewList = A ++ [Item] ++ B,
-	NewList.
+    {A, B} = lists:split(Pos, List),
+    NewList = A ++ [Item] ++ B,
+    NewList.
 
 insert_rand(Item, List) ->
     Pos = rand:uniform(length(List)),
@@ -88,11 +96,11 @@ exercise_subnet(DevAddr, NetIDList) ->
     ok.
 
 exercise_subnet(DevAddr) ->
-	{ok, NetID} = lorawan:netid(DevAddr),
-	exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 0)),
-	exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 1)),
-	exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 2)),
-	exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 3)),
+    {ok, NetID} = lorawan:netid(DevAddr),
+    exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 0)),
+    exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 1)),
+    exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 2)),
+    exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 3)),
     ok.
 
 random_subnet(DevAddr) ->
@@ -101,8 +109,8 @@ random_subnet(DevAddr) ->
     ok.
 
 exercise_devaddr(NetID, Addr, _IDLen, AddrLen) ->
-	DevAddr = lorawan:devaddr(NetID, Addr),
-	NetIDType = lorawan:netid_type(DevAddr),
+    DevAddr = lorawan:devaddr(NetID, Addr),
+    NetIDType = lorawan:netid_type(DevAddr),
     ?assert(NetIDType =< 7),
     {ok, NetID0} = lorawan:netid(DevAddr),
     ?assertEqual(NetID, NetID0),
@@ -115,31 +123,31 @@ exercise_devaddr(NetID, Addr, _IDLen, AddrLen) ->
     ok.
 
 exercise_netid(NetClass, ID, IDLen, AddrLen) ->
-	NetIDBin = <<0:8/integer-unsigned, NetClass:3/integer-unsigned, ID:21/integer-unsigned>>,
-	<<NetID:32/integer-unsigned>> = NetIDBin,
-	NetAddrLen = lorawan:addr_len(NetID),
-	?assert(NetAddrLen == AddrLen),
-	MaxNetSize = lorawan:netid_size(NetID),
-	exercise_devaddr(NetID, 0, IDLen, AddrLen),
-	exercise_devaddr(NetID, 1, IDLen, AddrLen),
-	exercise_devaddr(NetID, 8, IDLen, AddrLen),
-	exercise_devaddr(NetID, 16, IDLen, AddrLen),
-	exercise_devaddr(NetID, 32, IDLen, AddrLen),
-	exercise_devaddr(NetID, 33, IDLen, AddrLen),
-	exercise_devaddr(NetID, 64, IDLen, AddrLen),
-	exercise_devaddr(NetID, MaxNetSize - 1, IDLen, AddrLen),
-	ok.
+    NetIDBin = <<0:8/integer-unsigned, NetClass:3/integer-unsigned, ID:21/integer-unsigned>>,
+    <<NetID:32/integer-unsigned>> = NetIDBin,
+    NetAddrLen = lorawan:addr_len(NetClass),
+    ?assert(NetAddrLen == AddrLen),
+    MaxNetSize = lorawan:netid_size(NetID),
+    exercise_devaddr(NetID, 0, IDLen, AddrLen),
+    exercise_devaddr(NetID, 1, IDLen, AddrLen),
+    exercise_devaddr(NetID, 8, IDLen, AddrLen),
+    exercise_devaddr(NetID, 16, IDLen, AddrLen),
+    exercise_devaddr(NetID, 32, IDLen, AddrLen),
+    exercise_devaddr(NetID, 33, IDLen, AddrLen),
+    exercise_devaddr(NetID, 64, IDLen, AddrLen),
+    exercise_devaddr(NetID, MaxNetSize - 1, IDLen, AddrLen),
+    ok.
 
 devaddr_exercise_test() ->
-	exercise_netid(7, 2, 17, 7),
-	exercise_netid(6, 2, 15, 10),
-	exercise_netid(5, 2, 13, 13),
-	exercise_netid(4, 2, 12, 15),
-	exercise_netid(3, 2, 11, 17),
-	exercise_netid(2, 2, 9, 20),
-	exercise_netid(1, 2, 6, 24),
- 	exercise_netid(0, 2, 6, 25),
-	ok.
+    exercise_netid(7, 2, 17, 7),
+    exercise_netid(6, 2, 15, 10),
+    exercise_netid(5, 2, 13, 13),
+    exercise_netid(4, 2, 12, 15),
+    exercise_netid(3, 2, 11, 17),
+    exercise_netid(2, 2, 9, 20),
+    exercise_netid(1, 2, 6, 24),
+    exercise_netid(0, 2, 6, 25),
+    ok.
 
 netid_test() ->
     LegacyDevAddr = <<$H:7, 0:25>>,
@@ -163,11 +171,11 @@ netid_test() ->
     DevAddr01 = 16#FC00D410,
     DevAddr02 = 16#E05A0008,
 
-    NetWidth0 = lorawan:addr_len(NetID00),
+    NetWidth0 = lorawan:addr_len(lorawan:netid_class(NetID00)),
     ?assertEqual(7, NetWidth0),
-    NetWidth1 = lorawan:addr_len(NetID01),
+    NetWidth1 = lorawan:addr_len(lorawan:netid_class(NetID01)),
     ?assertEqual(10, NetWidth1),
-    NetWidth2 = lorawan:addr_len(NetID02),
+    NetWidth2 = lorawan:addr_len(lorawan:netid_class(NetID02)),
     ?assertEqual(17, NetWidth2),
     NetSize0 = lorawan:netid_size(NetID00),
     ?assertEqual(128, NetSize0),
