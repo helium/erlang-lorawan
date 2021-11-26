@@ -135,8 +135,8 @@ the_netid(DevNum) when erlang:is_number(DevNum) ->
     the_netid(<<DevNum:32/integer-unsigned>>);
 the_netid(DevAddr) ->
     Type = netid_type(DevAddr),
-    BinNetID = get_netid(DevAddr, Type + 1, id_len(Type)),
-    NetID = BinNetID bor (Type bsl 21),
+    ID = get_id(DevAddr, Type + 1, id_len(Type)),
+    NetID = ID bor (Type bsl 21),
     NetID.
 
 -spec netid(number() | binary()) -> {ok, netid()} | {error, invalid_netid_type}.
@@ -145,8 +145,8 @@ netid(DevNum) when erlang:is_number(DevNum) ->
 netid(DevAddr) ->
     try
         Type = netid_type(DevAddr),
-        NetID = get_netid(DevAddr, Type + 1, id_len(Type)),
-        {ok, NetID bor (Type bsl 21)}
+        ID = get_id(DevAddr, Type + 1, id_len(Type)),
+        {ok, ID bor (Type bsl 21)}
     catch
         throw:invalid_netid_type:_ ->
             {error, invalid_netid_type}
@@ -159,17 +159,10 @@ addr_bit_len(DevAddr) ->
     NetID = the_netid(DevAddr),
     addr_len(netid_class(NetID)).
 
--spec get_netid(binary(), non_neg_integer(), non_neg_integer()) -> netid().
-get_netid(DevAddr, PrefixLength, NwkIDBits) ->
-    <<Temp:32/integer-unsigned>> = DevAddr,
-    %% Remove type prefix
-    One = uint32(Temp bsl PrefixLength),
-    %% Remove NwkAddr suffix
-    Two = uint32(One bsr (32 - NwkIDBits)),
-
-    IgnoreSize = 32 - NwkIDBits,
-    <<_:IgnoreSize, NetID:NwkIDBits/integer-unsigned>> = <<Two:32/integer-unsigned>>,
-    NetID.
+-spec get_id(binary(), non_neg_integer(), non_neg_integer()) -> netid().
+get_id(DevAddr, PrefixLength, NwkIDBits) ->
+    <<DevAddrNum:32/integer-unsigned>> = DevAddr,
+    uint32(uint32(DevAddrNum bsl PrefixLength) bsr (32 - NwkIDBits)).
 
 -spec netid_type(number() | binary()) -> 0..7.
 netid_type(NetID) when erlang:is_number(NetID) ->
