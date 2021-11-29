@@ -23,3 +23,5 @@ src/pb/
 doc/
 .DS_Store
 *.coverdata
+target/
+Cargo.lock
