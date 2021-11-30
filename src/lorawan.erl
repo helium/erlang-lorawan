@@ -6,9 +6,11 @@
 -module(lorawan).
 
 -export([
-    devaddr/2,
-    devaddr_from_subnet/2,
+	is_local_devaddr/2,
+	devaddr_from_subnet/2,
     subnet_from_devaddr/2,
+
+    devaddr/2,
     netid/1,
     netid_class/1,
     addr_len/1,
@@ -27,6 +29,33 @@
 -type subnetaddr() :: non_neg_integer().
 
 -define(RETIRED_NETID, 16#200010).
+
+%%
+%% Public functions
+%%
+
+-spec is_local_devaddr(devaddr(), [netid()]) -> boolean().
+is_local_devaddr(DevAddr, NetIDList) ->
+	NetID = the_netid(DevAddr),
+	is_local_netid(NetID, NetIDList).
+
+-spec devaddr_from_subnet(subnetaddr(), [netid()]) -> devaddr().
+devaddr_from_subnet(SubnetAddr, NetIDList) ->
+    NetID = subnet_addr_to_netid(SubnetAddr, NetIDList),
+    {Lower, _Upper} = netid_addr_range(NetID, NetIDList),
+    DevAddr = devaddr(NetID, SubnetAddr - Lower),
+    DevAddr.
+
+-spec subnet_from_devaddr(devaddr(), [netid()]) -> subnetaddr().
+subnet_from_devaddr(DevAddr, NetIDList) ->
+    NetID = the_netid(DevAddr),
+    {Lower, _Upper} = netid_addr_range(NetID, NetIDList),
+    SubnetAddr = Lower + nwk_addr(DevAddr),
+    SubnetAddr.
+
+%%
+%% Internal functions
+%%
 
 -spec netid_class(netid()) -> netclass().
 netid_class(NetID) ->
@@ -59,19 +88,14 @@ id_len(NetClass) ->
         7 -> 17
     end.
 
--spec devaddr_from_subnet(subnetaddr(), [netid()]) -> devaddr().
-devaddr_from_subnet(SubnetAddr, NetIDList) ->
-    NetID = subnet_addr_to_netid(SubnetAddr, NetIDList),
-    {Lower, _Upper} = netid_addr_range(NetID, NetIDList),
-    DevAddr = devaddr(NetID, SubnetAddr - Lower),
-    DevAddr.
-
--spec subnet_from_devaddr(devaddr(), [netid()]) -> subnetaddr().
-subnet_from_devaddr(DevAddr, NetIDList) ->
-    NetID = the_netid(DevAddr),
-    {Lower, _Upper} = netid_addr_range(NetID, NetIDList),
-    SubnetAddr = Lower + nwk_addr(DevAddr),
-    SubnetAddr.
+-spec is_local_netid(netid(), [netid()]) -> boolean().
+is_local_netid(NetID, NetIDList) ->
+    case NetID of
+        ?RETIRED_NETID ->
+            true;
+        _ ->
+            lists:any(fun(X) -> X == NetID end, NetIDList)
+    end.
 
 -spec devaddr(netid(), nwkaddr()) -> devaddr().
 devaddr(NetID, NwkAddr) ->
@@ -102,15 +126,6 @@ subnet_addr_to_netid_search(NwkAddr, SList, NetIDList) ->
 subnet_addr_within_range(Addr, NetID, NetIDList) ->
     {Lower, Upper} = netid_addr_range(NetID, NetIDList),
     (Addr >= Lower) and (Addr < Upper).
-
--spec is_local_netid(netid(), [netid()]) -> boolean().
-is_local_netid(NetID, NetIDList) ->
-    case NetID of
-        ?RETIRED_NETID ->
-            true;
-        _ ->
-            lists:any(fun(X) -> X == NetID end, NetIDList)
-    end.
 
 -spec var_net_class(netclass()) -> non_neg_integer().
 var_net_class(NetClass) when NetClass =< 7 ->
