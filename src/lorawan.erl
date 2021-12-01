@@ -5,13 +5,13 @@
 %%%-------------------------------------------------------------------
 -module(lorawan).
 
+-ifdef(TEST).
 -export([
 	is_local_devaddr/2,
 	devaddr_from_subnet/2,
     subnet_from_devaddr/2,
-
     devaddr/2,
-    netid/1,
+    parse_netid/1,
     netid_class/1,
     addr_len/1,
     addr_bit_len/1,
@@ -21,6 +21,14 @@
     is_local_netid/2,
     netid_size/1
 ]).
+-else.
+-export([
+	is_local_devaddr/2,
+	devaddr_from_subnet/2,
+    subnet_from_devaddr/2,
+    devaddr/2
+]).
+-endif.
 
 -type netid() :: non_neg_integer().
 -type netclass() :: non_neg_integer().
@@ -150,17 +158,17 @@ the_netid(DevNum) when erlang:is_number(DevNum) ->
     the_netid(<<DevNum:32/integer-unsigned>>);
 the_netid(DevAddr) ->
     Type = netid_type(DevAddr),
-    ID = get_id(DevAddr, Type + 1, id_len(Type)),
+    ID = parse_id(DevAddr, Type + 1, id_len(Type)),
     NetID = ID bor (Type bsl 21),
     NetID.
 
--spec netid(number() | binary()) -> {ok, netid()} | {error, invalid_netid_type}.
-netid(DevNum) when erlang:is_number(DevNum) ->
-    netid(<<DevNum:32/integer-unsigned>>);
-netid(DevAddr) ->
+-spec parse_netid(number() | binary()) -> {ok, netid()} | {error, invalid_netid_type}.
+parse_netid(DevNum) when erlang:is_number(DevNum) ->
+    parse_netid(<<DevNum:32/integer-unsigned>>);
+parse_netid(DevAddr) ->
     try
         Type = netid_type(DevAddr),
-        ID = get_id(DevAddr, Type + 1, id_len(Type)),
+        ID = parse_id(DevAddr, Type + 1, id_len(Type)),
         {ok, ID bor (Type bsl 21)}
     catch
         throw:invalid_netid_type:_ ->
@@ -174,8 +182,8 @@ addr_bit_len(DevAddr) ->
     NetID = the_netid(DevAddr),
     addr_len(netid_class(NetID)).
 
--spec get_id(binary(), non_neg_integer(), non_neg_integer()) -> netid().
-get_id(DevAddr, PrefixLength, NwkIDBits) ->
+-spec parse_id(binary(), non_neg_integer(), non_neg_integer()) -> netid().
+parse_id(DevAddr, PrefixLength, NwkIDBits) ->
     <<DevAddrNum:32/integer-unsigned>> = DevAddr,
     uint32(uint32(DevAddrNum bsl PrefixLength) bsr (32 - NwkIDBits)).
 

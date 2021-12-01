@@ -10,60 +10,60 @@
 
 id_test() ->
     %% CP data
-    ?assertEqual({ok, 16#00002D}, lorawan:netid(<<91, 255, 255, 255>>), "[45] == 2D == 45 type 0"),
-    ?assertEqual({ok, 16#20002D}, lorawan:netid(<<173, 255, 255, 255>>), "[45] == 2D == 45 type 1"),
+    ?assertEqual({ok, 16#00002D}, lorawan:parse_netid(<<91, 255, 255, 255>>), "[45] == 2D == 45 type 0"),
+    ?assertEqual({ok, 16#20002D}, lorawan:parse_netid(<<173, 255, 255, 255>>), "[45] == 2D == 45 type 1"),
     ?assertEqual(
-        {ok, 16#40016D}, lorawan:netid(<<214, 223, 255, 255>>), "[1,109] == 16D == 365 type 2"
+        {ok, 16#40016D}, lorawan:parse_netid(<<214, 223, 255, 255>>), "[1,109] == 16D == 365 type 2"
     ),
     ?assertEqual(
-        {ok, 16#6005B7}, lorawan:netid(<<235, 111, 255, 255>>), "[5,183] == 5B7 == 1463 type 3"
+        {ok, 16#6005B7}, lorawan:parse_netid(<<235, 111, 255, 255>>), "[5,183] == 5B7 == 1463 type 3"
     ),
     ?assertEqual(
         {ok, 16#800B6D},
-        lorawan:netid(<<245, 182, 255, 255>>),
+        lorawan:parse_netid(<<245, 182, 255, 255>>),
         "[11, 109] == B6D == 2925 type 4"
     ),
     ?assertEqual(
         {ok, 16#A016DB},
-        lorawan:netid(<<250, 219, 127, 255>>),
+        lorawan:parse_netid(<<250, 219, 127, 255>>),
         "[22,219] == 16DB == 5851 type 5"
     ),
     ?assertEqual(
         {ok, 16#C05B6D},
-        lorawan:netid(<<253, 109, 183, 255>>),
+        lorawan:parse_netid(<<253, 109, 183, 255>>),
         "[91, 109] == 5B6D == 23405 type 6"
     ),
     ?assertEqual(
         {ok, 16#E16DB6},
-        lorawan:netid(<<254, 182, 219, 127>>),
+        lorawan:parse_netid(<<254, 182, 219, 127>>),
         "[1,109,182] == 16DB6 == 93622 type 7"
     ),
     ?assertEqual(
         {error, invalid_netid_type},
-        lorawan:netid(<<255, 255, 255, 255>>),
+        lorawan:parse_netid(<<255, 255, 255, 255>>),
         "Invalid DevAddr"
     ),
 
     % Actility spreadsheet examples
-    ?assertEqual({ok, 0}, lorawan:netid(<<0:1, 0:1, 0:1, 0:1, 0:1, 0:1, 0:1, 0:25>>)),
-    ?assertEqual({ok, 1}, lorawan:netid(<<0:1, 0:1, 0:1, 0:1, 0:1, 0:1, 1:1, 0:25>>)),
-    ?assertEqual({ok, 2}, lorawan:netid(<<0:1, 0:1, 0:1, 0:1, 0:1, 1:1, 0:1, 0:25>>)),
+    ?assertEqual({ok, 0}, lorawan:parse_netid(<<0:1, 0:1, 0:1, 0:1, 0:1, 0:1, 0:1, 0:25>>)),
+    ?assertEqual({ok, 1}, lorawan:parse_netid(<<0:1, 0:1, 0:1, 0:1, 0:1, 0:1, 1:1, 0:25>>)),
+    ?assertEqual({ok, 2}, lorawan:parse_netid(<<0:1, 0:1, 0:1, 0:1, 0:1, 1:1, 0:1, 0:25>>)),
 
     %% Mis-parsed as netid 4 of type 3
     ?assertEqual(
-        {ok, 16#600004}, lorawan:netid(<<224, 9, 171, 205>>), "hex_to_binary(<<'E009ABCD'>>)"
+        {ok, 16#600004}, lorawan:parse_netid(<<224, 9, 171, 205>>), "hex_to_binary(<<'E009ABCD'>>)"
     ),
     %% Valid DevAddr, NetID not assigned
     ?assertEqual(
-        {ok, 16#20002D}, lorawan:netid(<<173, 255, 255, 255>>), "hex_to_binary(<<'ADFFFFFF'>>)"
+        {ok, 16#20002D}, lorawan:parse_netid(<<173, 255, 255, 255>>), "hex_to_binary(<<'ADFFFFFF'>>)"
     ),
     %% Less than 32 bit number
-    ?assertEqual({ok, 0}, lorawan:netid(46377)),
+    ?assertEqual({ok, 0}, lorawan:parse_netid(46377)),
 
     % Louis test data
-    ?assertEqual({ok, 16#600002}, lorawan:netid(<<224, 4, 0, 1>>)),
-    ?assertEqual({ok, 16#600002}, lorawan:netid(<<224, 5, 39, 132>>)),
-    ?assertEqual({ok, 16#000002}, lorawan:netid(<<4, 16, 190, 163>>)),
+    ?assertEqual({ok, 16#600002}, lorawan:parse_netid(<<224, 4, 0, 1>>)),
+    ?assertEqual({ok, 16#600002}, lorawan:parse_netid(<<224, 5, 39, 132>>)),
+    ?assertEqual({ok, 16#000002}, lorawan:parse_netid(<<4, 16, 190, 163>>)),
     ok.
 
 create_netid(NetClass, ID) ->
@@ -96,7 +96,7 @@ exercise_subnet(DevAddr, NetIDList) ->
     ok.
 
 exercise_subnet(DevAddr) ->
-    {ok, NetID} = lorawan:netid(DevAddr),
+    {ok, NetID} = lorawan:parse_netid(DevAddr),
     exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 0)),
     exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 1)),
     exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 2)),
@@ -104,7 +104,7 @@ exercise_subnet(DevAddr) ->
     ok.
 
 random_subnet(DevAddr) ->
-    {ok, NetID} = lorawan:netid(DevAddr),
+    {ok, NetID} = lorawan:parse_netid(DevAddr),
     [exercise_subnet(DevAddr, insert_rand(NetID, mock_random_netids())) || _ <- lists:seq(1, 400)],
     ok.
 
@@ -112,7 +112,7 @@ exercise_devaddr(NetID, Addr, _IDLen, AddrLen) ->
     DevAddr = lorawan:devaddr(NetID, Addr),
     NetIDType = lorawan:netid_type(DevAddr),
     ?assert(NetIDType =< 7),
-    {ok, NetID0} = lorawan:netid(DevAddr),
+    {ok, NetID0} = lorawan:parse_netid(DevAddr),
     ?assertEqual(NetID, NetID0),
     AddrBitLen = lorawan:addr_bit_len(DevAddr),
     ?assertEqual(AddrLen, AddrBitLen),
@@ -213,20 +213,20 @@ netid_test() ->
     NetIDType2 = lorawan:netid_type(DevAddr2),
     ?assertEqual(3, NetIDType2),
 
-    {ok, NetID_0} = lorawan:netid(DevAddr00),
+    {ok, NetID_0} = lorawan:parse_netid(DevAddr00),
     ?assertEqual(NetID_0, LegacyNetID),
-    {ok, NetID_1} = lorawan:netid(16#FC00D410),
+    {ok, NetID_1} = lorawan:parse_netid(16#FC00D410),
     ?assertEqual(NetID_1, 16#C00035),
-    {ok, NetID_1} = lorawan:netid(DevAddr01),
+    {ok, NetID_1} = lorawan:parse_netid(DevAddr01),
     ?assertEqual(NetID_1, NetID01),
-    {ok, NetID_2} = lorawan:netid(DevAddr02),
+    {ok, NetID_2} = lorawan:parse_netid(DevAddr02),
     ?assertEqual(NetID_2, NetID02),
 
-    {ok, NetID0} = lorawan:netid(DevAddrLegacy),
+    {ok, NetID0} = lorawan:parse_netid(DevAddrLegacy),
     ?assertEqual(NetID0, LegacyNetID),
-    {ok, NetID1} = lorawan:netid(DevAddr1),
+    {ok, NetID1} = lorawan:parse_netid(DevAddr1),
     ?assertEqual(NetID1, NetID01),
-    {ok, NetID2} = lorawan:netid(DevAddr2),
+    {ok, NetID2} = lorawan:parse_netid(DevAddr2),
     ?assertEqual(NetID2, NetID02),
 
     Width_0 = lorawan:addr_bit_len(DevAddr00),
@@ -264,7 +264,7 @@ netid_test() ->
     %% By design the reverse DevAddr will have a correct NetID
     ?assertNotEqual(DevAddr000, DevAddr00),
     ?assertEqual(16#FE000080, DevAddr000),
-    {ok, DevAddr000NetID} = lorawan:netid(DevAddr000),
+    {ok, DevAddr000NetID} = lorawan:parse_netid(DevAddr000),
     ?assertEqual(NetID00, DevAddr000NetID),
 
     Subnet1 = lorawan:subnet_from_devaddr(DevAddr01, NetIDList),
