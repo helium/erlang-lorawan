@@ -163,12 +163,15 @@ netid_test() ->
 
     NetID00 = 16#E00001,
     NetID01 = 16#C00035,
+    %% Official NetID assigned to Helium by LoRa Alliance
     NetID02 = 16#60002D,
     NetIDExt = 16#C00050,
 
-    %% Class 6
+    %% DevAddr with legacy Helium NetID
     DevAddr00 = 16#90000000,
+    %% DevAddr with class 6 NetID
     DevAddr01 = 16#FC00D410,
+    %% DevAddr with class 3 NetID
     DevAddr02 = 16#E05A0008,
 
     NetWidth0 = lorawan:addr_len(lorawan:netid_class(NetID00)),
@@ -254,7 +257,8 @@ netid_test() ->
     %% DevAddr00 is a legacy Helium Devaddr.  The NetID is retired.
     %% By design we do compute a proper subnet (giving us a correct OUI route),
     %% but if we compute the associated DevAddr for this subnet (for the Join request)
-    %% we'll get a new one associated with a current and proper NetID
+    %% we'll get a new DevAddr associated with a current and proper NetID.
+    %% In other words, DevAddr00 is not equal to DevAddr000.
     Subnet0 = lorawan:subnet_from_devaddr(DevAddr00, NetIDList),
     io:format("Subnet0 ~8.16.0B~n", [Subnet0]),
     ?assertEqual(0, Subnet0),
@@ -266,6 +270,8 @@ netid_test() ->
     ?assertEqual(16#FE000080, DevAddr000),
     {ok, DevAddr000NetID} = lorawan:parse_netid(DevAddr000),
     ?assertEqual(NetID00, DevAddr000NetID),
+    NwkAddr000 = lorawan:nwk_addr(DevAddr000),
+    ?assertEqual(NwkAddr0, NwkAddr000),
 
     Subnet1 = lorawan:subnet_from_devaddr(DevAddr01, NetIDList),
     io:format("Subnet1 ~8.16.0B~n", [Subnet1]),
