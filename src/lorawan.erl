@@ -5,11 +5,11 @@
 %%%-------------------------------------------------------------------
 -module(lorawan).
 
--ifdef(TEST).
 -export([
 	is_local_devaddr/2,
 	devaddr_from_subnet/2,
     subnet_from_devaddr/2,
+
     devaddr/2,
     parse_netid/1,
     netid_class/1,
@@ -21,14 +21,6 @@
     is_local_netid/2,
     netid_size/1
 ]).
--else.
--export([
-	is_local_devaddr/2,
-	devaddr_from_subnet/2,
-    subnet_from_devaddr/2,
-    devaddr/2
-]).
--endif.
 
 -type netid() :: non_neg_integer().
 -type netclass() :: non_neg_integer().
