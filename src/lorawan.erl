@@ -6,10 +6,11 @@
 -module(lorawan).
 
 -export([
-	is_local_devaddr/2,
-	devaddr_from_subnet/2,
+    %% public functions
+    is_local_devaddr/2,
+    devaddr_from_subnet/2,
     subnet_from_devaddr/2,
-
+    %% internal functions
     devaddr/2,
     parse_netid/1,
     netid_class/1,
@@ -30,15 +31,27 @@
 
 -define(RETIRED_NETID, 16#200010).
 
-%%
-%% Public functions
-%%
+%%%=============================================================================
+%%% Public functions
+%%%=============================================================================
 
+%%------------------------------------------------------------------------------
+%% @doc Does this LoRaWAN DevAddr belong to the Helium network?
+%% NetIDList contains Helium's ordered list of assigned NetIDs.
+%%
+%% @end
+%%------------------------------------------------------------------------------
 -spec is_local_devaddr(devaddr(), [netid()]) -> boolean().
 is_local_devaddr(DevAddr, NetIDList) ->
-	NetID = the_netid(DevAddr),
-	is_local_netid(NetID, NetIDList).
+    NetID = the_netid(DevAddr),
+    is_local_netid(NetID, NetIDList).
 
+%%------------------------------------------------------------------------------
+%% @doc Translate from a Helium subnet address to a LoRaWAN DevAddr.
+%% NetIDList contains Helium's ordered list of assigned NetIDs.
+%%
+%% @end
+%%------------------------------------------------------------------------------
 -spec devaddr_from_subnet(subnetaddr(), [netid()]) -> devaddr().
 devaddr_from_subnet(SubnetAddr, NetIDList) ->
     NetID = subnet_addr_to_netid(SubnetAddr, NetIDList),
@@ -46,6 +59,12 @@ devaddr_from_subnet(SubnetAddr, NetIDList) ->
     DevAddr = devaddr(NetID, SubnetAddr - Lower),
     DevAddr.
 
+%%------------------------------------------------------------------------------
+%% @doc Translate from a LoRaWAN DevAddr to a Helium subnet address.
+%% NetIDList contains Helium's ordered list of assigned NetIDs.
+%%
+%% @end
+%%------------------------------------------------------------------------------
 -spec subnet_from_devaddr(devaddr(), [netid()]) -> subnetaddr().
 subnet_from_devaddr(DevAddr, NetIDList) ->
     NetID = the_netid(DevAddr),
@@ -53,9 +72,9 @@ subnet_from_devaddr(DevAddr, NetIDList) ->
     SubnetAddr = Lower + nwk_addr(DevAddr),
     SubnetAddr.
 
-%%
-%% Internal functions
-%%
+%%%=============================================================================
+%%% Internal functions
+%%%=============================================================================
 
 -spec netid_class(netid()) -> netclass().
 netid_class(NetID) ->

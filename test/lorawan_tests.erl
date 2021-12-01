@@ -10,13 +10,19 @@
 
 id_test() ->
     %% CP data
-    ?assertEqual({ok, 16#00002D}, lorawan:parse_netid(<<91, 255, 255, 255>>), "[45] == 2D == 45 type 0"),
-    ?assertEqual({ok, 16#20002D}, lorawan:parse_netid(<<173, 255, 255, 255>>), "[45] == 2D == 45 type 1"),
+    ?assertEqual(
+        {ok, 16#00002D}, lorawan:parse_netid(<<91, 255, 255, 255>>), "[45] == 2D == 45 type 0"
+    ),
+    ?assertEqual(
+        {ok, 16#20002D}, lorawan:parse_netid(<<173, 255, 255, 255>>), "[45] == 2D == 45 type 1"
+    ),
     ?assertEqual(
         {ok, 16#40016D}, lorawan:parse_netid(<<214, 223, 255, 255>>), "[1,109] == 16D == 365 type 2"
     ),
     ?assertEqual(
-        {ok, 16#6005B7}, lorawan:parse_netid(<<235, 111, 255, 255>>), "[5,183] == 5B7 == 1463 type 3"
+        {ok, 16#6005B7},
+        lorawan:parse_netid(<<235, 111, 255, 255>>),
+        "[5,183] == 5B7 == 1463 type 3"
     ),
     ?assertEqual(
         {ok, 16#800B6D},
@@ -55,7 +61,9 @@ id_test() ->
     ),
     %% Valid DevAddr, NetID not assigned
     ?assertEqual(
-        {ok, 16#20002D}, lorawan:parse_netid(<<173, 255, 255, 255>>), "hex_to_binary(<<'ADFFFFFF'>>)"
+        {ok, 16#20002D},
+        lorawan:parse_netid(<<173, 255, 255, 255>>),
+        "hex_to_binary(<<'ADFFFFFF'>>)"
     ),
     %% Less than 32 bit number
     ?assertEqual({ok, 0}, lorawan:parse_netid(46377)),
