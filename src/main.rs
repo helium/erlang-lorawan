@@ -15,8 +15,6 @@ use lorawan_encoding::maccommandcreator::*;
 use lorawan_encoding::maccommands::*;
 use lorawan_encoding::parser::*;
 
-mod securityhelpers;
-
 fn long_data_payload() -> String {
     // some text from loremipsum.de with a typo at the end
     String::from(
@@ -76,9 +74,8 @@ fn main() {
     );
 
     // let mut phy = JoinRequestCreator::new();
-    let key = keys::AES128([1; 16]);
-    let fcnt = 1;
-    let mic0 = short_calculate_mic(key, fcnt);
+    let _key = keys::AES128([1; 16]);
+    let _fcnt = 1;
 
     // let app_nonce_bytes = [1; 3];
     // phy.set_app_nonce(&app_nonce_bytes);
@@ -96,7 +93,7 @@ fn main() {
     println!("The value of devaddr001 is: {:#04X?}", 0);
     assert_eq!(0, 0x0);
 
-    mic_test();
+    //mic_test();
 }
 
 // type SegArray<D> = Array<u8, D>;
