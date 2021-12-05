@@ -1,13 +1,12 @@
 [package]
-name = "hello-rust"
+name = "loramic"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-
-
 [dependencies]
+array2d = "0.1.0"
 ndarray = "0.15.4"
 bytes = "1.1.0"
 lorawan-encoding = { git = "https://github.com/ivajloip/rust-lorawan.git" }
