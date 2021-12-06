@@ -35,7 +35,7 @@ pub fn create_mac(fcnt: u32) -> &'static [u16] {
 	println!("create_mac: tag_bytes.len()={}", tag_bytes.len());
 	let array_u8: [u8; 16] = tag_bytes.as_slice().try_into().expect("Wrong length");
 	let (_prefix, shorts, _suffix) = array_u8.align_to::<u16>();
-	let array_u16 = &shorts[1 .. 4];
+	let array_u16 = &shorts[0 .. 7];
 	let boxed_data: Box<[u16]> = array_u16.iter().cloned().collect();
 	println!("create_mac: fcnt={} mac={:?}", fcnt, boxed_data);
 	Box::leak(boxed_data)
@@ -43,25 +43,25 @@ pub fn create_mac(fcnt: u32) -> &'static [u16] {
 }
 
 pub fn zero_state() -> array2d::Array2D<u16> {
-	Array2D::fill_with(0u16, 4, 4)
+	Array2D::fill_with(0u16, 8, 8)
 }
 
 pub fn mutate_state(fcnt: u32, mic: &[u16], state: array2d::Array2D<u16>) -> (array2d::Array2D<u16>, u16) {
-	let row: usize = (fcnt % 4) as usize;
+	let row: usize = (fcnt % 8) as usize;
 	let mut array = state;
-	for col in 0..3 {
+	for col in 0..7 {
 		array[(row,col)] = mic[col];
 	}
 	println!("mutate_state: fcnt={} mic={:?} array={:?}", fcnt, mic, array);
 	let array_column_major = array.as_column_major();
-	let array2 = Array2D::from_column_major(&array_column_major, 4, 4);
+	let array2 = Array2D::from_column_major(&array_column_major, 8, 8);
 	let tag = generate_tag(fcnt, array2);
 	(array, tag)
 }
 
 pub fn generate_tag(fcnt: u32, state: array2d::Array2D<u16>) -> u16 {
 	let mut tag: u16 = 0;
-	let col: usize = (fcnt % 4) as usize;
+	let col: usize = (fcnt % 8) as usize;
 	for element in state.column_iter(col) {
         tag = tag ^ element;
     }
