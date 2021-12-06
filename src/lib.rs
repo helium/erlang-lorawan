@@ -25,7 +25,7 @@ pub fn test_mac() -> () {
 	mac2.verify(&tag_bytes).unwrap()
 }
 
-pub fn create_mac(fcnt: u32) -> &'static [u16] {
+pub fn create_mac(fcnt: u16) -> &'static [u16] {
 	unsafe {
 	let mut mac = Cmac::<Aes128>::new_from_slice(b"very secret key.").unwrap();
 	let bytes = fcnt.to_be_bytes();
@@ -46,7 +46,7 @@ pub fn zero_state() -> array2d::Array2D<u16> {
 	Array2D::fill_with(0u16, 8, 8)
 }
 
-pub fn mutate_state(fcnt: u32, mic: &[u16], state: array2d::Array2D<u16>) -> (array2d::Array2D<u16>, u16) {
+pub fn mutate_state(fcnt: u16, mic: &[u16], state: array2d::Array2D<u16>) -> (array2d::Array2D<u16>, u16) {
 	let row: usize = (fcnt % 8) as usize;
 	let mut array = state;
 	for col in 0..7 {
@@ -59,7 +59,7 @@ pub fn mutate_state(fcnt: u32, mic: &[u16], state: array2d::Array2D<u16>) -> (ar
 	(array, tag)
 }
 
-pub fn generate_tag(fcnt: u32, state: array2d::Array2D<u16>) -> u16 {
+pub fn generate_tag(fcnt: u16, state: array2d::Array2D<u16>) -> u16 {
 	let mut tag: u16 = 0;
 	let col: usize = (fcnt % 8) as usize;
 	for element in state.column_iter(col) {
