@@ -3,18 +3,18 @@
 extern crate ndarray;
 
 use bytes::Bytes;
-use ndarray::{arr2, ArrayBase, Array, Ix2};
-use lorawan_encoding::{creator, keys, maccommands};
 use heapless;
+use lorawan_encoding::{creator, keys, maccommands};
+use ndarray::{arr2, Array, ArrayBase, Ix2};
 //use heapless::Vec; // fixed capacity `std::Vec`
 //use heapless::consts::U32; // type level integer used to specify capacity
+use loramic::*;
 use lorawan_encoding::creator::*;
 use lorawan_encoding::default_crypto::DefaultFactory;
 use lorawan_encoding::keys::*;
 use lorawan_encoding::maccommandcreator::*;
 use lorawan_encoding::maccommands::*;
 use lorawan_encoding::parser::*;
-use loramic::*;
 
 fn long_data_payload() -> String {
     // some text from loremipsum.de with a typo at the end
@@ -51,7 +51,6 @@ fn phy_long_dataup_payload() -> Vec<u8> {
 }
 
 fn main() {
-
     let mut phy = DataPayloadCreator::new();
     let nwk_skey = AES128([2; 16]);
     let app_skey = AES128([1; 16]);
@@ -147,8 +146,6 @@ fn tag_verify(key: u32, counter: u32, _message: Bytes, _tag: Bytes) -> bool {
 // msgArray′ ← MsgSpec(msgArray)
 fn msg_spec(_msgarray: MsgArray) -> MsgArray {
     println!("The value of devaddr001 is: {:#04X?}", 0);
-    let mut a2 = arr2(&[[1, 2, 3],
-                    [4, 5, 6],
-                    [7, 8, 9]]);
+    let mut a2 = arr2(&[[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
     a2
 }
