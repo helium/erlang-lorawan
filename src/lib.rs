@@ -42,15 +42,14 @@ pub fn create_mac(fcnt: u16) -> &'static [u16] {
     }
 }
 
-pub fn zero_state() -> array2d::Array2D<u16> {
+type SuperMICState = array2d::Array2D<u16>;
+type SuperMIC = u16;
+
+pub fn zero_state() -> SuperMICState {
     Array2D::fill_with(0u16, 8, 8)
 }
 
-pub fn mutate_state(
-    fcnt: u16,
-    mic: &[u16],
-    state: array2d::Array2D<u16>,
-) -> (array2d::Array2D<u16>, u16) {
+pub fn mutate_state(fcnt: u16, mic: &[u16], state: SuperMICState) -> (SuperMICState, u16) {
     let row: usize = (fcnt % 8) as usize;
     let mut array = state;
     for col in 0..7 {
@@ -66,7 +65,7 @@ pub fn mutate_state(
     (array, tag)
 }
 
-pub fn generate_tag(fcnt: u16, state: array2d::Array2D<u16>) -> u16 {
+pub fn generate_tag(fcnt: u16, state: SuperMICState) -> SuperMIC {
     let mut tag: u16 = 0;
     let col: usize = (fcnt % 8) as usize;
     for element in state.column_iter(col) {
