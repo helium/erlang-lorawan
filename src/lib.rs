@@ -2,6 +2,8 @@ use aes::Aes128;
 use array2d::Array2D;
 use cmac::{Cmac, Mac, NewMac};
 
+use std::collections::HashMap;
+
 //use generic_array::{ArrayLength, GenericArray};
 
 pub fn test_mac() -> () {
@@ -35,7 +37,7 @@ pub fn create_test_mac(fcnt: u16) -> &'static [u16] {
     let array_u8: [u8; 16] = tag_bytes.as_slice().try_into().expect("Wrong length");
     unsafe {
         let (_prefix, shorts, _suffix) = array_u8.align_to::<u16>();
-        let array_u16 = &shorts[0..7];
+        let array_u16 = &shorts[0..8];
         let boxed_data: Box<[u16]> = array_u16.iter().cloned().collect();
         println!("create_test_mac: fcnt={} mac={:?}", fcnt, boxed_data);
         Box::leak(boxed_data)
@@ -47,14 +49,15 @@ type CuMIC = u16;
 
 pub fn zero_state() -> CuMICState {
     let array = Array2D::fill_with(0u16, 8, 8);
-	assert_eq!(array.as_rows(), vec![vec![42, 42, 42], vec![42, 42, 42]]);
-	array
+    assert_eq!(array.get(0, 0), Some(&0));
+    assert_eq!(array.get(7, 7), Some(&0));
+    array
 }
 
 pub fn mutate_state(fcnt: u16, mic: &[u16], state: CuMICState) -> (CuMICState, u16) {
     let row: usize = (fcnt % 8) as usize;
     let mut array = state;
-    for col in 0..7 {
+    for col in 0..8 {
         array[(row, col)] = mic[col];
     }
     println!(
@@ -78,13 +81,16 @@ pub fn generate_tag(fcnt: u16, state: CuMICState) -> CuMIC {
 }
 
 fn mic_loop() {
-
-	let mut state: CuMICState = zero_state();
-	for i in 0..100 {
-		let mac0 = create_test_mac(i);
-		let (state1, _mic0) = mutate_state(i, mac0, state);
-		state = state1;
-	}
+    let mut tag_set = HashMap::new();
+    let mut state: CuMICState = zero_state();
+    for i in 0..100 {
+        let mac0 = create_test_mac(i);
+        let (state1, mic) = mutate_state(i, mac0, state);
+        let result = tag_set.insert(mic, mic);
+        // We expect (with high probability) the mic to never repeat
+        assert_eq!(result, None);
+        state = state1;
+    }
 }
 
 pub fn test_mic() {
@@ -108,5 +114,5 @@ pub fn test_mic() {
     let mac3 = create_test_mac(fcnt);
     let (_state4, _mic3) = mutate_state(fcnt, mac3, state3);
 
-	mic_loop();
+    mic_loop();
 }

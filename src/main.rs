@@ -95,4 +95,3 @@ fn main() {
 
     test_mic();
 }
-
