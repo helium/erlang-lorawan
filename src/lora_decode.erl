@@ -9,9 +9,8 @@
     %% public functions
     sample1/0,
     base64_to_binary/1,
-    payload_mhdr/1,
+    payload_mhdr/1
     %% internal functions
-    payload_test/0
 ]).
 
 -define(Join_Request, 2#000).
@@ -23,9 +22,26 @@
 -define(RFU, 2#110).
 -define(Proprietary, 2#111).
 
+%% lorawan message types
+-define(JOIN_REQUEST, 2#000).
+-define(JOIN_ACCEPT, 2#001).
+-define(UNCONFIRMED_UP, 2#010).
+-define(UNCONFIRMED_DOWN, 2#011).
+-define(CONFIRMED_UP, 2#100).
+-define(CONFIRMED_DOWN, 2#101).
+
 -spec base64_to_binary(binary()) -> binary().
 base64_to_binary(Data) ->
     base64:decode(Data).
+
+payload_join_request(PhyPayload) ->
+    <<?JOIN_REQUEST:3, _MHDRRFU:3, _Major:2, AppEUI:8/binary, DevEUI:8/binary, DevNonce:2/binary, _MIC:4/binary>> = PhyPayload,
+    {AppEUI, DevEUI, DevNonce}.
+
+payload_join_accept(PhyPayload) ->
+    MacPayload = payload_macpayload(PhyPayload),
+    <<JoinNonce:3/binary, NetID:3/binary, DevAddr:4/binary, DLSettings:1/binary, RXDelay:1/binary, _CFList/binary>> = MacPayload,
+    {JoinNonce, NetID, DevAddr, DLSettings, RXDelay}.
 
 -spec payload_mhdr(binary()) -> binary().
 payload_mhdr(PhyPayload) ->
@@ -102,9 +118,33 @@ sample0() ->
     <<"QHcQASaAFAABvRjrSjJcz6vXC2TMw1A=">>.
 sample1() ->
     <<"YAQAAEiqLgADUwAAcANTAP8ADY5nmA==">>.
+join_request_sample() ->
+    <<"ANwAANB+1bNwHm/t9XzurwDIhgMK8sk=">>.
 
 bin_to_hex(Binary) ->
     [[io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Binary ]].
+
+decode_join(Base64) ->
+    io:format("~nAssuming base64-encoded packet~n"),
+    io:format("~s~n", [Base64]),
+    Bin0 = base64_to_binary(Base64),
+    io:format("Binary packet = ~w~n", [Bin0]),
+
+    io:format("~n( PHYPayload = MHDR[1] | MACPayload[..] | MIC[4] )~n"),
+    MHDR = payload_mhdr(Bin0),
+    %% io:format("Binary ~8.16.0B~n", [MHDR]),
+    io:format("MHDR = ~w~n", [MHDR]),
+    MacPayload = payload_macpayload(Bin0),
+    io:format("MacPayload = ~w~n", [MacPayload]),
+    io:format("MacPayload = ~s~n", [bin_to_hex(MacPayload)]),
+    MIC = payload_mic(Bin0),
+    io:format("MIC = ~s~n", [bin_to_hex(MIC)]),
+    io:format("~n( MACPayload = AppEUI[8] | DevEUI[8] | DevNonce[2] )~n"),
+    {AppEUI, DevEUI, DevNonce} = payload_join_request(Bin0),
+    io:format("AppEUI = ~s~n", [bin_to_hex(AppEUI)]),
+    io:format("DevEUI = ~s~n", [bin_to_hex(DevEUI)]),
+    io:format("DevNonce = ~s~n", [bin_to_hex(DevNonce)]),
+    fin.
 
 decode_payload(Base64) ->
     io:format("~nAssuming base64-encoded packet~n"),
@@ -153,8 +193,11 @@ decode_payload(Base64) ->
 payload_test() ->
     Pay0 = sample0(),
     Pay1 = sample1(),
+    Pay2 = join_request_sample(),
     decode_payload(Pay0),
     decode_payload(Pay1),
+    decode_payload(Pay2),
+    decode_join(Pay2),
     fin.
 
 %%-endif.
