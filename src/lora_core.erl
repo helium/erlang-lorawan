@@ -3,13 +3,13 @@
 %% == LoRaWAN ==
 %% @end
 %%%-------------------------------------------------------------------
--module(lora_decode).
+-module(lora_core).
 
 -export([
     %% public functions
-    sample1/0,
-    base64_to_binary/1,
-    payload_mhdr/1
+    payload_mhdr/1,
+    encode_fopts/1,
+    encode_fupopts/1
     %% internal functions
 ]).
 
@@ -100,6 +100,126 @@ payload_fhdr(PhyPayload) ->
     FHDR = binary:part(PhyPayload, Part),
     FHDR.
 
+fopts_mac_cid(<<>>) ->
+    0;
+fopts_mac_cid(FOpts) ->
+    <<CID:8/integer-unsigned,  _rest/binary>> = FOpts,
+    CID.
+
+parse_fopts(<<16#02, Rest/binary>>) ->
+    [link_check_req | parse_fopts(Rest)];
+parse_fopts(<<16#03, _RFU:5, PowerACK:1, DataRateACK:1, ChannelMaskACK:1, Rest/binary>>) ->
+    [{link_adr_ans, PowerACK, DataRateACK, ChannelMaskACK} | parse_fopts(Rest)];
+parse_fopts(<<16#04, Rest/binary>>) ->
+    [duty_cycle_ans | parse_fopts(Rest)];
+parse_fopts(<<16#05, _RFU:5, RX1DROffsetACK:1, RX2DataRateACK:1, ChannelACK:1, Rest/binary>>) ->
+    [{rx_param_setup_ans, RX1DROffsetACK, RX2DataRateACK, ChannelACK} | parse_fopts(Rest)];
+parse_fopts(<<16#06, Battery:8, _RFU:2, Margin:6/signed, Rest/binary>>) ->
+    [{dev_status_ans, Battery, Margin} | parse_fopts(Rest)];
+parse_fopts(<<16#07, _RFU:6, DataRateRangeOK:1, ChannelFreqOK:1, Rest/binary>>) ->
+    [{new_channel_ans, DataRateRangeOK, ChannelFreqOK} | parse_fopts(Rest)];
+parse_fopts(<<16#08, Rest/binary>>) ->
+    [rx_timing_setup_ans | parse_fopts(Rest)];
+parse_fopts(<<16#09, Rest/binary>>) ->
+    [tx_param_setup_ans | parse_fopts(Rest)];
+parse_fopts(<<16#0A, _RFU:6, UplinkFreqExists:1, ChannelFreqOK:1, Rest/binary>>) ->
+    [{di_channel_ans, UplinkFreqExists, ChannelFreqOK} | parse_fopts(Rest)];
+parse_fopts(<<16#0D, Rest/binary>>) ->
+    [device_time_req | parse_fopts(Rest)];
+parse_fopts(<<>>) ->
+    [];
+parse_fopts(Unknown) ->
+    lager:warning("Unknown command ~p", [lora_utils:binary_to_hex(Unknown)]),
+    [].
+
+parse_fdownopts(
+    <<16#03, DataRate:4, TXPower:4, ChMask:16/little-unsigned-integer, 0:1, ChMaskCntl:3, NbTrans:4,
+        Rest/binary>>
+) ->
+    [{link_adr_req, DataRate, TXPower, ChMask, ChMaskCntl, NbTrans} | parse_fdownopts(Rest)];
+parse_fdownopts(<<16#02, Margin, GwCnt, Rest/binary>>) ->
+    [{link_check_ans, Margin, GwCnt} | parse_fdownopts(Rest)];
+parse_fdownopts(<<16#04, _RFU:4, MaxDCycle:4, Rest/binary>>) ->
+    [{duty_cycle_req, MaxDCycle} | parse_fdownopts(Rest)];
+parse_fdownopts(
+    <<16#05, _RFU:1, RX1DRoffset:3, RX2DataRate:4, Freq:24/little-unsigned-integer, Rest/binary>>
+) ->
+    [{rx_param_setup_req, RX1DRoffset, RX2DataRate, Freq} | parse_fdownopts(Rest)];
+parse_fdownopts(<<16#06, Rest/binary>>) ->
+    [dev_status_req | parse_fdownopts(Rest)];
+parse_fdownopts(
+    <<16#07, ChIndex:8, Freq:24/little-unsigned-integer, MaxDr:4, MinDr:4, Rest/binary>>
+) ->
+    [{new_channel_req, ChIndex, Freq, MaxDr, MinDr} | parse_fdownopts(Rest)];
+parse_fdownopts(<<16#08, _RFU:4, Delay:4, Rest/binary>>) ->
+    [{rx_timing_setup_req, Delay} | parse_fdownopts(Rest)];
+parse_fdownopts(<<16#09, _RFU:2, DownlinkDwellTime:1, UplinkDwellTime:1, MaxEIRP:4, Rest/binary>>) ->
+    [{tx_param_setup_req, DownlinkDwellTime, UplinkDwellTime, MaxEIRP} | parse_fdownopts(Rest)];
+parse_fdownopts(
+    <<16#0A, ChIndex:8, Freq:24/little-unsigned-integer, MaxDr:4, MinDr:4, Rest/binary>>
+) ->
+    [{dl_channel_req, ChIndex, Freq, MaxDr, MinDr} | parse_fdownopts(Rest)];
+parse_fdownopts(<<16#0D, A:32/little-unsigned-integer, B:8/little-unsigned-integer, Rest/binary>>) ->
+    [{device_time_ans, A, B} | parse_fdownopts(Rest)];
+parse_fdownopts(<<>>) ->
+    [];
+parse_fdownopts(Unknown) ->
+    lager:warning("Unknown downlink command ~p", [lora_utils:binary_to_hex(Unknown)]),
+    [].
+
+encode_fopts([{link_check_ans, Margin, GwCnt} | Rest]) ->
+    <<16#02, Margin, GwCnt, (encode_fopts(Rest))/binary>>;
+encode_fopts([{link_adr_req, DataRate, TXPower, ChMask, ChMaskCntl, NbRep} | Rest]) ->
+    <<16#03, DataRate:4, TXPower:4, ChMask:16/little-unsigned-integer, 0:1, ChMaskCntl:3, NbRep:4,
+        (encode_fopts(Rest))/binary>>;
+encode_fopts([{duty_cycle_req, MaxDCycle} | Rest]) ->
+    <<16#04, 0:4, MaxDCycle:4, (encode_fopts(Rest))/binary>>;
+encode_fopts([{rx_param_setup_req, RX1DROffset, RX2DataRate, Frequency} | Rest]) ->
+    <<16#05, 0:1, RX1DROffset:3, RX2DataRate:4, Frequency:24/little-unsigned-integer,
+        (encode_fopts(Rest))/binary>>;
+encode_fopts([dev_status_req | Rest]) ->
+    <<16#06, (encode_fopts(Rest))/binary>>;
+encode_fopts([{new_channel_req, ChIndex, Freq, MaxDR, MinDR} | Rest]) ->
+    <<16#07, ChIndex, Freq:24/little-unsigned-integer, MaxDR:4, MinDR:4,
+        (encode_fopts(Rest))/binary>>;
+encode_fopts([{rx_timing_setup_req, Delay} | Rest]) ->
+    <<16#08, 0:4, Delay:4, (encode_fopts(Rest))/binary>>;
+encode_fopts([{tx_param_setup_req, DownDwell, UplinkDwell, MaxEIRP} | Rest]) ->
+    <<16#09, 0:2, DownDwell:1, UplinkDwell:1, MaxEIRP:4, (encode_fopts(Rest))/binary>>;
+encode_fopts([{di_channel_req, ChIndex, Freq} | Rest]) ->
+    <<16#0A, ChIndex, Freq:24/little-unsigned-integer, (encode_fopts(Rest))/binary>>;
+encode_fopts([{device_time_ans, MsSinceEpoch} | Rest]) ->
+    % 0.5^8
+    Ms = trunc((MsSinceEpoch rem 1000) / 3.90625),
+    <<16#0D, (MsSinceEpoch div 1000):32/little-unsigned-integer, Ms, (encode_fopts(Rest))/binary>>;
+encode_fopts([]) ->
+    <<>>.
+
+encode_fupopts([link_check_req | Rest]) ->
+    <<16#02, (encode_fupopts(Rest))/binary>>;
+encode_fupopts([{link_adr_ans, PowerACK, DataRateACK, ChannelMaskACK} | Rest]) ->
+    <<16#03, 0:5, PowerACK:1, DataRateACK:1, ChannelMaskACK:1, (encode_fupopts(Rest))/binary>>;
+encode_fupopts([duty_cycle_ans | Rest]) ->
+    <<16#04, (encode_fupopts(Rest))/binary>>;
+encode_fupopts([{rx_param_setup_ans, RX1DROffsetACK, RX2DataRateACK, ChannelACK} | Rest]) ->
+    <<16#05, 0:5, RX1DROffsetACK:1, RX2DataRateACK:1, ChannelACK:1, (encode_fupopts(Rest))/binary>>;
+encode_fupopts([{dev_status_ans, Battery, Margin} | Rest]) ->
+    <<16#06, Battery:8, 0:2, Margin:6, (encode_fupopts(Rest))/binary>>;
+encode_fupopts([{new_channel_ans, DataRateRangeOK, ChannelFreqOK} | Rest]) ->
+    <<16#07, 0:6, DataRateRangeOK:1, ChannelFreqOK:1, (encode_fupopts(Rest))/binary>>;
+encode_fupopts([rx_timing_setup_ans | Rest]) ->
+    <<16#08, (encode_fupopts(Rest))/binary>>;
+encode_fupopts([tx_param_setup_ans | Rest]) ->
+    <<16#09, (encode_fupopts(Rest))/binary>>;
+encode_fupopts([{di_channel_ans, UplinkFreqExists, ChannelFreqOK} | Rest]) ->
+    <<16#0A, 0:6, UplinkFreqExists:1, ChannelFreqOK:1, (encode_fupopts(Rest))/binary>>;
+encode_fupopts([device_time_req | Rest]) ->
+    <<16#0D, (encode_fupopts(Rest))/binary>>;
+encode_fupopts([_ | Rest]) ->
+    <<(encode_fupopts(Rest))/binary>>;
+encode_fupopts([]) ->
+    <<>>.
+
 %% ==================================================================
 %% Tests
 %% ==================================================================
@@ -123,11 +243,8 @@ decode_message_type(Payload) ->
     io:format("~n( MHDR = Ftype[7:5] | RFU[4:2] | Major[1:0] )~n"),
     FType = payload_ftype(Payload),
     io:format("FType = ~w~n", [FType]),
-    case FType of
-        ?JOIN_REQUEST -> io:format("Message Type = Join Request~n");
-        ?JOIN_ACCEPT -> io:format("Message Type = Join Accept~n");
-        _ -> io:format("Message Type = Frame~n")
-    end,
+    MType = lora_utils:mtype(FType),
+    io:format("Message Type = ~s~n", [MType]),
     Direction = payload_direction(Payload),
     io:format("Direction = ~s~n", [Direction]),
     Major = payload_major(Payload),
@@ -190,6 +307,19 @@ decode_frame(Payload) ->
     FOpts = payload_fopts(Bin0),
     io:format("FOpts = ~w~n", [FOpts]),
     io:format("FOpts = ~s~n", [bin_to_hex(FOpts)]),
+
+    CID = fopts_mac_cid(FOpts),
+    io:format("CID = ~w~n", [CID]),
+
+    Direction = payload_direction(Payload),
+    case Direction of
+        <<"up">> ->
+            ParsedFOpts = parse_fopts(FOpts),
+            io:format("ParsedFOpts = ~w~n", [ParsedFOpts]);
+        <<"down">> ->
+            ParsedFOptsDown = parse_fdownopts(FOpts),
+            io:format("ParsedFOptsDown = ~w~n", [ParsedFOptsDown])
+    end,
 
     FType = payload_ftype(Bin0),
     io:format("~nMessage Type = ~w~n", [FType]),
