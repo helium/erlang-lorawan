@@ -17,7 +17,6 @@
 -export_type([spreading/0, bandwidth/0]).
 
 -include("lorawan.hrl").
--include("lorawan_vars.hrl").
 
 -define(MEGA, 1000000).
 
