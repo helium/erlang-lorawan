@@ -11,11 +11,6 @@
 -export([index_of/2]).
 -export([precise_universal_time/0, time_to_gps/0, time_to_gps/1, time_to_unix/0, time_to_unix/1]).
 -export([ms_diff/2, datetime_to_timestamp/1, apply_offset/2]).
--export([
-    throw_info/2, throw_info/3,
-    throw_warning/2, throw_warning/3,
-    throw_error/2, throw_error/3
-]).
 
 -export([extract_frame_port_payload/1, cipher/5, mtype/1, padded/2, parse_datarate/1]).
 
@@ -80,12 +75,12 @@ binxor(<<A, RestA/binary>>, <<B, RestB/binary>>, Acc) ->
     binxor(RestA, RestB, <<(A bxor B), Acc/binary>>).
 
 -spec mtype(integer()) -> string().
-mtype(?JOIN_REQ) -> "Join request";
-mtype(?JOIN_ACCEPT) -> "Join accept";
-mtype(?UNCONFIRMED_UP) -> "Unconfirmed data up";
-mtype(?UNCONFIRMED_DOWN) -> "Unconfirmed data down";
-mtype(?CONFIRMED_UP) -> "Confirmed data up";
-mtype(?CONFIRMED_DOWN) -> "Confirmed data down";
+mtype(?JOIN_REQ) -> "Join Request";
+mtype(?JOIN_ACCEPT) -> "Join Accept";
+mtype(?UNCONFIRMED_UP) -> "Unconfirmed Uplink";
+mtype(?UNCONFIRMED_DOWN) -> "Unconfirmed Downlink";
+mtype(?CONFIRMED_UP) -> "Confirmed Uplink";
+mtype(?CONFIRMED_DOWN) -> "Confirmed Downlink";
 mtype(?RFU) -> "RFU";
 mtype(?PRIORITY) -> "Proprietary".
 
@@ -144,100 +139,6 @@ apply_offset({Date, {Hours, Min, Secs}}, {OHours, OMin, OSecs}) ->
             (60 * ((60 * OHours) + OMin)) + OSecs,
     {Date2, {Hours2, Min2, Secs2}} = calendar:gregorian_seconds_to_datetime(TotalSecs),
     {Date2, {Hours2, Min2, Secs2 + (Secs - trunc(Secs))}}.
-
-throw_info(Entity, Text) ->
-    throw_info(Entity, Text, unique).
-
-throw_info({Entity, EID}, Text, Mark) ->
-    throw_event(info, {Entity, EID}, Text, Mark);
-throw_info(Entity, Text, Mark) ->
-    throw_event(info, {Entity, undefined}, Text, Mark).
-
-throw_warning(Entity, Text) ->
-    throw_warning(Entity, Text, unique).
-
-throw_warning({Entity, EID}, Text, Mark) ->
-    throw_event(warning, {Entity, EID}, Text, Mark);
-throw_warning(Entity, Text, Mark) ->
-    throw_event(warning, {Entity, undefined}, Text, Mark).
-
-throw_error(Entity, Text) ->
-    throw_error(Entity, Text, unique).
-
-throw_error({Entity, EID}, Text, Mark) ->
-    throw_event(error, {Entity, EID}, Text, Mark);
-throw_error(Entity, Text, Mark) ->
-    throw_event(error, {Entity, undefined}, Text, Mark).
-
-throw_event(Severity, {Entity, undefined}, Text, Mark) ->
-    lager:log(Severity, self(), "~s ~p", [Entity, Text]),
-    write_event(Severity, {Entity, undefined}, Text, Mark);
-throw_event(Severity, {Entity, EID}, Text, Mark) ->
-    if
-        Entity == server; Entity == connector ->
-            lager:log(Severity, self(), "~s ~s ~p", [Entity, EID, Text]);
-        true ->
-            lager:log(Severity, self(), "~s ~s ~p", [Entity, binary_to_hex(EID), Text])
-    end,
-    write_event(Severity, {Entity, EID}, Text, Mark).
-
-write_event(Severity, {Entity, EID}, Text, unique) ->
-    % first_rx and last_rx shall be identical
-    Time = calendar:universal_time(),
-    {Event, Args} = event_args(Text),
-    EvId = evid({Entity, EID}, Event, Time),
-    mnesia:dirty_write(event, #event{
-        evid = EvId,
-        severity = Severity,
-        first_rx = Time,
-        last_rx = Time,
-        count = 1,
-        entity = Entity,
-        eid = EID,
-        text = Event,
-        args = Args
-    });
-write_event(Severity, {Entity, EID}, Text, Mark) ->
-    {Event, Args} = event_args(Text),
-    EvId = evid({Entity, EID}, Event, Mark),
-    {atomic, ok} =
-        mnesia:transaction(fun() ->
-            case mnesia:read(event, EvId, write) of
-                [E] ->
-                    mnesia:write(E#event{
-                        last_rx = calendar:universal_time(),
-                        count = inc(E#event.count),
-                        text = Event,
-                        args = Args
-                    });
-                [] ->
-                    % first_rx and last_rx shall be identical
-                    Time = calendar:universal_time(),
-                    mnesia:write(#event{
-                        evid = EvId,
-                        severity = Severity,
-                        first_rx = Time,
-                        last_rx = Time,
-                        count = 1,
-                        entity = Entity,
-                        eid = EID,
-                        text = Event,
-                        args = Args
-                    })
-            end
-        end),
-    ok.
-
-evid(EntityID, Event, Mark) ->
-    crypto:hash(md4, term_to_binary({EntityID, Event, Mark})).
-
-event_args({Event, Args}) ->
-    {atom_to_binary(Event, latin1), list_to_binary(io_lib:print(Args))};
-event_args(Event) when is_atom(Event) ->
-    {atom_to_binary(Event, latin1), undefined};
-% for example gateway errors are sent as binaries
-event_args(Event) when is_binary(Event) ->
-    {Event, undefined}.
 
 inc(Num) -> Num + 1.
 
