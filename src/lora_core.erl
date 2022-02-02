@@ -9,17 +9,12 @@
     %% public functions
     payload_mhdr/1,
     encode_fopts/1,
-    encode_fupopts/1
+    encode_fupopts/1,
+    encode_payload/3
     %% internal functions
 ]).
 
-%% lorawan message types
--define(JOIN_REQUEST, 2#000).
--define(JOIN_ACCEPT, 2#001).
--define(UNCONFIRMED_UP, 2#010).
--define(UNCONFIRMED_DOWN, 2#011).
--define(CONFIRMED_UP, 2#100).
--define(CONFIRMED_DOWN, 2#101).
+-include("lorawan.hrl").
 
 -spec base64_to_binary(binary()) -> binary().
 base64_to_binary(Data) ->
@@ -99,6 +94,49 @@ payload_fhdr(PhyPayload) ->
     Part = {1, FhdrLen},
     FHDR = binary:part(PhyPayload, Part),
     FHDR.
+
+-spec encode_payload(#frame{}, binary(), binary()) -> binary().
+encode_payload(Frame, NwkSKey, AppSKey) ->
+    FOpts = lorawan_mac_commands:encode_fopts(Frame#frame.fopts),
+    FOptsLen = erlang:byte_size(FOpts),
+    PktHdr =
+        <<(Frame#frame.mtype):3, 0:3, 0:2, (Frame#frame.devaddr)/binary, (Frame#frame.adr):1, 0:1,
+            (Frame#frame.ack):1, (Frame#frame.fpending):1, FOptsLen:4,
+            (Frame#frame.fcnt):16/integer-unsigned-little, FOpts:FOptsLen/binary>>,
+    PktBody =
+        case Frame#frame.data of
+            <<>> ->
+                %% no payload
+                <<>>;
+            <<Payload/binary>> when Frame#frame.fport == 0 ->
+                lager:debug("port 0 outbound"),
+                %% port 0 payload, encrypt with network key
+                <<0:8/integer-unsigned,
+                    (lorawan_utils:reverse(
+                        lorawan_utils:cipher(
+                            Payload,
+                            NwkSKey,
+                            1,
+                            Frame#frame.devaddr,
+                            Frame#frame.fcnt
+                        )
+                    ))/binary>>;
+            <<Payload/binary>> ->
+                lager:debug("port ~p outbound", [Frame#frame.fport]),
+                EncPayload = lorawan_utils:reverse(
+                    lorawan_utils:cipher(Payload, AppSKey, 1, Frame#frame.devaddr, Frame#frame.fcnt)
+                ),
+                <<(Frame#frame.fport):8/integer-unsigned, EncPayload/binary>>
+        end,
+    Msg = <<PktHdr/binary, PktBody/binary>>,
+    MIC = crypto:cmac(
+        aes_cbc128,
+        NwkSKey,
+        <<(router_utils:b0(1, Frame#frame.devaddr, Frame#frame.fcnt, byte_size(Msg)))/binary,
+            Msg/binary>>,
+        4
+    ),
+    <<Msg/binary, MIC/binary>>.
 
 fopts_mac_cid(<<>>) ->
     0;
