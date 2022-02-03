@@ -77,6 +77,10 @@ payload_fctrl(PhyPayload) ->
     <<_MHDR:8/integer, _DevAddr:32/integer, FCtrl:8/little-integer-unsigned, _/binary>> = PhyPayload,
     FCtrl.
 
+payload_fctrl_bits(PhyPayload) ->
+    <<_MHDR:8/integer, _DevAddr:32/integer, FCtrlBits:4/little-integer-unsigned, _Foptslen:4/integer-unsigned, _/binary>> = PhyPayload,
+    FCtrlBits.
+
 payload_foptslen(PhyPayload) ->
     <<_MHDR:8/integer, _DevAddr:32/integer, _Ignore:4/integer-unsigned, Foptslen:4/integer-unsigned, _/binary>> = PhyPayload,
     Foptslen.
@@ -109,20 +113,15 @@ payload_data(_PhyPayload) ->
 payload_to_frame(PhyPayload, _NwkSKey, _AppSKey) ->
     MType = payload_ftype(PhyPayload),
     DevAddr = payload_devaddr(PhyPayload),
-    FCtrl = payload_fctrl(PhyPayload),
-    <<ADR:1, ADRACKReq:1, ACK:1, _FPending:1, _FOptsLen:4>> = <<FCtrl>>,
+    FCtrlBits = payload_fctrl_bits(PhyPayload),
     FCnt = payload_fcnt(PhyPayload),
     FOpts = payload_fopts(PhyPayload),
-    _FOptsLen = payload_foptslen(PhyPayload),
     FPort = payload_fport(PhyPayload),
     Data = payload_data(PhyPayload),
     Frame = #frame{
         mtype = MType,
         devaddr = DevAddr,
-        adr = ADR,
-        adrackreq = ADRACKReq,
-        ack = ACK,
-        rfu = 0,
+        fctrlbits = FCtrlBits,
         fcnt = FCnt,
         fopts = parse_fopts(FOpts),
         fport = FPort,
@@ -135,8 +134,8 @@ frame_to_payload(Frame, NwkSKey, AppSKey) ->
     FOpts = lorawan_mac_commands:encode_fopts(Frame#frame.fopts),
     FOptsLen = erlang:byte_size(FOpts),
     PktHdr =
-        <<(Frame#frame.mtype):3, 0:3, 0:2, (Frame#frame.devaddr)/binary, (Frame#frame.adr):1, 0:1,
-            (Frame#frame.ack):1, (Frame#frame.fpending):1, FOptsLen:4,
+        <<(Frame#frame.mtype):3, 0:3, 0:2, (Frame#frame.devaddr)/binary,
+            (Frame#frame.fctrlbits):4, FOptsLen:4,
             (Frame#frame.fcnt):16/integer-unsigned-little, FOpts:FOptsLen/binary>>,
     PktBody =
         case Frame#frame.data of

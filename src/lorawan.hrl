@@ -16,11 +16,7 @@
 -record(frame, {
     mtype,
     devaddr,
-    adr = 0,
-    adrackreq = 0,
-    ack = 0,
-    rfu = 0,
-    fpending = 0,
+    fctrlbits,
     fcnt,
     fopts = [],
     fport,
