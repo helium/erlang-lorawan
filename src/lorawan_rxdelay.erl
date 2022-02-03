@@ -19,7 +19,7 @@
     get/2,
     bootstrap/1,
     maybe_update/2,
-    adjust/1,
+    adjust_on_join/1,
     adjust/3
 ]).
 
@@ -82,9 +82,11 @@ maybe_update(ApiSettings, DeviceState) ->
             maps:put(rx_delay_state, ?RX_DELAY_CHANGE, DeviceState)
     end.
 
--spec adjust(DeviceState :: map()) -> State :: map().
-adjust(DeviceState) ->
-    {_, State, _} = adjust(DeviceState, [], []),
+-spec adjust_on_join(DeviceState :: map()) -> State :: map().
+adjust_on_join(DeviceState) ->
+    %% LoRaWAN Join-Accept implies `rx_timing_setup_ans` because
+    %% `RXDelay` was in the Join-Accept.
+    {_, State, _} = adjust(DeviceState, [rx_timing_setup_ans], []),
     State.
 
 -spec adjust(DeviceState0 :: map(), UplinkFOpts :: list(), FOpts0 :: list()) ->
@@ -165,6 +167,10 @@ rx_delay_state_test() ->
 
     %% Exercise default case to recover state
     ?assertEqual({0, #{}, []}, adjust(DeviceState, [], [])),
+    ?assertEqual(
+        #{rx_delay_state => ?RX_DELAY_ESTABLISHED, rx_delay_actual => 1},
+        adjust_on_join(DeviceState1)
+    ),
     ?assertEqual(
         {1, #{rx_delay_state => ?RX_DELAY_ESTABLISHED, rx_delay_actual => 1}, []},
         adjust(DeviceState1, [], [])
