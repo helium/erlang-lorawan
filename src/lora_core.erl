@@ -10,7 +10,8 @@
     payload_mhdr/1,
     encode_fopts/1,
     encode_fupopts/1,
-    encode_payload/3
+    frame_to_payload/3,
+    payload_to_frame/3
     %% internal functions
 ]).
 
@@ -85,8 +86,8 @@ payload_fopts(PhyPayload) ->
     %% Offset == MHDR + DevAddr + FCtrl + FCnt
     Offset = 1 + 4 + 1 + 2,
     Part = {Offset, Len},
-    FOpt = binary:part(PhyPayload, Part),
-    FOpt.
+    FOpts = binary:part(PhyPayload, Part),
+    FOpts.
 
 payload_fhdr(PhyPayload) ->
     FOptsLen = payload_foptslen(PhyPayload),
@@ -95,8 +96,42 @@ payload_fhdr(PhyPayload) ->
     FHDR = binary:part(PhyPayload, Part),
     FHDR.
 
--spec encode_payload(#frame{}, binary(), binary()) -> binary().
-encode_payload(Frame, NwkSKey, AppSKey) ->
+payload_fport(PhyPayload) ->
+    FOptsLen = payload_foptslen(PhyPayload),
+    FPortStart = 7 + FOptsLen + 1,
+    Part = {FPortStart, 1},
+    <<FPort:8/integer-unsigned-little>> = binary:part(PhyPayload, Part),
+    FPort.
+
+payload_data(_PhyPayload) ->
+    <<>>.
+
+payload_to_frame(PhyPayload, _NwkSKey, _AppSKey) ->
+    MType = payload_ftype(PhyPayload),
+    DevAddr = payload_devaddr(PhyPayload),
+    FCtrl = payload_fctrl(PhyPayload),
+    <<ADR:1, ADRACKReq:1, ACK:1, _FPending:1, _FOptsLen:4>> = <<FCtrl>>,
+    FCnt = payload_fcnt(PhyPayload),
+    FOpts = payload_fopts(PhyPayload),
+    _FOptsLen = payload_foptslen(PhyPayload),
+    FPort = payload_fport(PhyPayload),
+    Data = payload_data(PhyPayload),
+    Frame = #frame{
+        mtype = MType,
+        devaddr = DevAddr,
+        adr = ADR,
+        adrackreq = ADRACKReq,
+        ack = ACK,
+        rfu = 0,
+        fcnt = FCnt,
+        fopts = parse_fopts(FOpts),
+        fport = FPort,
+        data = Data
+    },
+    Frame.
+
+-spec frame_to_payload(#frame{}, binary(), binary()) -> binary().
+frame_to_payload(Frame, NwkSKey, AppSKey) ->
     FOpts = lorawan_mac_commands:encode_fopts(Frame#frame.fopts),
     FOptsLen = erlang:byte_size(FOpts),
     PktHdr =
@@ -328,9 +363,10 @@ decode_frame(Payload) ->
     Bin0 = Payload,
     io:format("~n( MACPayload = FHDR | FPort | FRMPayload )~n"),
     FHDR = payload_fhdr(Bin0),
+    FPort = payload_fport(Bin0),
     io:format("FHDR = ~w~n", [FHDR]),
     io:format("FHDR = ~s~n", [bin_to_hex(FHDR)]),
-    io:format("FPort = ~w~n", [0]),
+    io:format("FPort = ~w~n", [FPort]),
     io:format("FRMPayload = ~w~n", [0]),
 
     io:format("~n( FHDR = DevAddr[4] | FCtrl[1] | FCnt[2] | FOpts[0..15] )~n"),
@@ -384,7 +420,15 @@ decode_payload(Base64) ->
     end,
     fin.
 
-payload_test() ->
+payload_0_test() ->
+    Pay0 = sample0(),
+    decode_payload(Pay0),
+    Bin0 = base64_to_binary(Pay0),
+    Frame0 = payload_to_frame(Bin0, <<>>, <<>>),
+    io:format("frame = ~w~n", [Frame0]),
+    fin.
+
+payload_1_test() ->
     Pay0 = sample0(),
     Pay1 = sample1(),
     Pay2 = join_request_sample(),
