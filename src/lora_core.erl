@@ -70,7 +70,8 @@ payload_fcnt(PhyPayload) ->
     FCnt.
 
 payload_devaddr(PhyPayload) ->
-    <<_MHDR:8/integer, DevAddr:32/integer, _/binary>> = PhyPayload,
+    <<_MHDR:8, DevAddr:4/binary, _/binary>> = PhyPayload,
+    io:format("payload_devaddr devaddr = ~w~n", [DevAddr]),
     DevAddr.
 
 payload_fctrl(PhyPayload) ->
@@ -131,12 +132,22 @@ payload_to_frame(PhyPayload, _NwkSKey, _AppSKey) ->
 
 -spec frame_to_payload(#frame{}, binary(), binary()) -> binary().
 frame_to_payload(Frame, NwkSKey, AppSKey) ->
-    FOpts = lorawan_mac_commands:encode_fopts(Frame#frame.fopts),
-    FOptsLen = erlang:byte_size(FOpts),
-    PktHdr =
-        <<(Frame#frame.mtype):3, 0:3, 0:2, (Frame#frame.devaddr)/binary,
-            (Frame#frame.fctrlbits):4, FOptsLen:4,
-            (Frame#frame.fcnt):16/integer-unsigned-little, FOpts:FOptsLen/binary>>,
+    FOpts = encode_fopts(Frame#frame.fopts),
+    io:format("frame_to_payload FOpts = ~w~n", [FOpts]),
+    FOptsLen = 0, %% erlang:byte_size(FOpts),
+    io:format("frame_to_payload FOptsLen = ~w~n", [FOptsLen]),
+    case FOptsLen of
+        0 ->
+            PktHdr =
+                <<(Frame#frame.mtype):3, 0:3, 0:2, (Frame#frame.devaddr)/binary,
+                    (Frame#frame.fctrlbits):4, 0:4,
+                    (Frame#frame.fcnt):16/integer-unsigned-little>>;
+        _ ->
+            PktHdr =
+                <<(Frame#frame.mtype):3, 0:3, 0:2, (Frame#frame.devaddr)/binary,
+                    (Frame#frame.fctrlbits):4, FOptsLen:4,
+                    (Frame#frame.fcnt):16/integer-unsigned-little, FOpts:FOptsLen/binary>>
+    end,
     PktBody =
         case Frame#frame.data of
             <<>> ->
@@ -163,14 +174,28 @@ frame_to_payload(Frame, NwkSKey, AppSKey) ->
                 <<(Frame#frame.fport):8/integer-unsigned, EncPayload/binary>>
         end,
     Msg = <<PktHdr/binary, PktBody/binary>>,
-    MIC = crypto:cmac(
-        aes_cbc128,
+    MsgSize = byte_size(Msg),
+    io:format("frame_to_payload MsgSize = ~w~n", [MsgSize]),
+    B0Value = b0(1, Frame#frame.devaddr, Frame#frame.fcnt, MsgSize),
+    B0 = <<B0Value/binary, Msg/binary>>,
+    MIC = crypto:macN(
+        cmac,
+        aes_128_cbc,
         NwkSKey,
-        <<(router_utils:b0(1, Frame#frame.devaddr, Frame#frame.fcnt, byte_size(Msg)))/binary,
-            Msg/binary>>,
+        B0,
         4
     ),
     <<Msg/binary, MIC/binary>>.
+
+-spec b0(integer(), binary(), integer(), integer()) -> binary().
+b0(Dir, DevAddr, FCnt, Len) ->
+    io:format("b0 Dir = ~w~n", [Dir]),
+    io:format("b0 DevAddr = ~w~n", [DevAddr]),
+    io:format("b0 FCnt = ~w~n", [FCnt]),
+    io:format("b0 Len = ~w~n", [Len]),
+    <<16#49, 0, 0, 0, 0, Dir, DevAddr:4/binary, FCnt:32/little-unsigned-integer, 0, Len>>.
+    %% <<16#49, 0, 0, 0, 0, 1, <<1,2,3,4>>:4/binary, 0:32/little-unsigned-integer, 0, 0>>.
+
 
 fopts_mac_cid(<<>>) ->
     0;
@@ -370,9 +395,12 @@ decode_frame(Payload) ->
 
     io:format("~n( FHDR = DevAddr[4] | FCtrl[1] | FCnt[2] | FOpts[0..15] )~n"),
     DevAddr = payload_devaddr(Bin0),
-    io:format("DevAddr = ~8.16.0B~n", [DevAddr]),
+    % io:format("DevAddr = ~8.16.0B~n", [DevAddr]),
+    io:format("DevAddr = ~w~n", [DevAddr]),
     FCtrl = payload_fctrl(Bin0),
     io:format("FCtrl = ~w~n", [FCtrl]),
+    FCtrlBits = payload_fctrl_bits(Bin0),
+    io:format("FCtrlBits = ~w~n", [FCtrlBits]),
     FCnt = payload_fcnt(Bin0),
     io:format("FCnt = ~w~n", [FCnt]),
     FOptsLen = payload_foptslen(Bin0),
@@ -423,8 +451,11 @@ payload_0_test() ->
     Pay0 = sample0(),
     decode_payload(Pay0),
     Bin0 = base64_to_binary(Pay0),
-    Frame0 = payload_to_frame(Bin0, <<>>, <<>>),
+    io:format("bin0 = ~w~n", [Bin0]),
+    Frame0 = payload_to_frame(Bin0, <<1:128>>, <<2:128>>),
     io:format("frame = ~w~n", [Frame0]),
+    Bin1 = frame_to_payload(Frame0, <<1:128>>, <<2:128>>),
+    io:format("bin1 = ~w~n", [Bin1]),
     fin.
 
 payload_1_test() ->
