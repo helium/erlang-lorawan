@@ -37,10 +37,7 @@ payload_mhdr(PhyPayload) ->
 
 payload_direction(PhyPayload) ->
     <<_Ignore:2/integer-unsigned, DirectionBit:1/integer-unsigned, _Ignore2:5/integer, _/binary>> = PhyPayload,
-    case DirectionBit of
-        0 -> <<"up">>;
-        1 -> <<"down">>
-    end.
+    DirectionBit.
 
 payload_mic(PhyPayload) ->
     PayloadSize = byte_size(PhyPayload),
@@ -150,6 +147,7 @@ frame_to_payload(Frame, NwkSKey, _AppSKey) ->
     io:format("frame_to_payload FOpts = ~w~n", [FOpts]),
     FOptsLen = erlang:byte_size(FOpts),
     io:format("frame_to_payload FOptsLen = ~w~n", [FOptsLen]),
+    <<_Ignore:2, DirectionBit:1, 0:5>> = <<(Frame#frame.mtype):3, 0:5>>,
     case FOptsLen of
         0 ->
             PktHdr =
@@ -195,7 +193,7 @@ frame_to_payload(Frame, NwkSKey, _AppSKey) ->
     Msg = <<PktHdr/binary, PktBody/binary>>,
     MsgSize = byte_size(Msg),
     io:format("frame_to_payload MsgSize = ~w~n", [MsgSize]),
-    B0Value = b0(1, Frame#frame.devaddr, Frame#frame.fcnt, MsgSize),
+    B0Value = b0(DirectionBit, Frame#frame.devaddr, Frame#frame.fcnt, MsgSize),
     io:format("frame_to_payload B0Value = ~w~n", [B0Value]),
     B0 = <<B0Value/binary, Msg/binary>>,
     io:format("frame_to_payload B0 = ~w~n", [B0]),
@@ -355,6 +353,34 @@ join_request_sample() ->
 join_accept_sample() ->
     <<"IIE/R/UI/6JnC24j4B+EueJdnEEV8C7qCz3T4gs+ypLa">>.
 
+is_hex_string(HexBinary0) ->
+    try
+        Binary1 = lora_utils:hex_to_binary(HexBinary0),
+        HexBinary1 = lora_utils:binary_to_hex(Binary1),
+        %% OTP 24
+        % Binary1 = binary:decode_hex(HexBinary0),
+        % HexBinary1 = binary:encode_hex(Binary1),
+        case HexBinary0 of
+            HexBinary1 -> true;
+            _ -> false
+        end
+    catch
+        _Exception:_Reason ->
+            %% io:format("is_hex_string Exception=~w Reason=~w~n", [Exception, Reason]),
+            false
+    end.
+
+string_to_binary(String) ->
+    case is_hex_string(String) of
+        true ->
+            lora_utils:hex_to_binary(String);
+        false ->
+            base64_to_binary(String)
+    end.
+
+bin_to_hex2(Bin) ->
+    [begin if N < 10 -> 48 + N; true -> 87 + N end end || <<N:4>> <= Bin].
+
 bin_to_hex(Binary) ->
     [[io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Binary ]].
 
@@ -365,7 +391,7 @@ decode_message_type(Payload) ->
     MType = lora_utils:mtype(FType),
     io:format("Message Type = ~s~n", [MType]),
     Direction = payload_direction(Payload),
-    io:format("Direction = ~s~n", [Direction]),
+    io:format("Direction = ~s~n", [lora_utils:dir_string(Direction)]),
     Major = payload_major(Payload),
     io:format("Major = ~w~n", [Major]),
     fin.
@@ -437,10 +463,10 @@ decode_frame(Payload) ->
 
     Direction = payload_direction(Payload),
     case Direction of
-        <<"up">> ->
+        0 ->
             ParsedFOpts = parse_fopts(FOpts),
             io:format("ParsedFOpts = ~w~n", [ParsedFOpts]);
-        <<"down">> ->
+        1 ->
             ParsedFOptsDown = parse_fdownopts(FOpts),
             io:format("ParsedFOptsDown = ~w~n", [ParsedFOptsDown])
     end,
@@ -448,15 +474,20 @@ decode_frame(Payload) ->
     FType = payload_ftype(Bin0),
     io:format("~nMessage Type = ~w~n", [FType]),
     Direction = payload_direction(Bin0),
-    io:format("Direction = ~s~n", [Direction]),
+    io:format("Direction = ~s~n", [lora_utils:dir_string(Direction)]),
     FCnt2 = payload_fcnt(Bin0),
     io:format("FCnt = ~w~n", [FCnt2]),
     fin.    
 
-decode_payload(Base64) ->
-    io:format("~nAssuming base64-encoded packet~n"),
-    io:format("~s~n", [Base64]),
-    Bin0 = base64_to_binary(Base64),
+decode_payload(String) ->
+    case is_hex_string(String) of
+        true ->
+            io:format("~nAssuming hex-encoded packet~n");
+        false ->
+            io:format("~nAssuming base64-encoded packet~n")
+    end,
+    io:format("~s~n", [String]),
+    Bin0 = string_to_binary(String),
     io:format("Binary packet = ~w~n", [Bin0]),
 
     decode_message_type(Bin0),
@@ -470,12 +501,25 @@ decode_payload(Base64) ->
     end,
     fin.
 
+payload_util_test() ->
+    {Pay0,Key0} = sample_downlink(),
+    ValidHex0 = is_hex_string(Pay0),
+    ?assertEqual(true, ValidHex0),
+    Sample0 = sample0(),
+    ValidHex1 = is_hex_string(Sample0),
+    ?assertEqual(false, ValidHex1),
+    Bin0 = string_to_binary(Pay0),
+    io:format("bin0 = ~w~n", [Bin0]),
+    Bin1 = string_to_binary(Sample0),
+    io:format("bin1 = ~w~n", [Bin1]),
+    fin.
+
 payload_0_test() ->
     {Pay0,Key0} = sample_downlink(),
     decode_payload(Pay0),
-    Bin0 = base64_to_binary(Pay0),
-    io:format("bin0 = ~w~n", [Bin0]),
-    NwkSKey0 = base64_to_binary(Key0),
+    Bin0 = string_to_binary(Pay0),
+
+    NwkSKey0 = string_to_binary(Key0),
     io:format("NwkSKey0 = ~w~n", [NwkSKey0]),
     io:format("NwkSKey0Size = ~w~n", [byte_size(NwkSKey0)]),
     NwkSKey1 = binary:part(NwkSKey0,{0,16}),
