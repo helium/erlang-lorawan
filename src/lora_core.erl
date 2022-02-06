@@ -60,6 +60,11 @@ payload_ftype(PhyPayload) ->
     <<FType:3/integer-unsigned, _RFU:3/integer-unsigned, _Major:2/integer-unsigned>> = MHDR,
     FType.
 
+payload_rfu(PhyPayload) ->
+    MHDR = payload_mhdr(PhyPayload),
+    <<_FType:3, RFU:3, _Major:2/integer-unsigned>> = MHDR,
+    RFU.
+
 payload_major(PhyPayload) ->
     MHDR = payload_mhdr(PhyPayload),
     <<_FType:3, _RFU:3, Major:2/integer-unsigned>> = MHDR,
@@ -118,6 +123,8 @@ payload_data(PhyPayload) ->
 
 payload_to_frame(PhyPayload, _NwkSKey, _AppSKey) ->
     MType = payload_ftype(PhyPayload),
+    RFU = payload_rfu(PhyPayload),
+    Major = payload_major(PhyPayload),
     DevAddr = payload_devaddr(PhyPayload),
     FCtrlBits = payload_fctrl_bits(PhyPayload),
     FCnt = payload_fcnt(PhyPayload),
@@ -126,33 +133,38 @@ payload_to_frame(PhyPayload, _NwkSKey, _AppSKey) ->
     Data = payload_data(PhyPayload),
     Frame = #frame{
         mtype = MType,
+        rfu = RFU,
+        major = Major,
         devaddr = DevAddr,
         fctrlbits = FCtrlBits,
         fcnt = FCnt,
-        fopts = parse_fopts(FOpts),
+        fopts = FOpts,
         fport = FPort,
         data = Data
     },
     Frame.
 
 -spec frame_to_payload(#frame{}, binary(), binary()) -> binary().
-frame_to_payload(Frame, NwkSKey, AppSKey) ->
-    FOpts = encode_fopts(Frame#frame.fopts),
+frame_to_payload(Frame, NwkSKey, _AppSKey) ->
+    FOpts = Frame#frame.fopts,
     io:format("frame_to_payload FOpts = ~w~n", [FOpts]),
-    FOptsLen = 0, %% erlang:byte_size(FOpts),
+    FOptsLen = erlang:byte_size(FOpts),
     io:format("frame_to_payload FOptsLen = ~w~n", [FOptsLen]),
     case FOptsLen of
         0 ->
             PktHdr =
-                <<(Frame#frame.mtype):3, 0:3, 0:2, (Frame#frame.devaddr)/binary,
+                <<(Frame#frame.mtype):3, (Frame#frame.rfu):3, (Frame#frame.major):2,
+                    (Frame#frame.devaddr)/binary,
                     (Frame#frame.fctrlbits):4, 0:4,
                     (Frame#frame.fcnt):16/integer-unsigned-little>>;
         _ ->
             PktHdr =
-                <<(Frame#frame.mtype):3, 0:3, 0:2, (Frame#frame.devaddr)/binary,
+                <<(Frame#frame.mtype):3, (Frame#frame.rfu):3, (Frame#frame.major):2,
+                    (Frame#frame.devaddr)/binary,
                     (Frame#frame.fctrlbits):4, FOptsLen:4,
                     (Frame#frame.fcnt):16/integer-unsigned-little, FOpts:FOptsLen/binary>>
     end,
+    io:format("frame_to_payload PktHdr = ~w~n", [PktHdr]),
     PktBody =
         case Frame#frame.data of
             <<>> ->
@@ -173,6 +185,7 @@ frame_to_payload(Frame, NwkSKey, AppSKey) ->
                     ))/binary>>;
             <<Payload/binary>> ->
                 lager:debug("port ~p outbound", [Frame#frame.fport]),
+                io:format("frame_to_payload Payload = ~w~n", [Payload]),
                 % EncPayload = lora_utils:reverse(
                 %     lora_utils:cipher(Payload, AppSKey, 1, Frame#frame.devaddr, Frame#frame.fcnt)
                 % ),
@@ -183,7 +196,9 @@ frame_to_payload(Frame, NwkSKey, AppSKey) ->
     MsgSize = byte_size(Msg),
     io:format("frame_to_payload MsgSize = ~w~n", [MsgSize]),
     B0Value = b0(1, Frame#frame.devaddr, Frame#frame.fcnt, MsgSize),
+    io:format("frame_to_payload B0Value = ~w~n", [B0Value]),
     B0 = <<B0Value/binary, Msg/binary>>,
+    io:format("frame_to_payload B0 = ~w~n", [B0]),
     MIC = crypto:macN(
         cmac,
         aes_128_cbc,
@@ -199,9 +214,8 @@ b0(Dir, DevAddr, FCnt, Len) ->
     io:format("b0 DevAddr = ~w~n", [DevAddr]),
     io:format("b0 FCnt = ~w~n", [FCnt]),
     io:format("b0 Len = ~w~n", [Len]),
-    <<16#49, 0, 0, 0, 0, Dir, DevAddr:4/binary, FCnt:32/little-unsigned-integer, 0, Len>>.
-    %% <<16#49, 0, 0, 0, 0, 1, <<1,2,3,4>>:4/binary, 0:32/little-unsigned-integer, 0, 0>>.
-
+    DevAddrReverse = lora_utils:reverse(DevAddr),
+    <<16#49, 0, 0, 0, 0, Dir, DevAddrReverse:4/binary, FCnt:32/little-unsigned-integer, 0, Len>>.
 
 fopts_mac_cid(<<>>) ->
     0;
@@ -334,6 +348,8 @@ sample0() ->
     <<"QHcQASaAFAABvRjrSjJcz6vXC2TMw1A=">>.
 sample1() ->
     <<"YAQAAEiqLgADUwAAcANTAP8ADY5nmA==">>.
+sample_downlink() ->
+    {<<"60A5280126000200011D8B658839">>,<<"15641BC99EBBD238E5D9D83D3D5313C5">>}.
 join_request_sample() ->
     <<"ANwAANB+1bNwHm/t9XzurwDIhgMK8sk=">>.
 join_accept_sample() ->
@@ -455,13 +471,22 @@ decode_payload(Base64) ->
     fin.
 
 payload_0_test() ->
-    Pay0 = sample0(),
+    {Pay0,Key0} = sample_downlink(),
     decode_payload(Pay0),
     Bin0 = base64_to_binary(Pay0),
     io:format("bin0 = ~w~n", [Bin0]),
-    Frame0 = payload_to_frame(Bin0, <<1:128>>, <<2:128>>),
+    NwkSKey0 = base64_to_binary(Key0),
+    io:format("NwkSKey0 = ~w~n", [NwkSKey0]),
+    io:format("NwkSKey0Size = ~w~n", [byte_size(NwkSKey0)]),
+    NwkSKey1 = binary:part(NwkSKey0,{0,16}),
+    io:format("NwkSKey1 = ~w~n", [NwkSKey1]),
+    io:format("NwkSKey1Size = ~w~n", [byte_size(NwkSKey1)]),
+    BlankKey = <<1:128>>,
+    io:format("BlankKey = ~w~n", [BlankKey]),
+    io:format("BlankKeySize = ~w~n", [byte_size(BlankKey)]),
+    Frame0 = payload_to_frame(Bin0, NwkSKey1, <<2:128>>),
     io:format("frame = ~w~n", [Frame0]),
-    Bin1 = frame_to_payload(Frame0, <<1:128>>, <<2:128>>),
+    Bin1 = frame_to_payload(Frame0, NwkSKey1, <<2:128>>),
     io:format("bin0 = ~w~n", [Bin0]),
     io:format("bin1 = ~w~n", [Bin1]),
     fin.

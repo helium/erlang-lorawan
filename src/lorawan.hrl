@@ -14,7 +14,9 @@
 -define(JOIN_TIMEOUT, 2000).
 
 -record(frame, {
-    mtype,
+    mtype :: 0..7,
+    rfu :: 0..7,
+    major :: 0..3,
     devaddr,
     fctrlbits,
     fcnt,
