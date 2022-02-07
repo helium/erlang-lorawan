@@ -17,10 +17,6 @@
 
 -include("lorawan.hrl").
 
--spec base64_to_binary(binary()) -> binary().
-base64_to_binary(Data) ->
-    base64:decode(Data).
-
 payload_join_request(PhyPayload) ->
     <<?JOIN_REQUEST:3, _MHDRRFU:3, _Major:2, AppEUI:8/binary, DevEUI:8/binary, DevNonce:2/binary, _MIC:4/binary>> = PhyPayload,
     {AppEUI, DevEUI, DevNonce}.
@@ -73,7 +69,6 @@ payload_fcnt(PhyPayload) ->
 
 payload_devaddr(PhyPayload) ->
     <<_MHDR:8, DevAddr:4/binary, _/binary>> = PhyPayload,
-    io:format("payload_devaddr devaddr = ~w~n", [DevAddr]),
     DevAddr.
 
 payload_fctrl(PhyPayload) ->
@@ -169,7 +164,6 @@ frame_to_payload(Frame, NwkSKey, _AppSKey) ->
                 %% no payload
                 <<>>;
             <<Payload/binary>> when Frame#frame.fport == 0 ->
-                lager:debug("port 0 outbound"),
                 %% port 0 payload, encrypt with network key
                 <<0:8/integer-unsigned,
                     (lorawan_utils:reverse(
@@ -182,7 +176,6 @@ frame_to_payload(Frame, NwkSKey, _AppSKey) ->
                         )
                     ))/binary>>;
             <<Payload/binary>> ->
-                lager:debug("port ~p outbound", [Frame#frame.fport]),
                 io:format("frame_to_payload Payload = ~w~n", [Payload]),
                 % EncPayload = lora_utils:reverse(
                 %     lora_utils:cipher(Payload, AppSKey, 1, Frame#frame.devaddr, Frame#frame.fcnt)
@@ -374,7 +367,7 @@ string_to_binary(String) ->
         true ->
             lora_utils:hex_to_binary(String);
         false ->
-            base64_to_binary(String)
+            base64:decode(String)
     end.
 
 bin_to_hex2(Bin) ->
