@@ -208,12 +208,11 @@ frame_to_payload(Frame, NwkSKey, _AppSKey) ->
 
 -spec b0(integer(), binary(), integer(), integer()) -> binary().
 b0(Dir, DevAddr, FCnt, Len) ->
-    io:format("b0 Dir = ~w~n", [Dir]),
-    io:format("b0 DevAddr = ~w~n", [DevAddr]),
-    io:format("b0 FCnt = ~w~n", [FCnt]),
-    io:format("b0 Len = ~w~n", [Len]),
-    DevAddrReverse = lora_utils:reverse(DevAddr),
-    <<16#49, 0, 0, 0, 0, Dir, DevAddrReverse:4/binary, FCnt:32/little-unsigned-integer, 0, Len>>.
+    % io:format("b0 Dir = ~w~n", [Dir]),
+    % io:format("b0 DevAddr = ~w~n", [DevAddr]),
+    % io:format("b0 FCnt = ~w~n", [FCnt]),
+    % io:format("b0 Len = ~w~n", [Len]),
+    <<16#49, 0, 0, 0, 0, Dir, DevAddr:4/binary, FCnt:32/little-unsigned-integer, 0, Len>>.
 
 fopts_mac_cid(<<>>) ->
     0;
@@ -514,25 +513,25 @@ payload_util_test() ->
     io:format("bin1 = ~w~n", [Bin1]),
     fin.
 
+payload_decode_test() ->
+    {Pay0,Key0} = sample_downlink(),
+    decode_payload(Pay0),
+    fin.
+
 payload_0_test() ->
     {Pay0,Key0} = sample_downlink(),
     decode_payload(Pay0),
     Bin0 = string_to_binary(Pay0),
-
     NwkSKey0 = string_to_binary(Key0),
-    io:format("NwkSKey0 = ~w~n", [NwkSKey0]),
-    io:format("NwkSKey0Size = ~w~n", [byte_size(NwkSKey0)]),
-    NwkSKey1 = binary:part(NwkSKey0,{0,16}),
-    io:format("NwkSKey1 = ~w~n", [NwkSKey1]),
-    io:format("NwkSKey1Size = ~w~n", [byte_size(NwkSKey1)]),
-    BlankKey = <<1:128>>,
-    io:format("BlankKey = ~w~n", [BlankKey]),
-    io:format("BlankKeySize = ~w~n", [byte_size(BlankKey)]),
-    Frame0 = payload_to_frame(Bin0, NwkSKey1, <<2:128>>),
+    % io:format("NwkSKey0 = ~w~n", [NwkSKey0]),
+    % io:format("NwkSKey0Size = ~w~n", [byte_size(NwkSKey0)]),
+    ?assertEqual(16, byte_size(NwkSKey0)),
+    Frame0 = payload_to_frame(Bin0, NwkSKey0, <<2:128>>),
     io:format("frame = ~w~n", [Frame0]),
-    Bin1 = frame_to_payload(Frame0, NwkSKey1, <<2:128>>),
+    Bin1 = frame_to_payload(Frame0, NwkSKey0, <<2:128>>),
     io:format("bin0 = ~w~n", [Bin0]),
     io:format("bin1 = ~w~n", [Bin1]),
+    ?assert(Bin0 =:= Bin1),
     fin.
 
 payload_1_test() ->
