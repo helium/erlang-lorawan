@@ -18,10 +18,10 @@
     rfu :: 0..7,
     major :: 0..3,
     devaddr,
-    fctrlbits,
-    fcnt,
+    fctrlbits :: 0..256,
+    fcnt :: integer(),
     fopts = [],
-    fport,
+    fport :: 0..256,
     data
 }).
 
@@ -40,27 +40,5 @@
     mail,
     desc
 }).
-
--define(to_record(Record, Object, Default),
-    list_to_tuple([Record | [maps:get(X, Object, Default) || X <- record_info(fields, Record)]])
-).
-
--define(to_record(Record, Object), ?to_record(Record, Object, undefined)).
-
--define(to_map(Record, RecData),
-    maps:from_list(
-        lists:filtermap(
-            fun
-                ({_K, D, D}) -> false;
-                ({K, V, _D}) -> {true, {K, V}}
-            end,
-            lists:zip3(
-                record_info(fields, Record),
-                lorawan_db:record_fields(RecData),
-                tl(tuple_to_list(#Record{}))
-            )
-        )
-    )
-).
 
 % end of file
