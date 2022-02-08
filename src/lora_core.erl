@@ -113,7 +113,34 @@ payload_data(PhyPayload) ->
     <<_Ignore:FhdrLen/binary, _Ignore2:1/binary, FrmPayload/binary>> = MacPayload,
     FrmPayload.
 
-payload_to_frame(PhyPayload, _NwkSKey, _AppSKey) ->
+payload_to_frame(PhyPayload, NwkSKey, AppSKey) ->
+    <<Join:2/integer, _Header:6, _Ignore/binary>> = PhyPayload,
+    case Join of
+        0 ->
+            payload_to_join_frame(PhyPayload, NwkSKey, AppSKey);
+        _ ->
+            payload_to_data_frame(PhyPayload, NwkSKey, AppSKey)
+    end.
+
+payload_to_join_frame(PhyPayload, _NwkSKey, _AppSKey) ->
+    MType = payload_ftype(PhyPayload),
+    RFU = payload_rfu(PhyPayload),
+    Major = payload_major(PhyPayload),
+    MacPayload = payload_macpayload(PhyPayload),
+    Frame = #frame{
+        mtype = MType,
+        rfu = RFU,
+        major = Major,
+        devaddr = 0,
+        fctrlbits = 0,
+        fcnt = 0,
+        fopts = <<>>,
+        fport = 0,
+        data = MacPayload
+    },
+    Frame.
+
+payload_to_data_frame(PhyPayload, _NwkSKey, _AppSKey) ->
     MType = payload_ftype(PhyPayload),
     RFU = payload_rfu(PhyPayload),
     Major = payload_major(PhyPayload),
@@ -357,7 +384,7 @@ sample_uplink() ->
 sample_uplink_2() ->
     {<<"40531E012680664601457090ED25">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"F1B0B1D3CC529C55C3019A46EF4582EA">>}.
 join_request_sample() ->
-    <<"ANwAANB+1bNwHm/t9XzurwDIhgMK8sk=">>.
+    {<<"ANwAANB+1bNwHm/t9XzurwDIhgMK8sk=">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 join_accept_sample() ->
     <<"IIE/R/UI/6JnC24j4B+EueJdnEEV8C7qCz3T4gs+ypLa">>.
 
@@ -558,6 +585,10 @@ payload_01_test() ->
 
 payload_02_test() ->
     decode_encode(fun sample_uplink_2/0),
+    fin.
+
+payload_03_test() ->
+    decode_encode(fun join_request_sample/0),
     fin.
 
 payload_1_test() ->
