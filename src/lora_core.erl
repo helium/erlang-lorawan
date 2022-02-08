@@ -199,6 +199,18 @@ frame_to_payload(Frame, NwkSKey, _AppSKey) ->
     ),
     <<Msg/binary, MIC/binary>>.
 
+encrypt_payload(Payload, FPort, Dir, DevAddr, FCnt, NwkSKey) ->
+    <<0:8/integer-unsigned,
+        (lorawan_utils:reverse(
+            lora_utils:cipher(
+                Payload,
+                NwkSKey,
+                Dir,
+                DevAddr,
+                FCnt
+            )
+        ))/binary>>.
+
 -spec b0(integer(), binary(), integer(), integer()) -> binary().
 b0(Dir, DevAddr, FCnt, Len) ->
     % io:format("b0 Dir = ~w~n", [Dir]),
@@ -340,6 +352,10 @@ sample1() ->
     <<"YAQAAEiqLgADUwAAcANTAP8ADY5nmA==">>.
 sample_downlink() ->
     {<<"60A5280126000200011D8B658839">>,<<"15641BC99EBBD238E5D9D83D3D5313C5">>}.
+sample_uplink() ->
+    {<<"QK4TBCaAAAABb4ldmIEHFOMmgpU=">>,<<"99D58493D1205B43EFF938F0F66C339E">>,<<"0A501524F8EA5FCBF9BDB5AD7D126F75">>}.
+sample_uplink_2() ->
+    {<<"40531E012680664601457090ED25">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"F1B0B1D3CC529C55C3019A46EF4582EA">>}.
 join_request_sample() ->
     <<"ANwAANB+1bNwHm/t9XzurwDIhgMK8sk=">>.
 join_accept_sample() ->
@@ -393,7 +409,7 @@ decode_macpayload(Payload) ->
     io:format("~n( PHYPayload = MHDR[1] | MACPayload[..] | MIC[4] )~n"),
     MHDR = payload_mhdr(Bin0),
     %% io:format("Binary ~8.16.0B~n", [MHDR]),
-    io:format("MHDR = ~w~n", [MHDR]),
+    io:format("MHDR = ~s~n", [bin_to_hex(MHDR)]),
     MacPayload = payload_macpayload(Bin0),
     io:format("MacPayload = ~w~n", [MacPayload]),
     io:format("MacPayload = ~s~n", [bin_to_hex(MacPayload)]),
@@ -433,6 +449,7 @@ decode_frame(Payload) ->
     io:format("FHDR = ~s~n", [bin_to_hex(FHDR)]),
     io:format("FPort = ~w~n", [FPort]),
     io:format("FRMPayload = ~w~n", [FrmPayload]),
+    io:format("Encrypted FRMPayload = ~s~n", [bin_to_hex(FrmPayload)]),
 
     io:format("~n( FHDR = DevAddr[4] | FCtrl[1] | FCnt[2] | FOpts[0..15] )~n"),
     DevAddr = payload_devaddr(Bin0),
@@ -482,8 +499,8 @@ decode_payload(String) ->
     Bin0 = string_to_binary(String),
     io:format("Binary packet = ~w~n", [Bin0]),
 
-    decode_message_type(Bin0),
     decode_macpayload(Bin0),
+    decode_message_type(Bin0),
 
     MType = payload_ftype(Bin0),
     case MType of
@@ -511,7 +528,7 @@ payload_decode_test() ->
     decode_payload(Pay0),
     fin.
 
-payload_0_test() ->
+payload_00_test() ->
     {Pay0,Key0} = sample_downlink(),
     decode_payload(Pay0),
     Bin0 = string_to_binary(Pay0),
@@ -522,6 +539,46 @@ payload_0_test() ->
     Frame0 = payload_to_frame(Bin0, NwkSKey0, <<2:128>>),
     io:format("frame = ~w~n", [Frame0]),
     Bin1 = frame_to_payload(Frame0, NwkSKey0, <<2:128>>),
+    io:format("bin0 = ~w~n", [Bin0]),
+    io:format("bin1 = ~w~n", [Bin1]),
+    ?assert(Bin0 =:= Bin1),
+    fin.
+
+payload_01_test() ->
+    {Pay0,Key0,AppKey0} = sample_uplink(),
+    decode_payload(Pay0),
+    Bin0 = string_to_binary(Pay0),
+    io:format("Key0 = ~w~n", [Key0]),
+    io:format("Key0Size = ~w~n", [byte_size(Key0)]),
+    NwkSKey0 = string_to_binary(Key0),
+    AppSKey0 = string_to_binary(AppKey0),
+    % io:format("NwkSKey0 = ~w~n", [NwkSKey0]),
+    % io:format("NwkSKey0Size = ~w~n", [byte_size(NwkSKey0)]),
+    ?assertEqual(16, byte_size(NwkSKey0)),
+    ?assertEqual(16, byte_size(AppSKey0)),
+    Frame0 = payload_to_frame(Bin0, NwkSKey0, AppSKey0),
+    io:format("frame = ~w~n", [Frame0]),
+    Bin1 = frame_to_payload(Frame0, NwkSKey0, AppSKey0),
+    io:format("bin0 = ~w~n", [Bin0]),
+    io:format("bin1 = ~w~n", [Bin1]),
+    ?assert(Bin0 =:= Bin1),
+    fin.
+
+payload_02_test() ->
+    {Pay0,Key0,AppKey0} = sample_uplink_2(),
+    decode_payload(Pay0),
+    Bin0 = string_to_binary(Pay0),
+    io:format("Key0 = ~w~n", [Key0]),
+    io:format("Key0Size = ~w~n", [byte_size(Key0)]),
+    NwkSKey0 = string_to_binary(Key0),
+    AppSKey0 = string_to_binary(AppKey0),
+    % io:format("NwkSKey0 = ~w~n", [NwkSKey0]),
+    % io:format("NwkSKey0Size = ~w~n", [byte_size(NwkSKey0)]),
+    ?assertEqual(16, byte_size(NwkSKey0)),
+    ?assertEqual(16, byte_size(AppSKey0)),
+    Frame0 = payload_to_frame(Bin0, NwkSKey0, AppSKey0),
+    io:format("frame = ~w~n", [Frame0]),
+    Bin1 = frame_to_payload(Frame0, NwkSKey0, AppSKey0),
     io:format("bin0 = ~w~n", [Bin0]),
     io:format("bin1 = ~w~n", [Bin1]),
     ?assert(Bin0 =:= Bin1),
