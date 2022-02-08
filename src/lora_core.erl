@@ -351,7 +351,7 @@ sample0() ->
 sample1() ->
     <<"YAQAAEiqLgADUwAAcANTAP8ADY5nmA==">>.
 sample_downlink() ->
-    {<<"60A5280126000200011D8B658839">>,<<"15641BC99EBBD238E5D9D83D3D5313C5">>}.
+    {<<"60A5280126000200011D8B658839">>,<<"15641BC99EBBD238E5D9D83D3D5313C5">>,<<"B184F94678DD69F3C83C2525CD3938B3">>}.
 sample_uplink() ->
     {<<"QK4TBCaAAAABb4ldmIEHFOMmgpU=">>,<<"99D58493D1205B43EFF938F0F66C339E">>,<<"0A501524F8EA5FCBF9BDB5AD7D126F75">>}.
 sample_uplink_2() ->
@@ -528,60 +528,36 @@ payload_decode_test() ->
     decode_payload(Pay0),
     fin.
 
-payload_00_test() ->
-    {Pay0,Key0} = sample_downlink(),
+decode_encode(Sample) ->
+    {Pay0,Key0,AppKey0} = Sample(),
     decode_payload(Pay0),
     Bin0 = string_to_binary(Pay0),
+    io:format("Key0 = ~w~n", [Key0]),
+    io:format("Key0Size = ~w~n", [byte_size(Key0)]),
     NwkSKey0 = string_to_binary(Key0),
+    AppSKey0 = string_to_binary(AppKey0),
     % io:format("NwkSKey0 = ~w~n", [NwkSKey0]),
     % io:format("NwkSKey0Size = ~w~n", [byte_size(NwkSKey0)]),
     ?assertEqual(16, byte_size(NwkSKey0)),
-    Frame0 = payload_to_frame(Bin0, NwkSKey0, <<2:128>>),
+    ?assertEqual(16, byte_size(AppSKey0)),
+    Frame0 = payload_to_frame(Bin0, NwkSKey0, AppSKey0),
     io:format("frame = ~w~n", [Frame0]),
-    Bin1 = frame_to_payload(Frame0, NwkSKey0, <<2:128>>),
+    Bin1 = frame_to_payload(Frame0, NwkSKey0, AppSKey0),
     io:format("bin0 = ~w~n", [Bin0]),
     io:format("bin1 = ~w~n", [Bin1]),
     ?assert(Bin0 =:= Bin1),
+    fin.
+
+payload_00_test() ->
+    decode_encode(fun sample_downlink/0),
     fin.
 
 payload_01_test() ->
-    {Pay0,Key0,AppKey0} = sample_uplink(),
-    decode_payload(Pay0),
-    Bin0 = string_to_binary(Pay0),
-    io:format("Key0 = ~w~n", [Key0]),
-    io:format("Key0Size = ~w~n", [byte_size(Key0)]),
-    NwkSKey0 = string_to_binary(Key0),
-    AppSKey0 = string_to_binary(AppKey0),
-    % io:format("NwkSKey0 = ~w~n", [NwkSKey0]),
-    % io:format("NwkSKey0Size = ~w~n", [byte_size(NwkSKey0)]),
-    ?assertEqual(16, byte_size(NwkSKey0)),
-    ?assertEqual(16, byte_size(AppSKey0)),
-    Frame0 = payload_to_frame(Bin0, NwkSKey0, AppSKey0),
-    io:format("frame = ~w~n", [Frame0]),
-    Bin1 = frame_to_payload(Frame0, NwkSKey0, AppSKey0),
-    io:format("bin0 = ~w~n", [Bin0]),
-    io:format("bin1 = ~w~n", [Bin1]),
-    ?assert(Bin0 =:= Bin1),
+    decode_encode(fun sample_uplink/0),
     fin.
 
 payload_02_test() ->
-    {Pay0,Key0,AppKey0} = sample_uplink_2(),
-    decode_payload(Pay0),
-    Bin0 = string_to_binary(Pay0),
-    io:format("Key0 = ~w~n", [Key0]),
-    io:format("Key0Size = ~w~n", [byte_size(Key0)]),
-    NwkSKey0 = string_to_binary(Key0),
-    AppSKey0 = string_to_binary(AppKey0),
-    % io:format("NwkSKey0 = ~w~n", [NwkSKey0]),
-    % io:format("NwkSKey0Size = ~w~n", [byte_size(NwkSKey0)]),
-    ?assertEqual(16, byte_size(NwkSKey0)),
-    ?assertEqual(16, byte_size(AppSKey0)),
-    Frame0 = payload_to_frame(Bin0, NwkSKey0, AppSKey0),
-    io:format("frame = ~w~n", [Frame0]),
-    Bin1 = frame_to_payload(Frame0, NwkSKey0, AppSKey0),
-    io:format("bin0 = ~w~n", [Bin0]),
-    io:format("bin1 = ~w~n", [Bin1]),
-    ?assert(Bin0 =:= Bin1),
+    decode_encode(fun sample_uplink_2/0),
     fin.
 
 payload_1_test() ->
