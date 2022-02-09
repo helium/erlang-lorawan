@@ -164,7 +164,32 @@ payload_to_data_frame(PhyPayload, _NwkSKey, _AppSKey) ->
     Frame.
 
 -spec frame_to_payload(#frame{}, binary(), binary()) -> binary().
-frame_to_payload(Frame, NwkSKey, _AppSKey) ->
+frame_to_payload(Frame, NwkSKey, AppSKey) ->
+    <<MType:2, _DirectionBit:1, 0:5>> = <<(Frame#frame.mtype):3, 0:5>>,
+    case MType of
+        0 -> join_frame_to_payload(Frame, NwkSKey, AppSKey);
+        _ -> data_frame_to_payload(Frame, NwkSKey, AppSKey)
+    end.
+
+-spec join_frame_to_payload(#frame{}, binary(), binary()) -> binary().
+join_frame_to_payload(Frame, _NwkSKey, AppSKey) ->
+    PktHdr = <<(Frame#frame.mtype):3, (Frame#frame.rfu):3, (Frame#frame.major):2>>,
+    io:format("frame_to_payload PktHdr = ~w~n", [PktHdr]),
+    PktBody = <<(Frame#frame.data)/binary>>,
+    io:format("frame_to_payload PktBody = ~w~n", [PktBody]),
+    Msg = <<PktHdr/binary, PktBody/binary>>,
+    io:format("frame_to_payload Msg = ~w~n", [Msg]),
+    MIC = crypto:macN(
+        cmac,
+        aes_128_cbc,
+        AppSKey,
+        Msg,
+        4
+    ),
+    <<Msg/binary, MIC/binary>>.
+
+-spec data_frame_to_payload(#frame{}, binary(), binary()) -> binary().
+data_frame_to_payload(Frame, NwkSKey, _AppSKey) ->
     FOpts = Frame#frame.fopts,
     io:format("frame_to_payload FOpts = ~w~n", [FOpts]),
     FOptsLen = erlang:byte_size(FOpts),
