@@ -110,8 +110,13 @@ payload_fport(PhyPayload) ->
 payload_data(PhyPayload) ->
     MacPayload = payload_macpayload(PhyPayload),
     FhdrLen = payload_fhdr_len(PhyPayload),
-    <<_Ignore:FhdrLen/binary, _Ignore2:1/binary, FrmPayload/binary>> = MacPayload,
-    FrmPayload.
+    PayloadLen = byte_size(MacPayload) - FhdrLen,
+    case PayloadLen of
+        0 -> <<>>;
+        _ ->
+            <<_Ignore:FhdrLen/binary, _Ignore2:1/binary, FrmPayload/binary>> = MacPayload,
+            FrmPayload
+    end.
 
 payload_to_frame(PhyPayload, NwkSKey, AppSKey) ->
     MType = payload_ftype(PhyPayload),
@@ -436,6 +441,9 @@ sample0() ->
     <<"QHcQASaAFAABvRjrSjJcz6vXC2TMw1A=">>.
 sample1() ->
     <<"YAQAAEiqLgADUwAAcANTAP8ADY5nmA==">>.
+%% https://github.com/anthonykirby/lora-packet/issues/35
+sample_02() ->
+    {<<"YGcXASaKCwADQAIAcQM1AP8BbePzEg==">>, <<"4BBA414130E0A0C87FE0A7EAA257E9BD">>, <<"7679A920DC79C0DECC693E34E670B11F">>}.
 sample_downlink() ->
     {<<"60A5280126000200011D8B658839">>,<<"15641BC99EBBD238E5D9D83D3D5313C5">>,<<"B184F94678DD69F3C83C2525CD3938B3">>}.
 sample_uplink() ->
@@ -665,6 +673,10 @@ payload_03_test() ->
 
 payload_04_test() ->
     decode_encode(fun join_accept_sample_2/0),
+    fin.
+
+payload_05_test() ->
+    decode_encode(fun sample_02/0),
     fin.
 
 payload_1_test() ->
