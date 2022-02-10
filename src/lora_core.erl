@@ -410,30 +410,36 @@ sample_uplink_2() ->
     {<<"40531E012680664601457090ED25">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"F1B0B1D3CC529C55C3019A46EF4582EA">>}.
 join_request_sample() ->
     {<<"ANwAANB+1bNwHm/t9XzurwDIhgMK8sk=">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
+join_request_sample_2() ->
+    {<<"20fd5ef68da6f52e331b53d546fdb2ad3c9801c93fc961e78e7e3c23af31422392">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 join_accept_sample() ->
     <<"IIE/R/UI/6JnC24j4B+EueJdnEEV8C7qCz3T4gs+ypLa">>.
+join_accept_sample_2() ->
+    {<<"204dd85ae608b87fc4889970b7d2042c9e72959b0057aed6094b16003df12de145">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 
-is_hex_string(HexBinary0) ->
+is_hex_string(HexBin0) ->
     try
-        Binary1 = lora_utils:hex_to_binary(HexBinary0),
-        HexBinary1 = lora_utils:binary_to_hex(Binary1),
-        %% OTP 24
-        % Binary1 = binary:decode_hex(HexBinary0),
-        % HexBinary1 = binary:encode_hex(Binary1),
-        case HexBinary0 of
-            HexBinary1 -> true;
+        HexBin1 = string:uppercase(HexBin0),
+        Bin1 = lora_utils:hex_to_binary(HexBin1),
+        HexBin2 = lora_utils:binary_to_hex(Bin1),
+        %% OTP 24 (use new API when available)
+        % Bin1 = binary:decode_hex(HexBin0),
+        % HexBin1 = binary:encode_hex(Bin1),
+        case HexBin1 of
+            HexBin2 -> true;
             _ -> false
         end
     catch
         _Exception:_Reason ->
-            %% io:format("is_hex_string Exception=~w Reason=~w~n", [Exception, Reason]),
+            % io:format("is_hex_string Exception=~w Reason=~w~n", [Exception, Reason]),
             false
     end.
 
 string_to_binary(String) ->
-    case is_hex_string(String) of
+    UpperCase = string:uppercase(String),
+    case is_hex_string(UpperCase) of
         true ->
-            lora_utils:hex_to_binary(String);
+            lora_utils:hex_to_binary(UpperCase);
         false ->
             base64:decode(String)
     end.
@@ -441,8 +447,8 @@ string_to_binary(String) ->
 bin_to_hex2(Bin) ->
     [begin if N < 10 -> 48 + N; true -> 87 + N end end || <<N:4>> <= Bin].
 
-bin_to_hex(Binary) ->
-    [[io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Binary ]].
+bin_to_hex(Bin) ->
+    [io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Bin].
 
 decode_message_type(Payload) ->
     io:format("~n( MHDR = Ftype[7:5] | RFU[4:2] | Major[1:0] )~n"),
@@ -563,7 +569,9 @@ decode_payload(String) ->
     fin.
 
 payload_util_test() ->
-    {Pay0,Key0} = sample_downlink(),
+    ValidHex00 = is_hex_string(<<"a0">>),
+    ?assertEqual(true, ValidHex00),
+    {Pay0,Key0,_AppKey} = sample_downlink(),
     ValidHex0 = is_hex_string(Pay0),
     ?assertEqual(true, ValidHex0),
     Sample0 = sample0(),
@@ -573,10 +581,15 @@ payload_util_test() ->
     io:format("bin0 = ~w~n", [Bin0]),
     Bin1 = string_to_binary(Sample0),
     io:format("bin1 = ~w~n", [Bin1]),
+    {Pay2,Key2,_AppKey2} = join_accept_sample_2(),
+    ValidHex2 = is_hex_string(Pay2),
+    ?assertEqual(true, ValidHex2),
+    Bin2 = string_to_binary(Pay2),
+    io:format("bin2 = ~w~n", [Bin2]),
     fin.
 
 payload_decode_test() ->
-    {Pay0,Key0} = sample_downlink(),
+    {Pay0,Key0,_AppKey} = sample_downlink(),
     decode_payload(Pay0),
     fin.
 
@@ -614,6 +627,10 @@ payload_02_test() ->
 
 payload_03_test() ->
     decode_encode(fun join_request_sample/0),
+    fin.
+
+payload_04_test() ->
+    decode_encode(fun join_accept_sample_2/0),
     fin.
 
 payload_1_test() ->
