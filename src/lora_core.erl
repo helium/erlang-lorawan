@@ -114,15 +114,17 @@ payload_data(PhyPayload) ->
     FrmPayload.
 
 payload_to_frame(PhyPayload, NwkSKey, AppSKey) ->
-    <<Join:2/integer, _Header:6, _Ignore/binary>> = PhyPayload,
-    case Join of
-        0 ->
-            payload_to_join_frame(PhyPayload, NwkSKey, AppSKey);
+    MType = payload_ftype(PhyPayload),
+    case MType of
+        ?JOIN_REQUEST ->
+            payload_to_join_req_frame(PhyPayload, NwkSKey, AppSKey);
+        ?JOIN_ACCEPT ->
+            payload_to_join_resp_frame(PhyPayload, NwkSKey, AppSKey);
         _ ->
             payload_to_data_frame(PhyPayload, NwkSKey, AppSKey)
     end.
 
-payload_to_join_frame(PhyPayload, _NwkSKey, _AppSKey) ->
+payload_to_join_req_frame(PhyPayload, _NwkSKey, _AppSKey) ->
     MType = payload_ftype(PhyPayload),
     RFU = payload_rfu(PhyPayload),
     Major = payload_major(PhyPayload),
@@ -137,6 +139,32 @@ payload_to_join_frame(PhyPayload, _NwkSKey, _AppSKey) ->
         fopts = <<>>,
         fport = 0,
         data = MacPayload
+    },
+    Frame.
+
+payload_to_join_resp_frame(PhyPayload, _NwkSKey, AppKey) ->
+    io:format("payload_to_join_resp_frame~n"),
+    MType = payload_ftype(PhyPayload),
+    RFU = payload_rfu(PhyPayload),
+    Major = payload_major(PhyPayload),
+    <<PktHdr:8, PktBody/binary>> = PhyPayload,
+    % io:format("payload_to_join_resp_frame PktBody=~w~n", [PktBody]),
+    DecryptedReply = crypto:block_encrypt(
+        aes_ecb,
+        AppKey,
+        PktBody
+    ),
+    % io:format("payload_to_join_resp_frame DecryptedReply=~w~n", [DecryptedReply]),
+    Frame = #frame{
+        mtype = MType,
+        rfu = RFU,
+        major = Major,
+        devaddr = 0,
+        fctrlbits = 0,
+        fcnt = 0,
+        fopts = <<>>,
+        fport = 0,
+        data = DecryptedReply
     },
     Frame.
 
@@ -172,21 +200,27 @@ frame_to_payload(Frame, NwkSKey, AppSKey) ->
     end.
 
 -spec join_frame_to_payload(#frame{}, binary(), binary()) -> binary().
-join_frame_to_payload(Frame, _NwkSKey, AppSKey) ->
+join_frame_to_payload(Frame, _NwkSKey, AppKey) ->
     PktHdr = <<(Frame#frame.mtype):3, (Frame#frame.rfu):3, (Frame#frame.major):2>>,
-    io:format("frame_to_payload PktHdr = ~w~n", [PktHdr]),
+    % io:format("frame_to_payload PktHdr = ~w~n", [PktHdr]),
     PktBody = <<(Frame#frame.data)/binary>>,
-    io:format("frame_to_payload PktBody = ~w~n", [PktBody]),
+    % io:format("frame_to_payload PktBody = ~w~n", [PktBody]),
     Msg = <<PktHdr/binary, PktBody/binary>>,
-    io:format("frame_to_payload Msg = ~w~n", [Msg]),
-    MIC = crypto:macN(
-        cmac,
-        aes_128_cbc,
-        AppSKey,
-        Msg,
-        4
-    ),
-    <<Msg/binary, MIC/binary>>.
+    % io:format("frame_to_payload Msg = ~w~n", [Msg]),
+    case Frame#frame.mtype of
+        ?JOIN_REQUEST ->
+            MIC = crypto:macN( cmac, aes_128_cbc, AppKey, Msg, 4 ),
+            <<Msg/binary, MIC/binary>>;
+        ?JOIN_ACCEPT ->
+            ReplyMIC = crypto:macN(cmac, aes_128_cbc, AppKey, <<PktHdr/binary, PktBody/binary>>, 4),
+            EncryptedReply = crypto:block_decrypt(
+                aes_ecb,
+                AppKey,
+                %% lora_utils:padded(16, <<PktBody/binary, ReplyMIC/binary>>)
+                <<PktBody/binary, ReplyMIC/binary>>
+            ),
+            <<PktHdr/binary, EncryptedReply/binary>>
+    end.
 
 -spec data_frame_to_payload(#frame{}, binary(), binary()) -> binary().
 data_frame_to_payload(Frame, NwkSKey, _AppSKey) ->
