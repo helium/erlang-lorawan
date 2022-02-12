@@ -152,7 +152,7 @@ payload_to_join_resp_frame(PhyPayload, _NwkSKey, AppKey) ->
     MType = payload_ftype(PhyPayload),
     RFU = payload_rfu(PhyPayload),
     Major = payload_major(PhyPayload),
-    <<PktHdr:8, PktBody/binary>> = PhyPayload,
+    <<_PktHdr:8, PktBody/binary>> = PhyPayload,
     % io:format("payload_to_join_resp_frame PktBody=~w~n", [PktBody]),
     DecryptedReply = crypto:block_encrypt(
         aes_ecb,
@@ -290,17 +290,17 @@ data_frame_to_payload(Frame, NwkSKey, _AppSKey) ->
     ),
     <<Msg/binary, MIC/binary>>.
 
-encrypt_payload(Payload, FPort, Dir, DevAddr, FCnt, NwkSKey) ->
-    <<0:8/integer-unsigned,
-        (lorawan_utils:reverse(
-            lora_utils:cipher(
-                Payload,
-                NwkSKey,
-                Dir,
-                DevAddr,
-                FCnt
-            )
-        ))/binary>>.
+% encrypt_payload(Payload, FPort, Dir, DevAddr, FCnt, NwkSKey) ->
+%     <<0:8/integer-unsigned,
+%         (lorawan_utils:reverse(
+%             lora_utils:cipher(
+%                 Payload,
+%                 NwkSKey,
+%                 Dir,
+%                 DevAddr,
+%                 FCnt
+%             )
+%         ))/binary>>.
 
 -spec b0(integer(), binary(), integer(), integer()) -> binary().
 b0(Dir, DevAddr, FCnt, Len) ->
@@ -613,7 +613,7 @@ decode_payload(String) ->
 payload_util_test() ->
     ValidHex00 = is_hex_string(<<"a0">>),
     ?assertEqual(true, ValidHex00),
-    {Pay0,Key0,_AppKey} = sample_downlink(),
+    {Pay0,_Key0,_AppKey} = sample_downlink(),
     ValidHex0 = is_hex_string(Pay0),
     ?assertEqual(true, ValidHex0),
     Sample0 = sample0(),
@@ -623,7 +623,7 @@ payload_util_test() ->
     io:format("bin0 = ~w~n", [Bin0]),
     Bin1 = string_to_binary(Sample0),
     io:format("bin1 = ~w~n", [Bin1]),
-    {Pay2,Key2,_AppKey2} = join_accept_sample_2(),
+    {Pay2,_Key2,_AppKey2} = join_accept_sample_2(),
     ValidHex2 = is_hex_string(Pay2),
     ?assertEqual(true, ValidHex2),
     Bin2 = string_to_binary(Pay2),
@@ -631,7 +631,7 @@ payload_util_test() ->
     fin.
 
 payload_decode_test() ->
-    {Pay0,Key0,_AppKey} = sample_downlink(),
+    {Pay0,_Key0,_AppKey} = sample_downlink(),
     decode_payload(Pay0),
     fin.
 
