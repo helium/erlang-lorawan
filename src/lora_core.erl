@@ -154,11 +154,7 @@ payload_to_join_resp_frame(PhyPayload, _NwkSKey, AppKey) ->
     Major = payload_major(PhyPayload),
     <<_PktHdr:8, PktBody/binary>> = PhyPayload,
     % io:format("payload_to_join_resp_frame PktBody=~w~n", [PktBody]),
-    DecryptedReply = crypto:block_encrypt(
-        aes_ecb,
-        AppKey,
-        PktBody
-    ),
+    DecryptedReply = crypto:crypto_one_time(aes_128_ecb, AppKey, <<0:128>>, PktBody, true),
     % io:format("payload_to_join_resp_frame DecryptedReply=~w~n", [DecryptedReply]),
     Frame = #frame{
         mtype = MType,
@@ -218,12 +214,17 @@ join_frame_to_payload(Frame, _NwkSKey, AppKey) ->
             <<Msg/binary, MIC/binary>>;
         ?JOIN_ACCEPT ->
             ReplyMIC = crypto:macN(cmac, aes_128_cbc, AppKey, <<PktHdr/binary, PktBody/binary>>, 4),
-            EncryptedReply = crypto:block_decrypt(
-                aes_ecb,
+            % EncryptedReply = crypto:block_decrypt(
+            %     aes_ecb,
+            %     AppKey,
+            %     %% lora_utils:padded(16, <<PktBody/binary, ReplyMIC/binary>>)
+            %     <<PktBody/binary, ReplyMIC/binary>>
+            % ),
+            EncryptedReply = crypto:crypto_one_time(
+                aes_128_ecb,
                 AppKey,
-                %% lora_utils:padded(16, <<PktBody/binary, ReplyMIC/binary>>)
-                <<PktBody/binary, ReplyMIC/binary>>
-            ),
+                <<0:128>>,
+                <<PktBody/binary, ReplyMIC/binary>>, false),
             <<PktHdr/binary, EncryptedReply/binary>>
     end.
 
