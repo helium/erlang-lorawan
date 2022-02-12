@@ -224,7 +224,7 @@ join_frame_to_payload(Frame, _NwkSKey, AppKey) ->
                 aes_128_ecb,
                 AppKey,
                 <<0:128>>,
-                <<PktBody/binary, ReplyMIC/binary>>, false),
+                 <<PktBody/binary, ReplyMIC/binary>>, false),
             <<PktHdr/binary, EncryptedReply/binary>>
     end.
 
@@ -453,8 +453,8 @@ sample_uplink_2() ->
     {<<"40531E012680664601457090ED25">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"F1B0B1D3CC529C55C3019A46EF4582EA">>}.
 join_request_sample() ->
     {<<"ANwAANB+1bNwHm/t9XzurwDIhgMK8sk=">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
-join_request_sample_2() ->
-    {<<"20fd5ef68da6f52e331b53d546fdb2ad3c9801c93fc961e78e7e3c23af31422392">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
+% join_request_sample_2() ->
+%     {<<"20fd5ef68da6f52e331b53d546fdb2ad3c9801c93fc961e78e7e3c23af31422392">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 join_accept_sample() ->
     <<"IIE/R/UI/6JnC24j4B+EueJdnEEV8C7qCz3T4gs+ypLa">>.
 join_accept_sample_2() ->
@@ -487,8 +487,8 @@ string_to_binary(String) ->
             base64:decode(String)
     end.
 
-bin_to_hex2(Bin) ->
-    [begin if N < 10 -> 48 + N; true -> 87 + N end end || <<N:4>> <= Bin].
+% bin_to_hex2(Bin) ->
+%     [begin if N < 10 -> 48 + N; true -> 87 + N end end || <<N:4>> <= Bin].
 
 bin_to_hex(Bin) ->
     [io_lib:format("~2.16.0B",[X]) || <<X:8>> <= Bin].
