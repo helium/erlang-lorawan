@@ -445,6 +445,9 @@ sample1() ->
 %% https://github.com/anthonykirby/lora-packet/issues/35
 sample_02() ->
     {<<"YGcXASaKCwADQAIAcQM1AP8BbePzEg==">>, <<"4BBA414130E0A0C87FE0A7EAA257E9BD">>, <<"7679A920DC79C0DECC693E34E670B11F">>}.
+%% https://github.com/JiapengLi/lorawan-parser
+sample_03() ->
+    {<<"4011111101A05904020FA09D7C61F3FAB7">>, <<"2B7E151628AED2A6ABF7158809CF4F3C">>, <<"2B7E151628AED2A6ABF7158809CF4F3C">>}.
 sample_downlink() ->
     {<<"60A5280126000200011D8B658839">>,<<"15641BC99EBBD238E5D9D83D3D5313C5">>,<<"B184F94678DD69F3C83C2525CD3938B3">>}.
 sample_uplink() ->
@@ -656,6 +659,15 @@ decode_encode(Sample) ->
     ?assert(Bin0 =:= Bin1),
     fin.
 
+payload_all_test() ->
+    decode_encode(fun sample_downlink/0),
+    decode_encode(fun sample_uplink/0),
+    % decode_encode(fun sample_uplink_2/0),
+    decode_encode(fun join_request_sample/0),
+    decode_encode(fun join_accept_sample_2/0),
+    decode_encode(fun sample_02/0),
+    fin.
+
 payload_00_test() ->
     decode_encode(fun sample_downlink/0),
     fin.
@@ -678,6 +690,10 @@ payload_04_test() ->
 
 payload_05_test() ->
     decode_encode(fun sample_02/0),
+    fin.
+
+payload_06_test() ->
+    decode_encode(fun sample_03/0),
     fin.
 
 payload_1_test() ->
