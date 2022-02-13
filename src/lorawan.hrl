@@ -17,12 +17,12 @@
     mtype :: 0..7,
     rfu :: 0..7,
     major :: 0..3,
-    devaddr,
+    devaddr :: binary(),
     fctrlbits :: 0..256,
     fcnt :: integer(),
     fopts = [],
     fport :: 0..256,
-    data
+    data :: binary()
 }).
 
 -record(stat, {

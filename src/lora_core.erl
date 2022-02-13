@@ -31,7 +31,7 @@ payload_mhdr(PhyPayload) ->
     <<MHDR:8/integer-unsigned, _/binary>> = PhyPayload,
     <<MHDR>>.
 
-payload_direction(PhyPayload) ->
+payload_dirbit(PhyPayload) ->
     <<_Ignore:2/integer-unsigned, DirectionBit:1/integer-unsigned, _Ignore2:5/integer, _/binary>> = PhyPayload,
     DirectionBit.
 
@@ -148,7 +148,7 @@ payload_to_join_req_frame(PhyPayload, _NwkSKey, _AppSKey) ->
     Frame.
 
 payload_to_join_resp_frame(PhyPayload, _NwkSKey, AppKey) ->
-    io:format("payload_to_join_resp_frame~n"),
+    % io:format("payload_to_join_resp_frame~n"),
     MType = payload_ftype(PhyPayload),
     RFU = payload_rfu(PhyPayload),
     Major = payload_major(PhyPayload),
@@ -180,7 +180,7 @@ payload_to_data_frame(PhyPayload, NwkSKey, AppSKey) ->
     FPort = payload_fport(PhyPayload),
     Data = payload_data(PhyPayload),
     PayloadMIC = payload_mic(PhyPayload),
-    DirBit = payload_direction(PhyPayload),
+    DirBit = payload_dirbit(PhyPayload),
     Frame0 = #frame{
         mtype = MType,
         rfu = RFU,
@@ -214,9 +214,9 @@ info_lager_if(Statement, Format, Value) ->
         false -> ok
     end.
 
-compute_true_fcnt(Msg, NwkSKey, DirectionBit, DevAddr, FCnt, PayloadMIC) ->
+compute_true_fcnt(Msg, NwkSKey, DirBit, DevAddr, FCnt, PayloadMIC) ->
     MsgSize = byte_size(Msg),
-    B0Value = b0(DirectionBit, DevAddr, FCnt, MsgSize),
+    B0Value = b0(DirBit, DevAddr, FCnt, MsgSize),
     B0 = <<B0Value/binary, Msg/binary>>,
     MIC = crypto:macN(
         cmac,
@@ -230,7 +230,7 @@ compute_true_fcnt(Msg, NwkSKey, DirectionBit, DevAddr, FCnt, PayloadMIC) ->
             FCnt;
         _ ->
             NewFCnt = FCnt + 16#10000,
-            compute_true_fcnt(Msg, NwkSKey, DirectionBit, DevAddr, NewFCnt, PayloadMIC)
+            compute_true_fcnt(Msg, NwkSKey, DirBit, DevAddr, NewFCnt, PayloadMIC)
     end.
 
 -spec frame_to_payload(#frame{}, binary(), binary()) -> binary().
@@ -350,12 +350,12 @@ data_frame_to_payload(Frame, NwkSKey, AppSKey) ->
 %         ))/binary>>.
 
 -spec b0(integer(), binary(), integer(), integer()) -> binary().
-b0(Dir, DevAddr, FCnt, Len) ->
+b0(DirBit, DevAddr, FCnt, MsgLen) ->
     % io:format("b0 Dir = ~w~n", [Dir]),
     % io:format("b0 DevAddr = ~w~n", [DevAddr]),
     % io:format("b0 FCnt = ~w~n", [FCnt]),
     % io:format("b0 Len = ~w~n", [Len]),
-    <<16#49, 0, 0, 0, 0, Dir, DevAddr:4/binary, FCnt:32/little-unsigned-integer, 0, Len>>.
+    <<16#49, 0, 0, 0, 0, DirBit, DevAddr:4/binary, FCnt:32/little-unsigned-integer, 0, MsgLen>>.
 
 fopts_mac_cid(<<>>) ->
     0;
@@ -484,10 +484,11 @@ encode_fupopts([]) ->
 
 -include_lib("eunit/include/eunit.hrl").
 
-sample0() ->
-    <<"QHcQASaAFAABvRjrSjJcz6vXC2TMw1A=">>.
-sample1() ->
-    <<"YAQAAEiqLgADUwAAcANTAP8ADY5nmA==">>.
+%% https://lorawan-packet-decoder-0ta6puiniaut.runkit.sh/?
+sample_00() ->
+    {<<"QHcQASaAFAABvRjrSjJcz6vXC2TMw1A=">>, <<1:128>>, <<2:128>>}.
+sample_01() ->
+    {<<"YAQAAEiqLgADUwAAcANTAP8ADY5nmA==">>, <<1:128>>, <<2:128>>}.
 %% https://github.com/anthonykirby/lora-packet/issues/35
 sample_02() ->
     {<<"YGcXASaKCwADQAIAcQM1AP8BbePzEg==">>, <<"4BBA414130E0A0C87FE0A7EAA257E9BD">>, <<"7679A920DC79C0DECC693E34E670B11F">>}.
@@ -505,7 +506,7 @@ join_request_sample() ->
 % join_request_sample_2() ->
 %     {<<"20fd5ef68da6f52e331b53d546fdb2ad3c9801c93fc961e78e7e3c23af31422392">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 join_accept_sample() ->
-    <<"IIE/R/UI/6JnC24j4B+EueJdnEEV8C7qCz3T4gs+ypLa">>.
+    {<<"IIE/R/UI/6JnC24j4B+EueJdnEEV8C7qCz3T4gs+ypLa">>, <<1:128>>, <<2:128>>}.
 join_accept_sample_2() ->
     {<<"204dd85ae608b87fc4889970b7d2042c9e72959b0057aed6094b16003df12de145">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 
@@ -548,7 +549,7 @@ decode_message_type(Payload) ->
     io:format("FType = ~w~n", [FType]),
     MType = lora_utils:mtype(FType),
     io:format("Message Type = ~s~n", [MType]),
-    Direction = payload_direction(Payload),
+    Direction = payload_dirbit(Payload),
     io:format("Direction = ~s~n", [lora_utils:dir_string(Direction)]),
     Major = payload_major(Payload),
     io:format("Major = ~w~n", [Major]),
@@ -620,7 +621,7 @@ decode_frame(Payload) ->
     CID = fopts_mac_cid(FOpts),
     io:format("CID = ~w~n", [CID]),
 
-    Direction = payload_direction(Payload),
+    Direction = payload_dirbit(Payload),
     case Direction of
         0 ->
             ParsedFOpts = parse_fopts(FOpts),
@@ -632,7 +633,7 @@ decode_frame(Payload) ->
 
     FType = payload_ftype(Bin0),
     io:format("~nMessage Type = ~w~n", [FType]),
-    Direction = payload_direction(Bin0),
+    Direction = payload_dirbit(Bin0),
     io:format("Direction = ~s~n", [lora_utils:dir_string(Direction)]),
     FCnt2 = payload_fcnt(Bin0),
     io:format("FCnt = ~w~n", [FCnt2]),
@@ -666,7 +667,7 @@ payload_util_test() ->
     {Pay0,_Key0,_AppKey} = sample_downlink(),
     ValidHex0 = is_hex_string(Pay0),
     ?assertEqual(true, ValidHex0),
-    Sample0 = sample0(),
+    {Sample0,_,_} = sample_00(),
     ValidHex1 = is_hex_string(Sample0),
     ?assertEqual(false, ValidHex1),
     Bin0 = string_to_binary(Pay0),
@@ -698,7 +699,7 @@ decode_encode(Sample) ->
     ?assertEqual(16, byte_size(NwkSKey0)),
     ?assertEqual(16, byte_size(AppSKey0)),
     Frame0 = payload_to_frame(Bin0, NwkSKey0, AppSKey0),
-    io:format("frame = ~w~n", [Frame0]),
+    % io:format("frame = ~w~n", [Frame0]),
     Bin1 = frame_to_payload(Frame0, NwkSKey0, AppSKey0),
     case Bin0 =/= Bin1 of
         true ->
@@ -783,10 +784,10 @@ exercise_test() ->
     fin.
 
 payload_1_test() ->
-    Pay0 = sample0(),
-    Pay1 = sample1(),
-    Pay2 = join_request_sample(),
-    Pay3 = join_accept_sample(),
+    {Pay0,_,_} = sample_00(),
+    {Pay1,_,_} = sample_01(),
+    {Pay2,_,_} = join_request_sample(),
+    {Pay3,_,_} = join_accept_sample(),
     decode_payload(Pay0),
     decode_payload(Pay1),
     decode_payload(Pay2),
