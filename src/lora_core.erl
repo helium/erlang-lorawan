@@ -8,14 +8,47 @@
 -export([
     %% public functions
     payload_mhdr/1,
-    encode_fopts/1,
-    encode_fupopts/1,
+    payload_to_frame/3,
     frame_to_payload/3,
-    payload_to_frame/3
+    encode_fopts/1,
+    encode_fupopts/1
     %% internal functions
 ]).
 
 -include("lorawan.hrl").
+
+%%
+%% Public
+%%
+
+-spec payload_mhdr(binary()) -> binary().
+payload_mhdr(PhyPayload) ->
+    <<MHDR:8/integer-unsigned, _/binary>> = PhyPayload,
+    <<MHDR>>.
+
+-spec payload_to_frame(binary(), binary(), binary()) -> #frame{}.
+payload_to_frame(PhyPayload, NwkSKey, AppSKey) ->
+    MType = payload_ftype(PhyPayload),
+    case MType of
+        ?JOIN_REQUEST ->
+            payload_to_join_req_frame(PhyPayload, NwkSKey, AppSKey);
+        ?JOIN_ACCEPT ->
+            payload_to_join_resp_frame(PhyPayload, NwkSKey, AppSKey);
+        _ ->
+            payload_to_data_frame(PhyPayload, NwkSKey, AppSKey)
+    end.
+
+-spec frame_to_payload(#frame{}, binary(), binary()) -> binary().
+frame_to_payload(Frame, NwkSKey, AppSKey) ->
+    <<MType:2, _DirectionBit:1, 0:5>> = <<(Frame#frame.mtype):3, 0:5>>,
+    case MType of
+        0 -> join_frame_to_payload(Frame, NwkSKey, AppSKey);
+        _ -> data_frame_to_payload(Frame, NwkSKey, AppSKey)
+    end.
+
+%%
+%% Internal
+%%
 
 payload_join_request(PhyPayload) ->
     <<?JOIN_REQUEST:3, _MHDRRFU:3, _Major:2, AppEUI:8/binary, DevEUI:8/binary, DevNonce:2/binary, _MIC:4/binary>> = PhyPayload,
@@ -25,11 +58,6 @@ payload_join_accept(PhyPayload) ->
     MacPayload = payload_macpayload(PhyPayload),
     <<JoinNonce:3/binary, NetID:3/binary, DevAddr:4/binary, DLSettings:1/binary, RXDelay:1/binary, CFList/binary>> = MacPayload,
     {JoinNonce, NetID, DevAddr, DLSettings, RXDelay, CFList}.
-
--spec payload_mhdr(binary()) -> binary().
-payload_mhdr(PhyPayload) ->
-    <<MHDR:8/integer-unsigned, _/binary>> = PhyPayload,
-    <<MHDR>>.
 
 payload_dirbit(PhyPayload) ->
     <<_Ignore:2/integer-unsigned, DirectionBit:1/integer-unsigned, _Ignore2:5/integer, _/binary>> = PhyPayload,
@@ -116,17 +144,6 @@ payload_data(PhyPayload) ->
         _ ->
             <<_Ignore:FhdrLen/binary, _Ignore2:1/binary, FrmPayload/binary>> = MacPayload,
             FrmPayload
-    end.
-
-payload_to_frame(PhyPayload, NwkSKey, AppSKey) ->
-    MType = payload_ftype(PhyPayload),
-    case MType of
-        ?JOIN_REQUEST ->
-            payload_to_join_req_frame(PhyPayload, NwkSKey, AppSKey);
-        ?JOIN_ACCEPT ->
-            payload_to_join_resp_frame(PhyPayload, NwkSKey, AppSKey);
-        _ ->
-            payload_to_data_frame(PhyPayload, NwkSKey, AppSKey)
     end.
 
 payload_to_join_req_frame(PhyPayload, _NwkSKey, _AppSKey) ->
@@ -231,14 +248,6 @@ compute_true_fcnt(Msg, NwkSKey, DirBit, DevAddr, FCnt, PayloadMIC) ->
         _ ->
             NewFCnt = FCnt + 16#10000,
             compute_true_fcnt(Msg, NwkSKey, DirBit, DevAddr, NewFCnt, PayloadMIC)
-    end.
-
--spec frame_to_payload(#frame{}, binary(), binary()) -> binary().
-frame_to_payload(Frame, NwkSKey, AppSKey) ->
-    <<MType:2, _DirectionBit:1, 0:5>> = <<(Frame#frame.mtype):3, 0:5>>,
-    case MType of
-        0 -> join_frame_to_payload(Frame, NwkSKey, AppSKey);
-        _ -> data_frame_to_payload(Frame, NwkSKey, AppSKey)
     end.
 
 -spec join_frame_to_payload(#frame{}, binary(), binary()) -> binary().
