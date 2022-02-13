@@ -701,6 +701,15 @@ decode_encode(Sample) ->
     ?assert(Bin0 =:= Bin1),
     fin.
 
+encode_decode(Frame0) ->
+    Key0 = <<1:128>>,
+    AppKey = <<2:128>>,
+    Bin0 = frame_to_payload(Frame0, Key0, AppKey),
+    Frame0 = payload_to_frame(Bin0, Key0, AppKey),
+    Bin1 = frame_to_payload(Frame0, Key0, AppKey),
+    ?assert(Bin0 =:= Bin1),
+    fin.
+
 payload_all_test() ->
     decode_encode(fun sample_downlink/0),
     decode_encode(fun sample_uplink/0),
@@ -737,6 +746,21 @@ payload_05_test() ->
 
 payload_06_test() ->
     decode_encode(fun sample_03/0),
+    fin.
+
+exercise_test() ->
+    Frame0 = #frame{
+        mtype = ?CONFIRMED_UP,
+        rfu = 0,
+        major = 0,
+        devaddr = <<1,2,3,4>>,
+        fctrlbits = 0,
+        fcnt = 1,
+        fopts = <<>>,
+        fport = 1,
+        data = <<1,2,3,4>>
+    },
+    encode_decode(Frame0),
     fin.
 
 payload_1_test() ->
