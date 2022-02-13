@@ -169,7 +169,7 @@ payload_to_join_resp_frame(PhyPayload, _NwkSKey, AppKey) ->
     },
     Frame.
 
-payload_to_data_frame(PhyPayload, _NwkSKey, _AppSKey) ->
+payload_to_data_frame(PhyPayload, NwkSKey, AppSKey) ->
     MType = payload_ftype(PhyPayload),
     RFU = payload_rfu(PhyPayload),
     Major = payload_major(PhyPayload),
@@ -179,7 +179,9 @@ payload_to_data_frame(PhyPayload, _NwkSKey, _AppSKey) ->
     FOpts = payload_fopts(PhyPayload),
     FPort = payload_fport(PhyPayload),
     Data = payload_data(PhyPayload),
-    Frame = #frame{
+    PayloadMIC = payload_mic(PhyPayload),
+    DirBit = payload_direction(PhyPayload),
+    Frame0 = #frame{
         mtype = MType,
         rfu = RFU,
         major = Major,
@@ -190,7 +192,42 @@ payload_to_data_frame(PhyPayload, _NwkSKey, _AppSKey) ->
         fport = FPort,
         data = Data
     },
-    Frame.
+    {Msg, _MIC} = data_frame_to_payload_components(Frame0, NwkSKey, AppSKey),
+    TrueFCnt = compute_true_fcnt(Msg, NwkSKey, DirBit, DevAddr, FCnt, PayloadMIC ),
+    Frame1 = #frame{
+        mtype = MType,
+        rfu = RFU,
+        major = Major,
+        devaddr = DevAddr,
+        fctrlbits = FCtrlBits,
+        fcnt = TrueFCnt,
+        fopts = FOpts,
+        fport = FPort,
+        data = Data
+    },
+    Frame1.
+
+compute_true_fcnt(Msg, NwkSKey, DirectionBit, DevAddr, FCnt, PayloadMIC) ->
+    MsgSize = byte_size(Msg),
+    io:format("compute_real_fcnt MsgSize = ~w~n", [MsgSize]),
+    B0Value = b0(DirectionBit, DevAddr, FCnt, MsgSize),
+    io:format("compute_real_fcnt B0Value = ~w~n", [B0Value]),
+    B0 = <<B0Value/binary, Msg/binary>>,
+    io:format("compute_real_fcnt B0 = ~w~n", [B0]),
+    MIC = crypto:macN(
+        cmac,
+        aes_128_cbc,
+        NwkSKey,
+        B0,
+        4
+    ),
+    case MIC of
+        PayloadMIC ->
+            FCnt;
+        _ ->
+            NewFCnt = FCnt + 16#10000,
+            compute_true_fcnt(Msg, NwkSKey, DirectionBit, DevAddr, NewFCnt, PayloadMIC)
+    end.
 
 -spec frame_to_payload(#frame{}, binary(), binary()) -> binary().
 frame_to_payload(Frame, NwkSKey, AppSKey) ->
@@ -228,8 +265,8 @@ join_frame_to_payload(Frame, _NwkSKey, AppKey) ->
             <<PktHdr/binary, EncryptedReply/binary>>
     end.
 
--spec data_frame_to_payload(#frame{}, binary(), binary()) -> binary().
-data_frame_to_payload(Frame, NwkSKey, _AppSKey) ->
+-spec data_frame_to_payload_components(#frame{}, binary(), binary()) -> binary().
+data_frame_to_payload_components(Frame, NwkSKey, _AppSKey) ->
     FOpts = Frame#frame.fopts,
     io:format("frame_to_payload FOpts = ~w~n", [FOpts]),
     FOptsLen = erlang:byte_size(FOpts),
@@ -289,6 +326,11 @@ data_frame_to_payload(Frame, NwkSKey, _AppSKey) ->
         B0,
         4
     ),
+    {Msg, MIC}.
+
+-spec data_frame_to_payload(#frame{}, binary(), binary()) -> binary().
+data_frame_to_payload(Frame, NwkSKey, AppSKey) ->
+    {Msg, MIC} = data_frame_to_payload_components(Frame, NwkSKey, AppSKey),
     <<Msg/binary, MIC/binary>>.
 
 % encrypt_payload(Payload, FPort, Dir, DevAddr, FCnt, NwkSKey) ->
@@ -662,10 +704,11 @@ decode_encode(Sample) ->
 payload_all_test() ->
     decode_encode(fun sample_downlink/0),
     decode_encode(fun sample_uplink/0),
-    % decode_encode(fun sample_uplink_2/0),
+    decode_encode(fun sample_uplink_2/0),
     decode_encode(fun join_request_sample/0),
     decode_encode(fun join_accept_sample_2/0),
     decode_encode(fun sample_02/0),
+    decode_encode(fun sample_03/0),
     fin.
 
 payload_00_test() ->
