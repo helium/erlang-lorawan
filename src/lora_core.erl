@@ -231,6 +231,8 @@ info_lager_if(Statement, Format, Value) ->
         false -> ok
     end.
 
+compute_true_fcnt(_Msg, _NwkSKey, _DirBit, _DevAddr, FCnt, _PayloadMIC) when FCnt > 16#90000000 ->
+    FCnt band 16#FFFF;
 compute_true_fcnt(Msg, NwkSKey, DirBit, DevAddr, FCnt, PayloadMIC) ->
     MsgSize = byte_size(Msg),
     B0Value = b0(DirBit, DevAddr, FCnt, MsgSize),
@@ -522,8 +524,23 @@ join_accept_sample() ->
 join_accept_sample_2() ->
     {<<"204dd85ae608b87fc4889970b7d2042c9e72959b0057aed6094b16003df12de145">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 
+%%
+bw_downlink_735() ->
+    {<<"YAgIAEig3wJMnXTA">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
 bw_downlink_736() ->
-    {<<"YAgIAEiq4AIDUwAAcANTAP8ATji0+Q==">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+    {<<"YAgIAEiq4AIDUwAAcANTAP8AUznkEw==">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+bw_downlink_737() ->
+    {<<"YAgIAEiq4QIDVgAAcANWAP8AH8sRww==">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+bw_downlink_738() ->
+    {<<"YAgIAEiq4gIDWQAAcANZAP8A6W+BXA==">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+bw_downlink_739() ->
+    {<<"YAgIAEiq4wIDWgAAcANaAP8ADAj3ZA==">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+bw_downlink_740() ->
+    {<<"YAgIAEig5ALNptk3">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+bw_downlink_741() ->
+    {<<"YAgIAEig5QLTvXZe">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+bw_downlink_742() ->
+    {<<"YAgIAEig5gJuAqE+">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
 
 is_hex_string(HexBin0) ->
     try
@@ -718,8 +735,10 @@ decode_encode(Sample) ->
     Bin1 = frame_to_payload(Frame0, NwkSKey0, AppSKey0),
     case Bin0 =/= Bin1 of
         true ->
-            lager:warning("bin0 = ~w~n", [Bin0]),
-            lager:warning("bin1 = ~w~n", [Bin1]),
+            lager:warning("Bin0 = ~w~n", [Bin0]),
+            lager:warning("Bin1 = ~w~n", [Bin1]),
+            Base64 = base64:encode(Bin1),
+            lager:info("Base64 = ~s~n", [Base64]),
             decode_payload(Pay0);
         false ->
             ok
@@ -789,7 +808,14 @@ payload_07_test() ->
     fin.
 
 payload_08_test() ->
+    decode_encode(fun bw_downlink_735/0),
     decode_encode(fun bw_downlink_736/0),
+    decode_encode(fun bw_downlink_737/0),
+    decode_encode(fun bw_downlink_738/0),
+    decode_encode(fun bw_downlink_739/0),
+    decode_encode(fun bw_downlink_740/0),
+    decode_encode(fun bw_downlink_741/0),
+    decode_encode(fun bw_downlink_742/0),
     fin.
 
 exercise_test() ->
