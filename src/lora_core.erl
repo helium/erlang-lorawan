@@ -524,7 +524,7 @@ join_accept_sample() ->
 join_accept_sample_2() ->
     {<<"204dd85ae608b87fc4889970b7d2042c9e72959b0057aed6094b16003df12de145">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 
-%%
+%% Downlink 735 is response to Uplink 729 ...
 bw_downlink_735() ->
     {<<"YAgIAEig3wJMnXTA">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
 bw_downlink_736() ->
@@ -541,6 +541,24 @@ bw_downlink_741() ->
     {<<"YAgIAEig5QLTvXZe">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
 bw_downlink_742() ->
     {<<"YAgIAEig5gJuAqE+">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+
+bw_uplink_730() ->
+    {<<"gAgIAEiA2gII4zMzRo60VYTaMtzWM1+OqOgXImp2Yn8y0ZSiyeUd0PQU">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+bw_uplink_731() ->
+    {<<"gAgIAEiE2wIDBwMHCI+oAgzOOB9eORJJ2bnc9ExBcN15jaB9WusAGRUf9sO80Q==">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+bw_uplink_732() ->
+    {<<"gAgIAEiE3AIDBwMHCE8l9SmHWFuDojFbgK/TIyK+xIHOApOu82dFapAm6mW8iw==">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+bw_uplink_733() ->
+    {<<"gAgIAEiE3QIDBwMHCFpr43k/wLqrdanhaLVwPKcaGf9fXZ1Pe3biYey9bGLC1w==">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+bw_uplink_734() ->
+    {<<"gAgIAEiE3gIDBwMHCAdYAX23OyS5uN11qprPs2K7rdlMgzBeiLGHdA2oPAiNvA==">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+bw_uplink_735() ->
+    {<<"gAgIAEiA3wIIKIbvBQVZchE30o5uGhGpo2bjh1sBU8Gpvr4GSoivH6xu">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+bw_uplink_736() ->
+    {<<"gAgIAEiA4AIIlbTywENIY+CQWL/cxgkE5vcUkRbdwvo4kERWoIRJliXD">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+bw_uplink_737() ->
+    {<<"gAgIAEiA4QIIPQVuiboLI7rYRmCyMZP7Cc40EW0lQKF2AEfSRsrXdsct">>,<<"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
+
 
 is_hex_string(HexBin0) ->
     try
@@ -816,6 +834,17 @@ payload_08_test() ->
     decode_encode(fun bw_downlink_740/0),
     decode_encode(fun bw_downlink_741/0),
     decode_encode(fun bw_downlink_742/0),
+    fin.
+
+payload_09_test() ->
+    decode_encode(fun bw_uplink_730/0),
+    decode_encode(fun bw_uplink_731/0),
+    decode_encode(fun bw_uplink_732/0),
+    decode_encode(fun bw_uplink_733/0),
+    decode_encode(fun bw_uplink_734/0),
+    decode_encode(fun bw_uplink_735/0),
+    decode_encode(fun bw_uplink_736/0),
+    decode_encode(fun bw_uplink_737/0),
     fin.
 
 exercise_test() ->
