@@ -510,14 +510,20 @@ sample_uplink() ->
     {<<"QK4TBCaAAAABb4ldmIEHFOMmgpU=">>,<<"99D58493D1205B43EFF938F0F66C339E">>,<<"0A501524F8EA5FCBF9BDB5AD7D126F75">>}.
 sample_uplink_2() ->
     {<<"40531E012680664601457090ED25">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"F1B0B1D3CC529C55C3019A46EF4582EA">>}.
-join_request_sample() ->
+sample_join_request_01() ->
     {<<"ANwAANB+1bNwHm/t9XzurwDIhgMK8sk=">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
-% join_request_sample_2() ->
+sample_join_request_02() ->
+    %% {<<1, 1, 1, 2, 2, 2, 4, 3, 2, 1, 103, 9>>,<<1:128>>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
+    {<<"AQEBAgICBAMCAWcJ">>, <<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
+% sample_join_request_01_2() ->
 %     {<<"20fd5ef68da6f52e331b53d546fdb2ad3c9801c93fc961e78e7e3c23af31422392">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 join_accept_sample() ->
     {<<"IIE/R/UI/6JnC24j4B+EueJdnEEV8C7qCz3T4gs+ypLa">>, <<1:128>>, <<2:128>>}.
 join_accept_sample_2() ->
     {<<"204dd85ae608b87fc4889970b7d2042c9e72959b0057aed6094b16003df12de145">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
+
+bw_downlink_736() ->
+    {<<"YAgIAEiq4AIDUwAAcANTAP8ATji0+Q==">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>}.
 
 is_hex_string(HexBin0) ->
     try
@@ -712,8 +718,9 @@ decode_encode(Sample) ->
     Bin1 = frame_to_payload(Frame0, NwkSKey0, AppSKey0),
     case Bin0 =/= Bin1 of
         true ->
-            lager:warn("bin0 = ~w~n", [Bin0]),
-            lager:warn("bin1 = ~w~n", [Bin1]);
+            lager:warning("bin0 = ~w~n", [Bin0]),
+            lager:warning("bin1 = ~w~n", [Bin1]),
+            decode_payload(Pay0);
         false ->
             ok
     end,
@@ -742,7 +749,7 @@ payload_all_test() ->
     decode_encode(fun sample_downlink/0),
     decode_encode(fun sample_uplink/0),
     decode_encode(fun sample_uplink_2/0),
-    decode_encode(fun join_request_sample/0),
+    decode_encode(fun sample_join_request_01/0),
     decode_encode(fun join_accept_sample_2/0),
     decode_encode(fun sample_02/0),
     decode_encode(fun sample_03/0),
@@ -762,7 +769,7 @@ payload_02_test() ->
     fin.
 
 payload_03_test() ->
-    decode_encode(fun join_request_sample/0),
+    decode_encode(fun sample_join_request_01/0),
     fin.
 
 payload_04_test() ->
@@ -775,6 +782,14 @@ payload_05_test() ->
 
 payload_06_test() ->
     decode_encode(fun sample_03/0),
+    fin.
+
+payload_07_test() ->
+    decode_encode(fun sample_join_request_02/0),
+    fin.
+
+payload_08_test() ->
+    decode_encode(fun bw_downlink_736/0),
     fin.
 
 exercise_test() ->
@@ -795,7 +810,7 @@ exercise_test() ->
 payload_1_test() ->
     {Pay0,_,_} = sample_00(),
     {Pay1,_,_} = sample_01(),
-    {Pay2,_,_} = join_request_sample(),
+    {Pay2,_,_} = sample_join_request_01(),
     {Pay3,_,_} = join_accept_sample(),
     decode_payload(Pay0),
     decode_payload(Pay1),
