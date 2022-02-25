@@ -1015,14 +1015,29 @@ bespoke_fopts(String, BespokeFn) ->
     end,
     ok.
 
+log_fopt(FOpt) ->
+    case FOpt of
+        {link_adr_req, DataRate, TXPower, ChMask, ChMaskCntl, NbTrans} ->
+            io:format("  ChMaskCntl = ~w~n", [ChMaskCntl]),
+            io:format("  ChMask = 0x~4.16.0B~n", [ChMask]),
+            io:format("  DataRate = ~w~n", [DataRate]),
+            io:format("  TXPower = ~w~n", [TXPower]),
+            io:format("  NbTrans = ~w~n", [NbTrans]);
+        _ -> ok
+    end.
+
+log_fopts(ParsedFOpts) ->
+    [log_fopt(FOpt) || FOpt <- ParsedFOpts].
+
 bespoke(_FCnt, _Dir, _CtrlBits, <<>>, _Payload) -> ok;
 bespoke(FCnt, 0, CtrlBits, FOpts, _Payload) ->
     ParsedFOpts = parse_fopts(FOpts),
-    io:format("FCnt=~w CtrlBits=~w Uplink FOpts = ~w~n", [FCnt, CtrlBits, ParsedFOpts]),
+    io:format("FCnt=~w CtrlBits=~.2B Uplink FOpts = ~w~n", [FCnt, CtrlBits, ParsedFOpts]),
     ok;
 bespoke(FCnt, 1, CtrlBits, FOpts, _Payload) ->
     ParsedFOptsDown = parse_fdownopts(FOpts),
-    io:format("FCnt=~w CtrlBits=~w Downlink FOpts = ~w~n", [FCnt, CtrlBits, ParsedFOptsDown]),
+    io:format("FCnt=~w CtrlBits=~.2B Downlink FOpts = ~w~n", [FCnt, CtrlBits, ParsedFOptsDown]),
+    log_fopts(ParsedFOptsDown),
     ok.
 
 bespoke_fopts_frame(Payload, BespokeFn) ->
