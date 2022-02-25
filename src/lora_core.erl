@@ -854,6 +854,19 @@ bw_downlink_sequence() ->
 <<"YAkIAEigfQC9X2WC">>
 ].
 
+issue_633_sequence() ->
+[
+<<"AEs0zXoT7b41sE3t3QkPPWXSmkFcRBk=">>,
+<<"INsw17kgY3VVlYeG4zlQ/Ns=">>,
+<<"gIcCAEgAAAB0idjz9KrTjHE=">>,
+<<"YIcCAEgqAAADQAAAcANAAP8Ap8PYsQ==">>,
+<<"gIcCAEgEAQADBwMHt6zpeyoBTWXV">>,
+<<"YIcCAEggAQCLUWuM">>,
+<<"gIcCAEgAAgC68JMmTcVByxg=">>,
+<<"YIcCAEggAgDWQuIo">>
+].
+
+
 is_hex_string(HexBin0) ->
     try
         HexBin1 = string:uppercase(HexBin0),
@@ -1216,6 +1229,10 @@ payload_12_test() ->
 
 payload_13_test() ->
     process_payload_sequence(fun bw_downlink_sequence/0),
+    fin.
+
+payload_14_test() ->
+    process_payload_sequence(fun issue_633_sequence/0),
     fin.
 
 exercise_test() ->
