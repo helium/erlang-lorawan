@@ -55,12 +55,14 @@ cipher(Bin, Key, Dir, DevAddr, FCnt) ->
     cipher(Bin, Key, Dir, DevAddr, FCnt, 1, <<>>).
 
 cipher(<<Block:16/binary, Rest/binary>>, Key, Dir, DevAddr, FCnt, I, Acc) ->
-    Si = crypto:block_encrypt(aes_ecb, Key, ai(Dir, DevAddr, FCnt, I)),
+    %% Si = crypto:block_encrypt(aes_ecb, Key, ai(Dir, DevAddr, FCnt, I)),
+    Si = crypto:crypto_one_time(cmac, aes_128_cbc, Key, <<0:128>>, ai(Dir, DevAddr, FCnt, I), true),
     cipher(Rest, Key, Dir, DevAddr, FCnt, I + 1, <<(binxor(Block, Si, <<>>))/binary, Acc/binary>>);
 cipher(<<>>, _Key, _Dir, _DevAddr, _FCnt, _I, Acc) ->
     Acc;
 cipher(<<LastBlock/binary>>, Key, Dir, DevAddr, FCnt, I, Acc) ->
-    Si = crypto:block_encrypt(aes_ecb, Key, ai(Dir, DevAddr, FCnt, I)),
+    %% Si = crypto:block_encrypt(aes_ecb, Key, ai(Dir, DevAddr, FCnt, I)),
+    Si = crypto:crypto_one_time(cmac, aes_128_cbc, Key, <<0:128>>, ai(Dir, DevAddr, FCnt, I), true),
     <<(binxor(LastBlock, binary:part(Si, 0, byte_size(LastBlock)), <<>>))/binary, Acc/binary>>.
 
 -spec ai(integer(), binary(), integer(), integer()) -> binary().
@@ -143,7 +145,7 @@ apply_offset({Date, {Hours, Min, Secs}}, {OHours, OMin, OSecs}) ->
     {Date2, {Hours2, Min2, Secs2}} = calendar:gregorian_seconds_to_datetime(TotalSecs),
     {Date2, {Hours2, Min2, Secs2 + (Secs - trunc(Secs))}}.
 
-inc(Num) -> Num + 1.
+%% inc(Num) -> Num + 1.
 
 -include_lib("eunit/include/eunit.hrl").
 
