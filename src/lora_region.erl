@@ -7,8 +7,18 @@
 %%%-------------------------------------------------------------------
 -module(lora_region).
 
+-export([
+    data_rates/1
+]).
+
 %% Functions that map Region -> Top Level Region
 -export([
+    uch2f/2,
+    f2uch/2,
+    f2dch/2,
+    dch2f/2,
+    ch2fi/2,
+    fi2ch/2,
     join1_window/3,
     join2_window/2,
     rx1_window/4,
@@ -141,6 +151,40 @@
 -define(RX2_WINDOW, rx2_window).
 
 -type window() :: ?JOIN1_WINDOW | ?JOIN2_WINDOW | ?RX1_WINDOW | ?RX2_WINDOW.
+
+
+
+data_rates('US915') ->
+    #drplan{
+        drlist = [
+            {0,'SF12BW125',updown},
+            {1,'SF12BW125',updown},
+            {2,'SF12BW125',updown},
+            {3,'SF12BW125',updown},
+            {4,'SF12BW125',updown},
+            {5,'SF12BW125',updown},
+            {6,'SF12BW125',updown},
+            {7,'FSK50',updown}
+        ]
+    };
+data_rates('EU868') ->
+    #drplan{
+        drlist = [
+            {0,'SF12BW125',updown},
+            {1,'SF11BW125',updown},
+            {2,'SF10BW125',updown},
+            {3,'SF9BW125',updown},
+            {4,'SF8BW125',updown},
+            {5,'SF7BW125',updown},
+            {6,'SF12 BW125',updown},
+            {7,'FSK50',updown}
+        ]
+    };
+data_rates(_Region) -> ok.
+
+% create_fplan(_Name, _Min, _Max, _Step) ->
+%     ok.
+
 
 %% ------------------------------------------------------------------
 %% Region Wrapped Receive Window Functions
@@ -361,38 +405,63 @@ f2uch('AU915', Freq) ->
     f2uch(Freq, {9152, 2}, {9159, 16});
 f2uch('CN470', Freq) ->
     f2uch(Freq, {4073, 2});
+%%  f2uch(Freq, {4863, 2});
 f2uch('EU868', Freq) when Freq < 868 ->
     f2uch(Freq, {8671, 2}) + 3;
 f2uch('EU868', Freq) when Freq > 868 ->
     f2uch(Freq, {8681, 2});
+% f2uch('EU868', Freq) when Freq > 868 ->
+%     case Freq of
+%         868.1 -> 1;
+%         868.3 -> 2;
+%         868.5 -> 3;
+%         _ -> f2uch(Freq, {8631, 2}) + 3
+%     end;
+f2uch('KR920', Freq) ->
+    f2uch(Freq, {9221, 2});
+f2uch('IN865', Freq) ->
+    case Freq of
+        865.0625 -> 0;
+        865.4025 -> 1;
+        865.9850 -> 2;
+        _ -> f2uch(Freq, {8660, 1})
+    end;
+f2uch('RU864', Freq) ->
+    case Freq of
+        868.9 -> 0;
+        869.1 -> 1;
+        _ -> f2uch(Freq, {8693, 2})
+    end;
+f2uch('EU433', Freq) ->
+    f2uch(Freq, {4331.75, 2});
 f2uch('AS923_1', Freq) ->
     case Freq of
-        923.2 -> 1;
-        923.4 -> 2;
+        923.2 -> 0;
+        923.4 -> 1;
         _ -> f2uch(Freq, {9236, 2}) + 2
     end;
 f2uch('AS923_2', Freq) ->
     case Freq of
-        923.2 -> 1;
-        923.4 -> 2;
+        921.4 -> 0;
+        921.6 -> 1;
         _ -> f2uch(Freq, {9218, 2}) + 2
     end;
 f2uch('AS923_3', Freq) ->
     case Freq of
-        923.2 -> 1;
-        923.4 -> 2;
+        916.6 -> 0;
+        916.8 -> 1;
         _ -> f2uch(Freq, {9170, 2}) + 2
     end;
 f2uch('AS923_4', Freq) ->
     case Freq of
-        923.2 -> 1;
-        923.4 -> 2;
+        917.3 -> 0;
+        917.5 -> 1;
         _ -> f2uch(Freq, {9177, 2}) + 2
     end;
 f2uch('AS923', Freq) ->
     case Freq of
-        923.2 -> 1;
-        923.4 -> 2;
+        923.2 -> 0;
+        923.4 -> 1;
         _ -> f2uch(Freq, {9222, 2}, {9236, 2})
     end;
 f2uch(Freq, {Start, Inc}) ->
@@ -429,8 +498,49 @@ uch2f('AU915', Ch) when Ch < 64 ->
     ch2fi(Ch, {9152, 2});
 uch2f('AU915', Ch) ->
     ch2fi(Ch - 64, {9159, 16});
+uch2f('EU433', Ch) ->
+    ch2fi(Ch, {4331.75, 2});
+uch2f('EU868', Ch) ->
+    case Ch of
+        0 -> 868.1;
+        1 -> 868.3;
+        2 -> 868.5;
+        _ -> ch2fi(Ch, {8637, 2})
+    end;
+uch2f('IN865', Ch) ->
+    case Ch of
+        0 -> 865.0625;
+        1 -> 865.4025;
+        2 -> 865.9850;
+        _ -> ch2fi(Ch, {8660, 1})
+    end;
+uch2f('KR920', Ch) ->
+    case Ch of
+        0 -> 922.1;
+        1 -> 922.3;
+        2 -> 922.5;
+        _ -> ch2fi(Ch, {9209, 2})
+    end;
+uch2f('RU864', Ch) ->
+    case Ch of
+        0 -> 868.9;
+        1 -> 869.1;
+        _ -> ch2fi(Ch, {8693, 2})
+    end;
+uch2f('AS923', Ch) ->
+    uch2f('AS923_1', Ch);
+uch2f('AS923_1', Ch) ->
+    ch2fi(Ch, {9232, 2});
+uch2f('AS923_2', Ch) ->
+    ch2fi(Ch, {9214, 2});
+uch2f('AS923_3', Ch) ->
+    ch2fi(Ch, {9166, 2});
+uch2f('AS923_4', Ch) ->
+    ch2fi(Ch, {9173, 2});
 uch2f('CN470', Ch) ->
     ch2fi(Ch, {4703, 2}).
+%%  ch2fi(Ch, {4863, 2});
+
 
 %% ------------------------------------------------------------------
 %% @doc Down Channel to Frequency
@@ -797,12 +907,43 @@ downlink_signal_strength('EU868', Freq) when 869.4 =< Freq andalso Freq < 869.65
 downlink_signal_strength('EU868', _Freq) -> 14;
 downlink_signal_strength(_Region, _Freq) -> ?DEFAULT_DOWNLINK_TX_POWER.
 
+channel_plan_id('EU868') -> 1;
+channel_plan_id('US915') -> 2;
+channel_plan_id('CN779') -> 3;
+channel_plan_id('EU433') -> 4;
+channel_plan_id('AU915') -> 5;
+channel_plan_id('CN470') -> 6;
+channel_plan_id('AS923') -> 7;
+channel_plan_id('AS923_1') -> 7;
+channel_plan_id('AS923_2') -> 8;
+channel_plan_id('AS923_3') -> 9;
+channel_plan_id('KR920') -> 10;
+channel_plan_id('IN865') -> 11;
+channel_plan_id('RU864') -> 12;
+channel_plan_id('AS923_4') -> 13;
+channel_plan_id(_Region) -> 0.
+
+channel_plan(0) -> 'Unknown';
+channel_plan(1) -> 'EU868';
+channel_plan(2) -> 'US915';
+channel_plan(3) -> 'CN779';
+channel_plan(4) -> 'EU433';
+channel_plan(5) -> 'AU915';
+channel_plan(6) -> 'CN470';
+channel_plan(7) -> 'AS923_1';
+channel_plan(8) -> 'AS923_2';
+channel_plan(9) -> 'AS923_3';
+channel_plan(10) -> 'KR920';
+channel_plan(11) -> 'IN865';
+channel_plan(12) -> 'RU864';
+channel_plan(13) -> 'AS923_4'.
+
 %% static channel plan parameters
 freq('EU868') ->
     #{min => 863, max => 870, default => [868.10, 868.30, 868.50]};
 freq('US915') ->
     #{min => 902, max => 928};
-freq('CN7797') ->
+freq('CN779') ->
     #{min => 779.5, max => 786.5, default => [779.5, 779.7, 779.9]};
 freq('EU433') ->
     #{min => 433.175, max => 434.665, default => [433.175, 433.375, 433.575]};
@@ -812,11 +953,19 @@ freq('CN470') ->
     #{min => 470, max => 510};
 freq('AS923') ->
     #{min => 915, max => 928, default => [923.20, 923.40]};
+freq('AS923_1') ->
+    #{min => 915, max => 928, default => [923.20, 923.40]};
+freq('AS923_2') ->
+    #{min => 920, max => 923, default => [921.40, 921.60]};
+freq('AS923_3') ->
+    #{min => 915, max => 921, default => [916.60, 916.80]};
+freq('AS923_4') ->
+    #{min => 917, max => 920, default => [917.30, 917.50]};
 freq('KR920') ->
     #{min => 920.9, max => 923.3, default => [922.1, 922.3, 922.5]};
 freq('IN865') ->
     #{min => 865, max => 867, default => [865.0625, 865.4025, 865.985]};
-freq('RU868') ->
+freq('RU864') ->
     #{min => 864, max => 870, default => [868.9, 869.1]}.
 
 net_freqs(#network{region = Region, init_chans = Chans}) when
@@ -1054,6 +1203,62 @@ ceiling(X) ->
 %% ------------------------------------------------------------------
 %%-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+
+all_channel_plans_test() ->
+    [channel_plan(X) || X <- [1,2,3,4,5,6,7,8,9,10,11,12,13]].
+
+print_channel(Region, Ch) ->
+    Freq = uch2f(Region, Ch),
+    io:format("Region= ~w Ch= ~w Freq= ~w~n", [Region, Ch, Freq]).
+
+region_channels(Region) ->
+    [print_channel(Region, X) || X <- [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]].
+
+valid_channel(Region, Ch) ->
+    io:format("Region = ~w Ch=~w ~n", [Region, Ch]),
+    #{min := Min, max := Max} = freq(Region),
+    Freq = uch2f(Region, Ch),
+    io:format("Freq = ~w~n", [Freq]),
+    ?assert(Freq =< Max),
+    ?assert(Freq >= Min),
+    Ch2 = f2uch(Region, Freq),
+    io:format("Ch2 = ~w~n", [Ch2]),
+    ?assertEqual(Ch, Ch2).
+
+valid_channel(Ch) ->
+    valid_channel('EU868', Ch),
+    valid_channel('US915', Ch),
+    % valid_channel('CN779', Ch),
+    valid_channel('EU433', Ch),
+    valid_channel('AU915', Ch),
+    % valid_channel('CN470', Ch),
+    valid_channel('AS923_1', Ch),
+    valid_channel('AS923_2', Ch),
+    valid_channel('AS923_3', Ch),
+    valid_channel('KR920', Ch),
+    valid_channel('IN865', Ch),
+    valid_channel('RU864', Ch),
+    valid_channel('AS923_4', Ch).
+
+ch_01_test() ->
+    valid_channel(3),
+    valid_channel(1),
+    valid_channel(2).
+
+ch_02_test() ->
+    region_channels('EU868'),
+    region_channels('US915'),
+    % region_channels('CN779'),
+    region_channels('EU433'),
+    region_channels('AU915'),
+    % region_channels('CN470', Ch),
+    region_channels('AS923_1'),
+    region_channels('AS923_2'),
+    region_channels('AS923_3'),
+    region_channels('KR920'),
+    region_channels('IN865'),
+    region_channels('RU864'),
+    region_channels('AS923_4').
 
 us_window_1_test() ->
     Now = os:timestamp(),

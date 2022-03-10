@@ -25,6 +25,37 @@
     data :: binary()
 }).
 
+-type data_rate() :: {0..15, atom()}.
+-type datarate_range() :: {integer(), integer()}.
+
+-record(datarate_plan, {
+    drlist :: [{number(), atom(), atom()}]
+}).
+
+-record(channel_plan, {
+    id :: 1..13,
+    name :: atom(),
+    dynamic :: boolean(),
+    min :: number(),
+    max :: number(),
+    ulist :: [number()],
+    dlist :: [number()],
+    join_freq :: [number()],
+    data_rates :: [data_rate()],
+    join_dr :: datarate_range(),
+    mandatory_dr :: [datarate_range()],
+    optional_dr :: datarate_range(),
+    channel_count :: integer(),
+    duty_cycle :: number(),
+    dwell_time_limit :: number(),
+    tx_param_setup_allowed :: boolean(),
+    max_eirp :: integer(),
+    default_rx2_datarate :: 0..3,
+    default_rx2_freq :: number(),
+    default_beacon_freq :: number(),
+    default_pingslot_freq :: number()
+}).
+
 -record(stat, {
     time,
     lati,
