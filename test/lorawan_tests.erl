@@ -17,7 +17,9 @@ id_test() ->
         {ok, 16#20002D}, lora_subnet:parse_netid(<<173, 255, 255, 255>>), "[45] == 2D == 45 type 1"
     ),
     ?assertEqual(
-        {ok, 16#40016D}, lora_subnet:parse_netid(<<214, 223, 255, 255>>), "[1,109] == 16D == 365 type 2"
+        {ok, 16#40016D},
+        lora_subnet:parse_netid(<<214, 223, 255, 255>>),
+        "[1,109] == 16D == 365 type 2"
     ),
     ?assertEqual(
         {ok, 16#6005B7},
@@ -57,7 +59,9 @@ id_test() ->
 
     %% Mis-parsed as netid 4 of type 3
     ?assertEqual(
-        {ok, 16#600004}, lora_subnet:parse_netid(<<224, 9, 171, 205>>), "hex_to_binary(<<'E009ABCD'>>)"
+        {ok, 16#600004},
+        lora_subnet:parse_netid(<<224, 9, 171, 205>>),
+        "hex_to_binary(<<'E009ABCD'>>)"
     ),
     %% Valid DevAddr, NetID not assigned
     ?assertEqual(
