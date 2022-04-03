@@ -25,32 +25,48 @@
     data :: binary()
 }).
 
--type data_rate() :: {0..15, atom()}.
--type datarate_range() :: {integer(), integer()}.
+%% -type data_rate() :: {0..15, atom()}.
+-type dr_range() :: {integer(), integer()}.
 
 -record(datarate_plan, {
     drlist :: [{number(), atom(), atom()}]
 }).
 
+-record(data_rate, {
+    id :: 1..8,
+    name :: atom(),
+    max_size :: integer(),
+    no_repeater_size :: integer(),
+    bit_rate :: integer()
+}).
+
+-record(tx_power, {
+    id :: 1..8,
+    eirp :: integer()
+}).
+
 -record(channel_plan, {
     id :: 1..13,
     name :: atom(),
-    dynamic :: boolean(),
+    region :: atom(),
+    is_dynamic :: boolean(),
     min :: number(),
     max :: number(),
-    ulist :: [number()],
-    dlist :: [number()],
-    join_freq :: [number()],
-    data_rates :: [data_rate()],
-    join_dr :: datarate_range(),
-    mandatory_dr :: [datarate_range()],
-    optional_dr :: datarate_range(),
+    channels :: [number()],
     channel_count :: integer(),
-    duty_cycle :: number(),
-    dwell_time_limit :: number(),
+    join_count :: integer(),
+    data_rates :: [#data_rate{}],
+    tx_powers :: [#tx_power{}],
+    join_dr :: dr_range(),
+    mandatory_dr :: dr_range(),
+    optional_dr :: dr_range(),
+    max_duty_cycle :: integer(),
+    dwell_time_limit :: integer(),
     tx_param_setup_allowed :: boolean(),
     max_eirp :: integer(),
-    default_rx2_datarate :: 0..3,
+    default_rx1_offset :: integer(),
+    allowed_rx1_offset :: integer(),
+    default_rx2_datarate :: integer(),
     default_rx2_freq :: number(),
     default_beacon_freq :: number(),
     default_pingslot_freq :: number()
