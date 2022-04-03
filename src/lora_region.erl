@@ -7,9 +7,9 @@
 %%%-------------------------------------------------------------------
 -module(lora_region).
 
--export([
-    data_rates/1
-]).
+% -export([
+%     data_rates/1
+% ]).
 
 %% Functions that map Region -> Top Level Region
 -export([
@@ -154,33 +154,33 @@
 
 
 
-data_rates('US915') ->
-    #drplan{
-        drlist = [
-            {0,'SF12BW125',updown},
-            {1,'SF12BW125',updown},
-            {2,'SF12BW125',updown},
-            {3,'SF12BW125',updown},
-            {4,'SF12BW125',updown},
-            {5,'SF12BW125',updown},
-            {6,'SF12BW125',updown},
-            {7,'FSK50',updown}
-        ]
-    };
-data_rates('EU868') ->
-    #drplan{
-        drlist = [
-            {0,'SF12BW125',updown},
-            {1,'SF11BW125',updown},
-            {2,'SF10BW125',updown},
-            {3,'SF9BW125',updown},
-            {4,'SF8BW125',updown},
-            {5,'SF7BW125',updown},
-            {6,'SF12 BW125',updown},
-            {7,'FSK50',updown}
-        ]
-    };
-data_rates(_Region) -> ok.
+% data_rates('US915') ->
+%     #drplan{
+%         drlist = [
+%             {0,'SF12BW125',updown},
+%             {1,'SF12BW125',updown},
+%             {2,'SF12BW125',updown},
+%             {3,'SF12BW125',updown},
+%             {4,'SF12BW125',updown},
+%             {5,'SF12BW125',updown},
+%             {6,'SF12BW125',updown},
+%             {7,'FSK50',updown}
+%         ]
+%     };
+% data_rates('EU868') ->
+%     #drplan{
+%         drlist = [
+%             {0,'SF12BW125',updown},
+%             {1,'SF11BW125',updown},
+%             {2,'SF10BW125',updown},
+%             {3,'SF9BW125',updown},
+%             {4,'SF8BW125',updown},
+%             {5,'SF7BW125',updown},
+%             {6,'SF12 BW125',updown},
+%             {7,'FSK50',updown}
+%         ]
+%     };
+% data_rates(_Region) -> ok.
 
 % create_fplan(_Name, _Min, _Max, _Step) ->
 %     ok.
@@ -1577,5 +1577,4 @@ match_part(MinMax, {A, B}) when B < A ->
 match_part({Min, Max}, {A, B}) ->
     (A =< Max) and (B >= Min).
 
-%% -endif.
-%% end of file
+  
