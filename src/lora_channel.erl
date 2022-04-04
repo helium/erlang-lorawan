@@ -65,6 +65,9 @@ plan_eu868() ->
     	max_freq = 870.0,
     	%% channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
     	channels = [868.1, 868.3, 868.5, 864.3, 864.5, 864.7, 864.9, 865.1],
+    	f_channels = [868.1, 868.3, 868.5, 867.1, 867.3, 867.5, 867.7, 867.9],
+    	u_channels = [868.1, 868.3, 868.5, 864.3, 864.5, 864.7, 864.9, 865.1],
+    	d_channels = [868.1, 868.3, 868.5, 868.7, 868.9, 869.1, 869.3, 869.5],
     	channel_count = 8,
     	join_channels = {0, 2},
     	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
@@ -85,36 +88,45 @@ plan_eu868() ->
    },
    EU868.
 
-validate_channels(Region, List) ->
-	F0 = lists:nth(1, List),
-	Freq0 = lora_region:uch2f(Region, 0),
-	?assertEqual(Freq0, F0),
-	F1 = lists:nth(2, List),
-	Freq1 = lora_region:uch2f(Region, 1),
-	?assertEqual(Freq1, F1),
-	F2 = lists:nth(3, List),
-	Freq2 = lora_region:uch2f(Region, 2),
-	?assertEqual(Freq2, F2),
-	F3 = lists:nth(4, List),
-	Freq3 = lora_region:uch2f(Region, 3),
-	?assertEqual(Freq3, F3),
-	F4 = lists:nth(5, List),
-	Freq4 = lora_region:uch2f(Region, 4),
-	?assertEqual(Freq4, F4),
-	F5 = lists:nth(6, List),
-	Freq5 = lora_region:uch2f(Region, 5),
-	?assertEqual(Freq5, F5),
-	F6 = lists:nth(7, List),
-	Freq6 = lora_region:uch2f(Region, 6),
-	?assertEqual(Freq6, F6),
-	F7 = lists:nth(8, List),
-	Freq7 = lora_region:uch2f(Region, 7),
-	?assertEqual(Freq7, F7),
+validate_u_channels(Region, List) ->
+	TList = [
+      lora_region:uch2f(Region, F)
+      || F <- [0, 1, 2, 3, 4, 5, 6, 7]
+   ],
+	?assertEqual(List, TList),
+	fin.
+
+validate_d_channels(Region, List) ->
+	TList = [
+      lora_region:dch2f(Region, F)
+      || F <- [0, 1, 2, 3, 4, 5, 6, 7]
+   ],
+	?assertEqual(List, TList),
+	fin.
+
+validate_u_frequences(Region, List) ->
+	TList = [
+      lora_region:f2uch(Region, F)
+      || F <- List
+   ],
+	?assertEqual([0,1,2,-11,-10,-9,-8,-7], TList),
+	fin.
+
+validate_d_frequences(Region, List) ->
+	TList = [
+      lora_region:f2dch(Region, F)
+      || F <- List
+   ],
+	?assertEqual([0,1,2,3,4,5,6,7], TList),
 	fin.
 
 exercise_plan(Plan) ->
 	Region = Plan#channel_plan.region,
-	validate_channels(Region, Plan#channel_plan.channels).
+	validate_u_channels(Region, Plan#channel_plan.u_channels),
+	validate_d_channels(Region, Plan#channel_plan.d_channels),
+	validate_u_frequences(Region, Plan#channel_plan.u_channels),
+	validate_d_frequences(Region, Plan#channel_plan.d_channels),
+	fin.
 
 payload_util_test() ->
 
