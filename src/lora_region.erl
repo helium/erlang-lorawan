@@ -560,6 +560,8 @@ dch2f('IN865', Ch) ->
     ch2fi(Ch, {8660, 1});
 dch2f('AS923_1', Ch) ->
     ch2fi(Ch, {9232, 2});
+dch2f('KR920', Ch) ->
+    ch2fi(Ch, {9209, 2});
 dch2f('CN470', Ch) ->
     ch2fi(Ch, {5003, 2}).
 

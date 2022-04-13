@@ -87,6 +87,36 @@ plan_eu868() ->
    },
    EU868.
 
+plan_kr920() ->
+   Plan = #channel_plan{
+   	id = 1,
+    	name = 'KR920',
+    	region = 'KR920',
+    	dynamic_plan = true,
+    	min_freq = 920.9,
+    	max_freq = 923.3,
+    	u_channels = [922.1, 922.3, 922.5, 921.5, 921.7, 921.9, 922.1, 922.3],
+    	d_channels = [920.9, 921.1, 921.3, 921.5, 921.7, 921.9, 922.1, 922.3],
+    	channel_count = 8,
+    	join_channels = {0, 2},
+    	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
+    	tx_powers = [16,14,12,10,8,6,4,2],
+		join_dr = {0, 5},
+		mandatory_dr = {0, 5},
+		optional_dr = {0, 0},
+		max_duty_cycle = 1,
+		dwell_time_limit = 0,
+		tx_param_setup_allowed = false,
+		max_eirp_db = 14,
+		default_rx1_offset = 0,
+		allowed_rx1_offset = 5,
+		default_rx2_datarate = 0,
+		default_rx2_freq = 921.9,
+		default_beacon_freq = 923.1,
+		default_pingslot_freq = 923.1
+   },
+   Plan.
+
 plan_as923_1() ->
    Plan = #channel_plan{
    	id = 1,
@@ -271,6 +301,13 @@ validate_u_frequences('CN470', List) ->
    ],
 	?assertEqual([315,316,317,318,319,320,321,322], TList),
 	fin;
+validate_u_frequences('KR920', List) ->
+	TList = [
+      lora_region:f2uch('KR920', F)
+      || F <- List
+   ],
+	?assertEqual([0,1,2,-3,-2,-1,0,1], TList),
+	fin;
 validate_u_frequences(Region, List) ->
 	TList = [
       lora_region:f2uch(Region, F)
@@ -285,6 +322,13 @@ validate_d_frequences('CN470', List) ->
       || F <- List
    ],
 	?assertEqual([465,466,467,468,469,470,471,472], TList),
+	fin;
+validate_d_frequences('KR920', List) ->
+	TList = [
+      lora_region:f2dch('KR920', F)
+      || F <- List
+   ],
+	?assertEqual([-6,-5,-4,-3,-2,-1,0,1], TList),
 	fin;
 validate_d_frequences(Region, List) ->
 	TList = [
@@ -316,6 +360,7 @@ payload_util_test() ->
 	exercise_plan(plan_au915()),
 	exercise_plan(plan_in865()),
 	exercise_plan(plan_cn470()),
+	exercise_plan(plan_kr920()),
 
 	fin.
 
