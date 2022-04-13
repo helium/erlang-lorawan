@@ -80,13 +80,79 @@ plan_eu868() ->
 		tx_param_setup_allowed = false,
 		max_eirp_db = 16,
 		default_rx1_offset = 0,
-		allowed_rx1_offset = 7,
+		allowed_rx1_offset = 5,
 		default_rx2_datarate = 0,
 		default_rx2_freq = 869.525,
 		default_beacon_freq = 869.525,
 		default_pingslot_freq = 869.525
    },
    EU868.
+
+plan_as923_1() ->
+   Plan = #channel_plan{
+   	id = 1,
+    	name = 'AS923_1',
+    	region = 'AS923_1',
+    	dynamic_plan = true,
+    	min_freq = 915.0,
+    	max_freq = 928.0,
+    	%% channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
+    	channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
+    	f_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
+    	u_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
+    	d_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
+    	channel_count = 8,
+    	join_channels = {0, 1},
+    	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
+    	tx_powers = [16,14,12,10,8,6,4,2],
+		join_dr = {2, 5},
+		mandatory_dr = {0, 5},
+		optional_dr = {6, 7},
+		max_duty_cycle = 1,
+		dwell_time_limit = 400,
+		tx_param_setup_allowed = true,
+		max_eirp_db = 16,
+		default_rx1_offset = 0,
+		allowed_rx1_offset = 7,
+		default_rx2_datarate = 0,
+		default_rx2_freq = 923.2,
+		default_beacon_freq = 923.4,
+		default_pingslot_freq = 923.4
+   },
+   Plan.
+
+plan_au915() ->
+   Plan = #channel_plan{
+   	id = 1,
+    	name = 'AS923_1',
+    	region = 'AS923_1',
+    	dynamic_plan = true,
+    	min_freq = 915.0,
+    	max_freq = 928.0,
+    	%% channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
+    	channels = [916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0, 918.2],
+    	f_channels = [916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0, 918.2],
+    	u_channels = [916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0, 918.2],
+    	d_channels = [916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0, 918.2],
+    	channel_count = 8,
+    	join_channels = {0, 1},
+    	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
+    	tx_powers = [16,14,12,10,8,6,4,2],
+		join_dr = {2, 5},
+		mandatory_dr = {0, 5},
+		optional_dr = {6, 7},
+		max_duty_cycle = 1,
+		dwell_time_limit = 400,
+		tx_param_setup_allowed = true,
+		max_eirp_db = 16,
+		default_rx1_offset = 0,
+		allowed_rx1_offset = 7,
+		default_rx2_datarate = 0,
+		default_rx2_freq = 923.2,
+		default_beacon_freq = 923.4,
+		default_pingslot_freq = 923.4
+   },
+   Plan.
 
 validate_u_channels(Region, List) ->
 	TList = [
@@ -104,12 +170,19 @@ validate_d_channels(Region, List) ->
 	?assertEqual(List, TList),
 	fin.
 
+validate_u_frequences('EU868', List) ->
+	TList = [
+      lora_region:f2uch('EU868', F)
+      || F <- List
+   ],
+	?assertEqual([0,1,2,-11,-10,-9,-8,-7], TList),
+	fin;
 validate_u_frequences(Region, List) ->
 	TList = [
       lora_region:f2uch(Region, F)
       || F <- List
    ],
-	?assertEqual([0,1,2,-11,-10,-9,-8,-7], TList),
+	?assertEqual([0,1,2,3,4,5,6,7], TList),
 	fin.
 
 validate_d_frequences(Region, List) ->
@@ -130,12 +203,14 @@ exercise_plan(Plan) ->
 
 payload_util_test() ->
 
-	Plan = plan_eu868(),
+	EU868_Plan = plan_eu868(),
+	AS923_1_Plan = plan_as923_1(),
 
 	Freq = lora_region:uch2f('EU868', 0),
 	io:format("Freq=~w~n", [Freq]),
 
-	exercise_plan(Plan),
+	exercise_plan(EU868_Plan),
+	exercise_plan(AS923_1_Plan),
 
 	fin.
 
