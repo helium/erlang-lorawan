@@ -65,7 +65,6 @@ plan_eu868() ->
     	max_freq = 870.0,
     	%% channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
     	channels = [868.1, 868.3, 868.5, 864.3, 864.5, 864.7, 864.9, 865.1],
-    	f_channels = [868.1, 868.3, 868.5, 867.1, 867.3, 867.5, 867.7, 867.9],
     	u_channels = [868.1, 868.3, 868.5, 864.3, 864.5, 864.7, 864.9, 865.1],
     	d_channels = [868.1, 868.3, 868.5, 868.7, 868.9, 869.1, 869.3, 869.5],
     	channel_count = 8,
@@ -97,8 +96,6 @@ plan_as923_1() ->
     	min_freq = 915.0,
     	max_freq = 928.0,
     	%% channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
-    	channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
-    	f_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
     	u_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
     	d_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
     	channel_count = 8,
@@ -124,35 +121,65 @@ plan_as923_1() ->
 plan_au915() ->
    Plan = #channel_plan{
    	id = 1,
-    	name = 'AS923_1',
-    	region = 'AS923_1',
-    	dynamic_plan = true,
+    	name = 'AU915',
+    	region = 'AU915',
+    	dynamic_plan = false,
     	min_freq = 915.0,
     	max_freq = 928.0,
     	%% channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
-    	channels = [916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0, 918.2],
-    	f_channels = [916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0, 918.2],
-    	u_channels = [916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0, 918.2],
-    	d_channels = [916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0, 918.2],
+    	u_channels = [915.2, 915.4, 915.6, 915.8, 916.0, 916.2, 916.4, 916.6],
+    	d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
     	channel_count = 8,
-    	join_channels = {0, 1},
+    	join_channels = {0, 7},
     	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
     	tx_powers = [16,14,12,10,8,6,4,2],
 		join_dr = {2, 5},
-		mandatory_dr = {0, 5},
-		optional_dr = {6, 7},
+		mandatory_dr = {0, 6},
+		optional_dr = {7, 7},
 		max_duty_cycle = 1,
 		dwell_time_limit = 400,
 		tx_param_setup_allowed = true,
-		max_eirp_db = 16,
+		max_eirp_db = 30,
 		default_rx1_offset = 0,
-		allowed_rx1_offset = 7,
+		allowed_rx1_offset = 5,
 		default_rx2_datarate = 0,
 		default_rx2_freq = 923.2,
 		default_beacon_freq = 923.4,
 		default_pingslot_freq = 923.4
    },
    Plan.
+
+plan_us915() ->
+   Plan = #channel_plan{
+   	id = 2,
+    	name = 'US915',
+    	region = 'US915',
+    	dynamic_plan = false,
+    	min_freq = 902.0,
+    	max_freq = 928.0,
+    	%% channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
+    	%% u_channels = [903.9, 904.1, 904.3, 904.5, 904.7, 904.9, 905.1, 905.3],
+    	u_channels = [902.3, 902.5, 902.7, 902.9, 903.1, 903.3, 903.5, 903.7],
+    	d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
+    	channel_count = 8,
+    	join_channels = {0, 7},
+    	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
+    	tx_powers = [16,14,12,10,8,6,4,2],
+		join_dr = {2, 5},
+		mandatory_dr = {0, 4},
+		optional_dr = {5, 6},
+		max_duty_cycle = 10000,
+		dwell_time_limit = 400,
+		tx_param_setup_allowed = false,
+		max_eirp_db = 30,
+		default_rx1_offset = 0,
+		allowed_rx1_offset = 3,
+		default_rx2_datarate = 0,
+		default_rx2_freq = 923.3,
+		default_beacon_freq = 923.3,
+		default_pingslot_freq = 923.3
+   },
+   Plan. 
 
 validate_u_channels(Region, List) ->
 	TList = [
@@ -203,14 +230,16 @@ exercise_plan(Plan) ->
 
 payload_util_test() ->
 
-	EU868_Plan = plan_eu868(),
-	AS923_1_Plan = plan_as923_1(),
+	% EU868_Plan = plan_eu868(),
+	% AS923_1_Plan = plan_as923_1(),
 
 	Freq = lora_region:uch2f('EU868', 0),
 	io:format("Freq=~w~n", [Freq]),
 
-	exercise_plan(EU868_Plan),
-	exercise_plan(AS923_1_Plan),
+	exercise_plan(plan_eu868()),
+	exercise_plan(plan_as923_1()),
+	exercise_plan(plan_us915()),
+	exercise_plan(plan_au915()),
 
 	fin.
 

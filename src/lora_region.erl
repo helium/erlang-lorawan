@@ -479,7 +479,8 @@ f2uch(Freq, _, {Start2, Inc2}) when round(10 * Freq - Start2) rem Inc2 == 0 ->
 %% @end
 %% ------------------------------------------------------------------
 -spec f2dch(Region :: atom(), Freq :: freq_float()) -> channel().
-f2dch('AU915', Freq) -> 64 + fi2ch(Freq, {9233, 6});
+f2dch('AU915', Freq) -> fi2ch(Freq, {9233, 6});
+f2dch('US915', Freq) -> fi2ch(Freq, {9233, 6});
 f2dch(Region, Freq) -> f2uch(Region, Freq).
 
 %% ------------------------------------------------------------------
