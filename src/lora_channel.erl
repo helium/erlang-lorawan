@@ -179,7 +179,37 @@ plan_us915() ->
 		default_beacon_freq = 923.3,
 		default_pingslot_freq = 923.3
    },
-   Plan. 
+   Plan.
+
+plan_in865() ->
+   Plan = #channel_plan{
+   	id = 1,
+    	name = 'IN865',
+    	region = 'IN865',
+    	dynamic_plan = true,
+    	min_freq = 865.0,
+    	max_freq = 867.0,
+    	u_channels = [865.0625, 865.4025, 865.985, 866.3, 866.4, 866.5, 866.6, 866.7],
+    	d_channels = [866.0, 866.1, 866.2, 866.3, 866.4, 866.5, 866.6, 866.7],
+    	channel_count = 8,
+    	join_channels = {0, 2},
+    	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
+    	tx_powers = [16,14,12,10,8,6,4,2],
+		join_dr = {0, 5},
+		mandatory_dr = {0, 5},
+		optional_dr = {7, 7},
+		max_duty_cycle = 1,
+		dwell_time_limit = 0,
+		tx_param_setup_allowed = false,
+		max_eirp_db = 30,
+		default_rx1_offset = 0,
+		allowed_rx1_offset = 7,
+		default_rx2_datarate = 2,
+		default_rx2_freq = 866.550,
+		default_beacon_freq = 866.550,
+		default_pingslot_freq = 866.550
+   },
+   Plan.
 
 validate_u_channels(Region, List) ->
 	TList = [
@@ -240,6 +270,7 @@ payload_util_test() ->
 	exercise_plan(plan_as923_1()),
 	exercise_plan(plan_us915()),
 	exercise_plan(plan_au915()),
+	exercise_plan(plan_in865()),
 
 	fin.
 

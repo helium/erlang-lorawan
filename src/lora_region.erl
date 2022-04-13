@@ -556,6 +556,8 @@ dch2f(Region, Ch) when Region == 'US915'; Region == 'AU915' ->
     ch2fi(Ch, {9233, 6});
 dch2f('EU868', Ch) ->
     ch2fi(Ch, {8681, 2});
+dch2f('IN865', Ch) ->
+    ch2fi(Ch, {8660, 1});
 dch2f('AS923_1', Ch) ->
     ch2fi(Ch, {9232, 2});
 dch2f('CN470', Ch) ->
