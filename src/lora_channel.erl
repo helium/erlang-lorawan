@@ -211,6 +211,36 @@ plan_in865() ->
    },
    Plan.
 
+plan_cn470() ->
+   Plan = #channel_plan{
+   	id = 1,
+    	name = 'CN470',
+    	region = 'CN470',
+    	dynamic_plan = true,
+    	min_freq = 470.0,
+    	max_freq = 510.0,
+    	u_channels = [470.3, 470.5, 470.7, 470.9, 471.1, 471.3, 471.5, 471.7],
+    	d_channels = [500.3, 500.5, 500.7, 500.9, 501.1, 501.3, 501.5, 501.7],
+    	channel_count = 8,
+    	join_channels = {0, 2},
+    	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
+    	tx_powers = [16,14,12,10,8,6,4,2],
+		join_dr = {0, 5},
+		mandatory_dr = {0, 5},
+		optional_dr = {7, 7},
+		max_duty_cycle = 1,
+		dwell_time_limit = 0,
+		tx_param_setup_allowed = false,
+		max_eirp_db = 19,
+		default_rx1_offset = 0,
+		allowed_rx1_offset = 7,
+		default_rx2_datarate = 0,
+		default_rx2_freq = 505.3,
+		default_beacon_freq = 508.3,
+		default_pingslot_freq = 508.3
+   },
+   Plan.
+
 validate_u_channels(Region, List) ->
 	TList = [
       lora_region:uch2f(Region, F)
@@ -234,6 +264,13 @@ validate_u_frequences('EU868', List) ->
    ],
 	?assertEqual([0,1,2,-11,-10,-9,-8,-7], TList),
 	fin;
+validate_u_frequences('CN470', List) ->
+	TList = [
+      lora_region:f2uch('CN470', F)
+      || F <- List
+   ],
+	?assertEqual([315,316,317,318,319,320,321,322], TList),
+	fin;
 validate_u_frequences(Region, List) ->
 	TList = [
       lora_region:f2uch(Region, F)
@@ -242,6 +279,13 @@ validate_u_frequences(Region, List) ->
 	?assertEqual([0,1,2,3,4,5,6,7], TList),
 	fin.
 
+validate_d_frequences('CN470', List) ->
+	TList = [
+      lora_region:f2dch('CN470', F)
+      || F <- List
+   ],
+	?assertEqual([465,466,467,468,469,470,471,472], TList),
+	fin;
 validate_d_frequences(Region, List) ->
 	TList = [
       lora_region:f2dch(Region, F)
@@ -271,6 +315,7 @@ payload_util_test() ->
 	exercise_plan(plan_us915()),
 	exercise_plan(plan_au915()),
 	exercise_plan(plan_in865()),
+	exercise_plan(plan_cn470()),
 
 	fin.
 
