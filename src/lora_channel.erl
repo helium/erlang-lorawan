@@ -2,7 +2,9 @@
 
 -export([
     freq_to_channel/2,
-    channel_to_freq/2
+    channel_to_freq/2,
+    tx_power/2,
+    tx_power_list/1
 ]).
 
 -include("lorawan.hrl").
@@ -19,6 +21,18 @@ channel_to_freq(Plan, Ch) ->
 	Freq = lists:nth(Ch, List),
 	Freq.
 
+-spec tx_power(#channel_plan{}, integer()) -> float().
+tx_power(Plan, Index) when Index < 16 ->
+	List = (Plan#channel_plan.tx_power),
+	Offset = lists:nth(Index, List),
+	ComputedPower = Plan#channel_plan.max_eirp_db + Offset,
+	ComputedPower.
+
+-spec tx_power_list(#channel_plan{}) -> [float()].
+tx_power_list(Plan) ->
+	List = (Plan#channel_plan.tx_power),
+	[Plan#channel_plan.max_eirp_db + Offset || Offset <- List].
+
 index_of(Value, List) ->
    Map = lists:zip(List, lists:seq(1, length(List))),
    case lists:keyfind(Value, 1, Map) of
@@ -32,28 +46,28 @@ index_of(Value, List) ->
 %%-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
-tx_power_1() ->
-	#tx_power{
-   	id = 1,
-    	eirp = 16
-   }.
+% tx_power_1() ->
+% 	#tx_power{
+%    	id = 1,
+%     	eirp = 16
+%    }.
 
-dr_list() ->
-   Data_Rates = [
-			#data_rate{id = 0, name = 'SF12BW125', max_size = 59, no_repeater_size = 59, bit_rate = 250},
-			#data_rate{id = 1, name = 'SF11BW125', max_size = 59, no_repeater_size = 59, bit_rate = 440},
-			#data_rate{id = 2, name = 'SF10BW125', max_size = 59, no_repeater_size = 59, bit_rate = 980},
-			#data_rate{id = 3, name = 'SF9BW125', max_size = 123, no_repeater_size = 123, bit_rate = 1760},
-			#data_rate{id = 4, name = 'SF8BW125', max_size = 239, no_repeater_size = 230, bit_rate = 3125},
-			#data_rate{id = 5, name = 'SF7BW125', max_size = 230, no_repeater_size = 230, bit_rate = 5470},
-			#data_rate{id = 6, name = 'SF7BW250', max_size = 230, no_repeater_size = 230, bit_rate = 11000},
-			#data_rate{id = 7, name = 'FSK50', max_size = 230, no_repeater_size = 230, bit_rate = 50000},
-			#data_rate{id = 8, name = 'CR13BW137', max_size = 58, no_repeater_size = 58, bit_rate = 162},
-			#data_rate{id = 9, name = 'CR23BW137', max_size = 123, no_repeater_size = 123, bit_rate = 325},
-			#data_rate{id = 10, name = 'CR13BW336', max_size = 58, no_repeater_size = 58, bit_rate = 162},
-			#data_rate{id = 11, name = 'CR23BW336', max_size = 123, no_repeater_size = 123, bit_rate = 325}
-   ],
-   Data_Rates.
+% dr_list() ->
+%    Data_Rates = [
+% 			#data_rate{id = 0, name = 'SF12BW125', max_size = 59, no_repeater_size = 59, bit_rate = 250},
+% 			#data_rate{id = 1, name = 'SF11BW125', max_size = 59, no_repeater_size = 59, bit_rate = 440},
+% 			#data_rate{id = 2, name = 'SF10BW125', max_size = 59, no_repeater_size = 59, bit_rate = 980},
+% 			#data_rate{id = 3, name = 'SF9BW125', max_size = 123, no_repeater_size = 123, bit_rate = 1760},
+% 			#data_rate{id = 4, name = 'SF8BW125', max_size = 239, no_repeater_size = 230, bit_rate = 3125},
+% 			#data_rate{id = 5, name = 'SF7BW125', max_size = 230, no_repeater_size = 230, bit_rate = 5470},
+% 			#data_rate{id = 6, name = 'SF7BW250', max_size = 230, no_repeater_size = 230, bit_rate = 11000},
+% 			#data_rate{id = 7, name = 'FSK50', max_size = 230, no_repeater_size = 230, bit_rate = 50000},
+% 			#data_rate{id = 8, name = 'CR13BW137', max_size = 58, no_repeater_size = 58, bit_rate = 162},
+% 			#data_rate{id = 9, name = 'CR23BW137', max_size = 123, no_repeater_size = 123, bit_rate = 325},
+% 			#data_rate{id = 10, name = 'CR13BW336', max_size = 58, no_repeater_size = 58, bit_rate = 162},
+% 			#data_rate{id = 11, name = 'CR23BW336', max_size = 123, no_repeater_size = 123, bit_rate = 325}
+%    ],
+%    Data_Rates.
 
 plan_eu868() ->
    EU868 = #channel_plan{
@@ -70,7 +84,7 @@ plan_eu868() ->
     	channel_count = 8,
     	join_channels = {0, 2},
     	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
-    	tx_powers = [16,14,12,10,8,6,4,2],
+    	tx_power = [0,-2,-4,-6,-8,-10,-12,-14],
 		join_dr = {0, 5},
 		mandatory_dr = {0, 5},
 		optional_dr = {6, 7},
@@ -100,7 +114,7 @@ plan_kr920() ->
     	channel_count = 8,
     	join_channels = {0, 2},
     	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
-    	tx_powers = [16,14,12,10,8,6,4,2],
+    	tx_power = [0,-2,-4,-6,-8,-10,-12],
 		join_dr = {0, 5},
 		mandatory_dr = {0, 5},
 		optional_dr = {0, 0},
@@ -131,7 +145,7 @@ plan_as923_1() ->
     	channel_count = 8,
     	join_channels = {0, 1},
     	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
-    	tx_powers = [16,14,12,10,8,6,4,2],
+    	tx_power = [0,-2,-4,-6,-8,-10,-12,-14],
 		join_dr = {2, 5},
 		mandatory_dr = {0, 5},
 		optional_dr = {6, 7},
@@ -162,7 +176,7 @@ plan_au915() ->
     	channel_count = 8,
     	join_channels = {0, 7},
     	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
-    	tx_powers = [16,14,12,10,8,6,4,2],
+    	tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
 		join_dr = {2, 5},
 		mandatory_dr = {0, 6},
 		optional_dr = {7, 7},
@@ -194,7 +208,7 @@ plan_us915() ->
     	channel_count = 8,
     	join_channels = {0, 7},
     	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
-    	tx_powers = [16,14,12,10,8,6,4,2],
+    	tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
 		join_dr = {2, 5},
 		mandatory_dr = {0, 4},
 		optional_dr = {5, 6},
@@ -224,7 +238,7 @@ plan_in865() ->
     	channel_count = 8,
     	join_channels = {0, 2},
     	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
-    	tx_powers = [16,14,12,10,8,6,4,2],
+    	tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20],
 		join_dr = {0, 5},
 		mandatory_dr = {0, 5},
 		optional_dr = {7, 7},
@@ -254,7 +268,7 @@ plan_cn470() ->
     	channel_count = 8,
     	join_channels = {0, 2},
     	data_rates = [1,2,3,4,5,6,7,8,9,10,11],
-    	tx_powers = [16,14,12,10,8,6,4,2],
+    	tx_power = [0,-2,-4,-6,-8,-10,-12,-14],
 		join_dr = {0, 5},
 		mandatory_dr = {0, 5},
 		optional_dr = {7, 7},
@@ -338,8 +352,22 @@ validate_d_frequences(Region, List) ->
 	?assertEqual([0,1,2,3,4,5,6,7], TList),
 	fin.
 
+validate_tx_power(Plan) ->
+	Region = Plan#channel_plan.region,
+	PowerTable = lora_region:uplink_power_table(Region),
+	PT0 = [X || {_I,X} <- PowerTable],
+	PT1 = tx_power_list(Plan),
+	% io:format("Region=~w~n", [Region]),
+	% io:format("PowerTable=~w~n", [PowerTable]),
+	% io:format("PT0=~w~n", [PT0]),
+	% io:format("PT1=~w~n", [PT1]),
+	% io:format("Plan#channel_plan.tx_powers=~w~n", [Plan#channel_plan.tx_power]),
+	?assertEqual(PT0, PT1),
+	fin.
+
 exercise_plan(Plan) ->
 	Region = Plan#channel_plan.region,
+	validate_tx_power(Plan),
 	validate_u_channels(Region, Plan#channel_plan.u_channels),
 	validate_d_channels(Region, Plan#channel_plan.d_channels),
 	validate_u_frequences(Region, Plan#channel_plan.u_channels),

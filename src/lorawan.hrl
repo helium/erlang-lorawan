@@ -28,7 +28,7 @@
 %% -type data_rate() :: {0..15, atom()}.
 -type dr_range() :: {integer(), integer()}.
 -type dr_id() :: integer().
--type power_id() :: integer().
+-type power_offset() :: integer().
 
 -record(datarate_plan, {
     drlist :: [{number(), atom(), atom()}]
@@ -61,14 +61,14 @@
     channel_count :: integer(),
     join_channels :: dr_range(),
     data_rates :: [dr_id()],
-    tx_powers :: [power_id()],
+    tx_power :: [power_offset()],
     join_dr :: dr_range(),
     mandatory_dr :: dr_range(),
     optional_dr :: dr_range(),
     max_duty_cycle :: integer(),
     dwell_time_limit :: integer(),
     tx_param_setup_allowed :: boolean(),
-    max_eirp_db :: integer(),
+    max_eirp_db :: float(),
     default_rx1_offset :: integer(),
     allowed_rx1_offset :: integer(),
     default_rx2_datarate :: integer(),
