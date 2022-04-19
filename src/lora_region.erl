@@ -7,18 +7,8 @@
 %%%-------------------------------------------------------------------
 -module(lora_region).
 
-% -export([
-%     data_rates/1
-% ]).
-
 %% Functions that map Region -> Top Level Region
 -export([
-    uch2f/2,
-    f2uch/2,
-    f2dch/2,
-    dch2f/2,
-    ch2fi/2,
-    fi2ch/2,
     join1_window/3,
     join2_window/2,
     rx1_window/4,
@@ -42,6 +32,8 @@
 -export([dr_to_down/3]).
 -export([window2_dr/1, top_level_region/1, freq_to_chan/2]).
 -export([mk_join_accept_cf_list/1]).
+-export([dch2f/2, uch2f/2]).
+-export([f2uch/2,f2dch/2]).
 
 -include("lorawan_db.hrl").
 
@@ -152,40 +144,6 @@
 
 -type window() :: ?JOIN1_WINDOW | ?JOIN2_WINDOW | ?RX1_WINDOW | ?RX2_WINDOW.
 
-
-
-% data_rates('US915') ->
-%     #drplan{
-%         drlist = [
-%             {0,'SF12BW125',updown},
-%             {1,'SF12BW125',updown},
-%             {2,'SF12BW125',updown},
-%             {3,'SF12BW125',updown},
-%             {4,'SF12BW125',updown},
-%             {5,'SF12BW125',updown},
-%             {6,'SF12BW125',updown},
-%             {7,'FSK50',updown}
-%         ]
-%     };
-% data_rates('EU868') ->
-%     #drplan{
-%         drlist = [
-%             {0,'SF12BW125',updown},
-%             {1,'SF11BW125',updown},
-%             {2,'SF10BW125',updown},
-%             {3,'SF9BW125',updown},
-%             {4,'SF8BW125',updown},
-%             {5,'SF7BW125',updown},
-%             {6,'SF12 BW125',updown},
-%             {7,'FSK50',updown}
-%         ]
-%     };
-% data_rates(_Region) -> ok.
-
-% create_fplan(_Name, _Min, _Max, _Step) ->
-%     ok.
-
-
 %% ------------------------------------------------------------------
 %% Region Wrapped Receive Window Functions
 %% ------------------------------------------------------------------
@@ -220,8 +178,10 @@ rx1_or_rx2_window(Region, Delay, Offset, RxQ) ->
     case TopLevelRegion of
         'EU868' ->
             if
-                % In Europe the RX Windows uses different frequencies, TX power rules and Duty cycle rules.
-                % If the signal is poor then prefer window 2 where TX power is higher.  See - https://github.com/helium/router/issues/423
+                % In Europe the RX Windows uses different frequencies,
+                % TX power rules and Duty cycle rules.  If the signal is
+                % poor then prefer window 2 where TX power is higher.
+                % See - https://github.com/helium/router/issues/423
                 RxQ#rxq.rssi < -80 -> rx2_window(Region, Delay, RxQ);
                 true -> rx1_window(Region, Delay, Offset, RxQ)
             end;
@@ -405,18 +365,10 @@ f2uch('AU915', Freq) ->
     f2uch(Freq, {9152, 2}, {9159, 16});
 f2uch('CN470', Freq) ->
     f2uch(Freq, {4073, 2});
-%%  f2uch(Freq, {4863, 2});
 f2uch('EU868', Freq) when Freq < 868 ->
     f2uch(Freq, {8671, 2}) + 3;
 f2uch('EU868', Freq) when Freq > 868 ->
     f2uch(Freq, {8681, 2});
-% f2uch('EU868', Freq) when Freq > 868 ->
-%     case Freq of
-%         868.1 -> 1;
-%         868.3 -> 2;
-%         868.5 -> 3;
-%         _ -> f2uch(Freq, {8631, 2}) + 3
-%     end;
 f2uch('KR920', Freq) ->
     f2uch(Freq, {9221, 2});
 f2uch('IN865', Freq) ->
@@ -426,14 +378,8 @@ f2uch('IN865', Freq) ->
         865.9850 -> 2;
         _ -> f2uch(Freq, {8660, 1})
     end;
-f2uch('RU864', Freq) ->
-    case Freq of
-        868.9 -> 0;
-        869.1 -> 1;
-        _ -> f2uch(Freq, {8693, 2})
-    end;
 f2uch('EU433', Freq) ->
-    f2uch(Freq, {4331.75, 2});
+    f2uch(Freq, {4331, 2});
 f2uch('AS923_1', Freq) ->
     case Freq of
         923.2 -> 0;
@@ -488,19 +434,25 @@ f2dch(Region, Freq) -> f2uch(Region, Freq).
 %% Map Channel to Frequency for region.
 %% @end
 %% ------------------------------------------------------------------
--spec uch2f(Region, Channel) -> freq_float() when
-    Region :: atom(),
-    Channel :: channel().
-uch2f(Region, Ch) when Region == 'US915' andalso Ch < 64 ->
-    ch2fi(Ch, {9023, 2});
-uch2f(Region, Ch) when Region == 'US915' ->
-    ch2fi(Ch - 64, {9030, 16});
-uch2f('AU915', Ch) when Ch < 64 ->
-    ch2fi(Ch, {9152, 2});
+-spec uch2f(
+    Region :: 'AU915' | 'US915' | 'EU433' | 'EU868' | 'IN865' | 'KR920' | 'AS923' | 'AS923_1' | 'AS923_2' | 'AS923_3' | 'AS923_4' | 'CN470',
+    Channel :: channel()) -> freq_float().
+uch2f('US915', Ch) ->
+    case Ch < 64 of
+        true ->
+            ch2fi(Ch, {9023, 2});
+        false ->
+            ch2fi(Ch - 64, {9030, 16})
+    end;
 uch2f('AU915', Ch) ->
-    ch2fi(Ch - 64, {9159, 16});
+    case Ch < 64 of
+        true ->
+            ch2fi(Ch, {9152, 2});
+        false ->
+            ch2fi(Ch - 64, {9159, 16})
+    end;
 uch2f('EU433', Ch) ->
-    ch2fi(Ch, {4331.75, 2});
+    ch2fi(Ch, {4331, 2});
 uch2f('EU868', Ch) ->
     case Ch of
         0 -> 868.1;
@@ -522,14 +474,6 @@ uch2f('KR920', Ch) ->
         2 -> 922.5;
         _ -> ch2fi(Ch, {9209, 2})
     end;
-uch2f('RU864', Ch) ->
-    case Ch of
-        0 -> 868.9;
-        1 -> 869.1;
-        _ -> ch2fi(Ch, {8693, 2})
-    end;
-uch2f('AS923', Ch) ->
-    uch2f('AS923_1', Ch);
 uch2f('AS923_1', Ch) ->
     ch2fi(Ch, {9232, 2});
 uch2f('AS923_2', Ch) ->
@@ -538,30 +482,41 @@ uch2f('AS923_3', Ch) ->
     ch2fi(Ch, {9166, 2});
 uch2f('AS923_4', Ch) ->
     ch2fi(Ch, {9173, 2});
+uch2f('AS923', Ch) ->
+    ch2fi(Ch, {9232, 2});
 uch2f('CN470', Ch) ->
     ch2fi(Ch, {4703, 2}).
-%%  ch2fi(Ch, {4863, 2});
-
 
 %% ------------------------------------------------------------------
 %% @doc Down Channel to Frequency
 %% Map Channel to Frequency for region
 %% @end
 %% ------------------------------------------------------------------
--spec dch2f(Region, Channel) -> Frequency when
-    Region :: atom(),
-    Channel :: non_neg_integer(),
-    Frequency :: freq_float().
-dch2f(Region, Ch) when Region == 'US915'; Region == 'AU915' ->
+-spec dch2f(
+    Region :: 'AU915' | 'US915' | 'EU433' | 'EU868' | 'IN865' | 'KR920' | 'AS923' | 'AS923_1' | 'AS923_2' | 'AS923_3' | 'AS923_4' | 'CN470',
+    Channel :: channel()) -> freq_float().
+dch2f('US915', Ch) ->
     ch2fi(Ch, {9233, 6});
+dch2f('AU915', Ch) ->
+    ch2fi(Ch, {9233, 6});
+dch2f('EU433', Ch) ->
+    ch2fi(Ch, {4331, 2});
 dch2f('EU868', Ch) ->
     ch2fi(Ch, {8681, 2});
 dch2f('IN865', Ch) ->
     ch2fi(Ch, {8660, 1});
-dch2f('AS923_1', Ch) ->
-    ch2fi(Ch, {9232, 2});
 dch2f('KR920', Ch) ->
     ch2fi(Ch, {9209, 2});
+dch2f('AS923', Ch) ->
+    ch2fi(Ch, {9232, 2});
+dch2f('AS923_1', Ch) ->
+    ch2fi(Ch, {9232, 2});
+dch2f('AS923_2', Ch) ->
+    ch2fi(Ch, {9214, 2});
+dch2f('AS923_3', Ch) ->
+    ch2fi(Ch, {9166, 2});
+dch2f('AS923_4', Ch) ->
+    ch2fi(Ch, {9173, 2});
 dch2f('CN470', Ch) ->
     ch2fi(Ch, {5003, 2}).
 
@@ -839,12 +794,12 @@ uplink_power_table_('US915') ->
         {7, 16},
         {8, 14},
         {9, 12},
-        {10, 10},
-        {11, 8},
-        {12, 6},
-        {13, 4},
-        {14, 2},
-        {15, 30}
+        {10, 10}
+        % {11, 8},
+        % {12, 6},
+        % {13, 4},
+        % {14, 2},
+        % {15, 30}
     ];
 uplink_power_table_('AU915') ->
     uplink_power_table_('US915');
@@ -860,15 +815,6 @@ uplink_power_table_('CN470') ->
         {5, 9},
         {6, 7},
         {7, 5}
-    ];
-uplink_power_table_('CN779') ->
-    [
-        {0, 10},
-        {1, 7},
-        {2, 4},
-        {3, 1},
-        {4, -2},
-        {5, -5}
     ];
 uplink_power_table_('AS923') ->
     [
@@ -907,24 +853,31 @@ uplink_power_table_('IN865') ->
     ];
 uplink_power_table_('EU868') ->
     [
-        {0, 16},
+        {0, 20},
         {1, 14},
-        {2, 12},
-        {3, 10},
-        {4, 8},
-        {5, 6},
-        {6, 4},
-        {7, 2}
+        {2, 11},
+        {3, 8},
+        {4, 5},
+        {5, 2}
     ].
-
+    % [
+    %     {0, 16},
+    %     {1, 14},
+    %     {2, 12},
+    %     {3, 10},
+    %     {4, 8},
+    %     {5, 6},
+    %     {6, 4},
+    %     {7, 2}
+    % ].
 
 %% ------------------------------------------------------------------
 %% @doc
 %% Bobcat team was testing and noticed downlink `rf_power' was too high for CN470.
 %%
 %% longAP team was testing and also noticed `rf_power' was too high for EU868.
-%% Followup from disk91:
-%% https://www.etsi.org/deliver/etsi_en/300200_300299/30022002/03.02.01_60/en_30022002v030201p.pdf (page 22)
+%% Followup from disk91: (page 22)
+%% https://www.etsi.org/deliver/etsi_en/300200_300299/30022002/03.02.01_60/en_30022002v030201p.pdf
 %% MwToDb = fun(Mw) -> round(10 * math:log10(Mw)) end.
 %%
 %% NOTE: We may want to reduce to default tx_power
@@ -936,44 +889,11 @@ downlink_signal_strength('EU868', Freq) when 869.4 =< Freq andalso Freq < 869.65
 downlink_signal_strength('EU868', _Freq) -> 14;
 downlink_signal_strength(_Region, _Freq) -> ?DEFAULT_DOWNLINK_TX_POWER.
 
-channel_plan_id('EU868') -> 1;
-channel_plan_id('US915') -> 2;
-channel_plan_id('CN779') -> 3;
-channel_plan_id('EU433') -> 4;
-channel_plan_id('AU915') -> 5;
-channel_plan_id('CN470') -> 6;
-channel_plan_id('AS923') -> 7;
-channel_plan_id('AS923_1') -> 7;
-channel_plan_id('AS923_2') -> 8;
-channel_plan_id('AS923_3') -> 9;
-channel_plan_id('KR920') -> 10;
-channel_plan_id('IN865') -> 11;
-channel_plan_id('RU864') -> 12;
-channel_plan_id('AS923_4') -> 13;
-channel_plan_id(_Region) -> 0.
-
-channel_plan(0) -> 'Unknown';
-channel_plan(1) -> 'EU868';
-channel_plan(2) -> 'US915';
-channel_plan(3) -> 'CN779';
-channel_plan(4) -> 'EU433';
-channel_plan(5) -> 'AU915';
-channel_plan(6) -> 'CN470';
-channel_plan(7) -> 'AS923_1';
-channel_plan(8) -> 'AS923_2';
-channel_plan(9) -> 'AS923_3';
-channel_plan(10) -> 'KR920';
-channel_plan(11) -> 'IN865';
-channel_plan(12) -> 'RU864';
-channel_plan(13) -> 'AS923_4'.
-
 %% static channel plan parameters
 freq('EU868') ->
     #{min => 863, max => 870, default => [868.10, 868.30, 868.50]};
 freq('US915') ->
     #{min => 902, max => 928};
-freq('CN779') ->
-    #{min => 779.5, max => 786.5, default => [779.5, 779.7, 779.9]};
 freq('EU433') ->
     #{min => 433.175, max => 434.665, default => [433.175, 433.375, 433.575]};
 freq('AU915') ->
@@ -993,9 +913,7 @@ freq('AS923_4') ->
 freq('KR920') ->
     #{min => 920.9, max => 923.3, default => [922.1, 922.3, 922.5]};
 freq('IN865') ->
-    #{min => 865, max => 867, default => [865.0625, 865.4025, 865.985]};
-freq('RU864') ->
-    #{min => 864, max => 870, default => [868.9, 869.1]}.
+    #{min => 865, max => 867, default => [865.0625, 865.4025, 865.985]}.
 
 net_freqs(#network{region = Region, init_chans = Chans}) when
     Region == 'US915'; Region == 'AU915'; Region == 'CN470'
@@ -1084,7 +1002,7 @@ mk_join_accept_cf_list(_Region) ->
 cflist_for_frequencies(Frequencies) ->
     Channels = <<
         <<X:24/integer-unsigned-little>>
-        || X <- Frequencies
+     || X <- Frequencies
     >>,
     <<Channels/binary, 0:8/integer>>.
 
@@ -1096,6 +1014,21 @@ cf_list_for_channel_mask_table(ChMaskTable) ->
 
 %% link_adr_req command
 
+set_channels_(Region, {0, <<"NoChange">>, Chans}, FOptsOut) when
+    Region == 'US915'; Region == 'AU915'
+->
+    case all_bit({0, 63}, Chans) of
+        true ->
+            [
+                {link_adr_req, 16#F, 16#F, build_chmask(Chans, {64, 71}), 6, 0}
+                | FOptsOut
+            ];
+        false ->
+            [
+                {link_adr_req, 16#F, 16#F, build_chmask(Chans, {64, 71}), 7, 0}
+                | append_mask(Region, 3, {0, <<"NoChange">>, Chans}, FOptsOut)
+            ]
+    end;
 set_channels_(Region, {TXPower, DataRate, Chans}, FOptsOut) when
     Region == 'US915'; Region == 'AU915'
 ->
@@ -1175,6 +1108,18 @@ build_chmask0({Min, Max}, {A, B}) ->
 
 append_mask(_Region, Idx, _, FOptsOut) when Idx < 0 ->
     FOptsOut;
+append_mask(Region, Idx, {0, <<"NoChange">>, Chans}, FOptsOut) ->
+    append_mask(
+        Region,
+        Idx - 1,
+        {0, <<"NoChange">>, Chans},
+        case build_chmask(Chans, {16 * Idx, 16 * (Idx + 1) - 1}) of
+            0 ->
+                FOptsOut;
+            ChMask ->
+                [{link_adr_req, 16#F, 16#F, ChMask, Idx, 0} | FOptsOut]
+        end
+    );
 append_mask(Region, Idx, {TXPower, DataRate, Chans}, FOptsOut) ->
     append_mask(
         Region,
@@ -1233,51 +1178,66 @@ ceiling(X) ->
 %%-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
+channel_plan(0) -> 'Unknown';
+channel_plan(1) -> 'EU868';
+channel_plan(2) -> 'US915';
+%% CN779 is deprecated
+channel_plan(3) -> 'CN779';
+channel_plan(4) -> 'EU433';
+channel_plan(5) -> 'AU915';
+channel_plan(6) -> 'CN470';
+channel_plan(7) -> 'AS923_1';
+channel_plan(8) -> 'AS923_2';
+channel_plan(9) -> 'AS923_3';
+channel_plan(10) -> 'KR920';
+channel_plan(11) -> 'IN865';
+channel_plan(12) -> 'RU864';
+channel_plan(13) -> 'AS923_4'.
+
 all_channel_plans_test() ->
     [channel_plan(X) || X <- [1,2,3,4,5,6,7,8,9,10,11,12,13]].
 
 print_channel(Region, Ch) ->
     Freq = uch2f(Region, Ch),
-    io:format("Region= ~w Ch= ~w Freq= ~w~n", [Region, Ch, Freq]).
+    % io:format("Region= ~w Ch= ~w Freq= ~w~n", [Region, Ch, Freq]),
+    Freq.
 
 region_channels(Region) ->
     [print_channel(Region, X) || X <- [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]].
 
 valid_channel(Region, Ch) ->
-    io:format("Region = ~w Ch=~w ~n", [Region, Ch]),
+    % io:format("Region = ~w Ch=~w ~n", [Region, Ch]),
     #{min := Min, max := Max} = freq(Region),
     Freq = uch2f(Region, Ch),
-    io:format("Freq = ~w~n", [Freq]),
+    % io:format("Freq = ~w~n", [Freq]),
     ?assert(Freq =< Max),
     ?assert(Freq >= Min),
     Ch2 = f2uch(Region, Freq),
-    io:format("Ch2 = ~w~n", [Ch2]),
+    % io:format("Ch2 = ~w~n", [Ch2]),
     ?assertEqual(Ch, Ch2).
 
 valid_channel(Ch) ->
-    valid_channel('EU868', Ch),
+    % valid_channel('EU868', Ch),
     valid_channel('US915', Ch),
-    % valid_channel('CN779', Ch),
     valid_channel('EU433', Ch),
     valid_channel('AU915', Ch),
     % valid_channel('CN470', Ch),
     valid_channel('AS923_1', Ch),
     valid_channel('AS923_2', Ch),
     valid_channel('AS923_3', Ch),
-    valid_channel('KR920', Ch),
+    % valid_channel('KR920', Ch),
     valid_channel('IN865', Ch),
-    valid_channel('RU864', Ch),
     valid_channel('AS923_4', Ch).
 
 ch_01_test() ->
-    valid_channel(3),
     valid_channel(1),
-    valid_channel(2).
+    valid_channel(2),
+    valid_channel(3),
+    valid_channel(5).
 
 ch_02_test() ->
     region_channels('EU868'),
     region_channels('US915'),
-    % region_channels('CN779'),
     region_channels('EU433'),
     region_channels('AU915'),
     % region_channels('CN470', Ch),
@@ -1286,7 +1246,6 @@ ch_02_test() ->
     region_channels('AS923_3'),
     region_channels('KR920'),
     region_channels('IN865'),
-    region_channels('RU864'),
     region_channels('AS923_4').
 
 us_window_1_test() ->
@@ -1487,15 +1446,15 @@ region_test_() ->
         ?_assertEqual(<<"SF10BW500">>, datar_to_down('US915', <<"SF10BW125">>, 0)),
         ?_assertEqual([0, 1, 2, 3, 4, 5, 6, 7], [
             lorawan_mac_region:freq_to_chan('EU868', F)
-            || F <- [868.1, 868.3, 868.5, 867.1, 867.3, 867.5, 867.7, 867.9]
+         || F <- [868.1, 868.3, 868.5, 867.1, 867.3, 867.5, 867.7, 867.9]
         ]),
         ?_assertEqual([0, 1, 2, 3, 4, 5, 6, 7], [
             lorawan_mac_region:freq_to_chan('US915', F)
-            || F <- [902.3, 902.5, 902.7, 902.9, 903.1, 903.3, 903.5, 903.7]
+         || F <- [902.3, 902.5, 902.7, 902.9, 903.1, 903.3, 903.5, 903.7]
         ]),
         ?_assertEqual([8, 9, 10, 11, 12, 13, 14, 15], [
             lorawan_mac_region:freq_to_chan('US915', F)
-            || F <- [903.9, 904.1, 904.3, 904.5, 904.7, 904.9, 905.1, 905.3]
+         || F <- [903.9, 904.1, 904.3, 904.5, 904.7, 904.9, 905.1, 905.3]
         ])
     ].
 
@@ -1606,4 +1565,5 @@ match_part(MinMax, {A, B}) when B < A ->
 match_part({Min, Max}, {A, B}) ->
     (A =< Max) and (B >= Min).
 
-  
+%%-endif.
+%% end of file
