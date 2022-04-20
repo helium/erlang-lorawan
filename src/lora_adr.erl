@@ -299,11 +299,11 @@ new(Region) ->
         (_) ->
             false
     end,
-    Datarates = lists:filtermap(FilterMapFn, lorawan_mac_region:datars(Region)),
+    Datarates = lists:filtermap(FilterMapFn, lora_region:datars(Region)),
     %% min-max refer to #device.min_datarate docs
     [{MinDataRate, {MaxSpreading, _}} | _] = Datarates,
     {MaxDataRate, {MinSpreading, _}} = lists:last(Datarates),
-    TxPowers = lorawan_mac_region:uplink_power_table(Region),
+    TxPowers = lora_region:uplink_power_table(Region),
     [{MaxTxPowerIdx, MaxTxPowerDBm} | _] = TxPowers,
     {MinTxPowerIdx, MinTxPowerDBm} = lists:last(TxPowers),
     #device{
@@ -1384,24 +1384,24 @@ adr_does_adr_test() ->
     fin.
 
 adr_new_test() ->
-    State0 = lorawan_adr:new('US915'),
+    State0 = lora_adr:new('US915'),
 
     %% See regional parameters document for the reference values
     %% asserted against below.
 
-    MinDataRate = lorawan_adr:min_datarate(State0),
-    MinDataRateEntryFromIndex = lorawan_adr:datarate_entry(State0, MinDataRate),
+    MinDataRate = lora_adr:min_datarate(State0),
+    MinDataRateEntryFromIndex = lora_adr:datarate_entry(State0, MinDataRate),
     ?assertEqual({0, {10, 125}}, MinDataRateEntryFromIndex),
-    MinDataRateEntryFromConfig = lorawan_adr:datarate_entry(State0, {10, 125}),
+    MinDataRateEntryFromConfig = lora_adr:datarate_entry(State0, {10, 125}),
     ?assertEqual({0, {10, 125}}, MinDataRateEntryFromConfig),
 
     MaxDataRate = lorawan_adr:max_datarate(State0),
-    MaxDataRateEntryFromIndex = lorawan_adr:datarate_entry(State0, MaxDataRate),
+    MaxDataRateEntryFromIndex = lora_adr:datarate_entry(State0, MaxDataRate),
     ?assertEqual({3, {7, 125}}, MaxDataRateEntryFromIndex),
-    MaxDataRateEntryFromConfig = lorawan_adr:datarate_entry(State0, {7, 125}),
+    MaxDataRateEntryFromConfig = lora_adr:datarate_entry(State0, {7, 125}),
     ?assertEqual({3, {7, 125}}, MaxDataRateEntryFromConfig),
 
-    InvalidDataRateConfig = lorawan_adr:datarate_entry(State0, MaxDataRate + 1),
+    InvalidDataRateConfig = lora_adr:datarate_entry(State0, MaxDataRate + 1),
     ?assertEqual(undefined, InvalidDataRateConfig),
 
     fin.
@@ -1416,7 +1416,7 @@ adr_resists_denial_of_service_test() ->
     %% This brand new state doesn't have any pending ADR
     %% requests. It should gracefully handle receiving a bogus ADR
     %% answer without crashing.
-    State1 = lorawan_adr:track_adr_answer(State0, Answer0),
+    State1 = lora_adr:track_adr_answer(State0, Answer0),
     ?assertEqual([], State1#device.accepted_adjustments),
 
     fin.

@@ -6,7 +6,8 @@
     tx_power/2,
     tx_power_list/1,
     region_to_plan/1,
-    rx2_datarate/1
+    rx2_datarate/1,
+    max_payload_size/1
 ]).
 
 -include("lorawan.hrl").

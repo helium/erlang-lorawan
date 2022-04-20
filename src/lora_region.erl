@@ -1445,15 +1445,15 @@ region_test_() ->
         ?_assertEqual(datar_to_dr('US915', <<"SF7BW500">>), 13),
         ?_assertEqual(<<"SF10BW500">>, datar_to_down('US915', <<"SF10BW125">>, 0)),
         ?_assertEqual([0, 1, 2, 3, 4, 5, 6, 7], [
-            lorawan_mac_region:freq_to_chan('EU868', F)
+            lora_region:freq_to_chan('EU868', F)
          || F <- [868.1, 868.3, 868.5, 867.1, 867.3, 867.5, 867.7, 867.9]
         ]),
         ?_assertEqual([0, 1, 2, 3, 4, 5, 6, 7], [
-            lorawan_mac_region:freq_to_chan('US915', F)
+            lora_region:freq_to_chan('US915', F)
          || F <- [902.3, 902.5, 902.7, 902.9, 903.1, 903.3, 903.5, 903.7]
         ]),
         ?_assertEqual([8, 9, 10, 11, 12, 13, 14, 15], [
-            lorawan_mac_region:freq_to_chan('US915', F)
+            lora_region:freq_to_chan('US915', F)
          || F <- [903.9, 904.1, 904.3, 904.5, 904.7, 904.9, 905.1, 905.3]
         ])
     ].
