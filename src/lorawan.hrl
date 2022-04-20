@@ -70,11 +70,11 @@
     tx_param_setup_allowed :: boolean(),
     max_eirp_db :: float(),
     default_rx1_offset :: integer(),
-    allowed_rx1_offset :: integer(),
-    default_rx2_datarate :: integer(),
-    default_rx2_freq :: number(),
-    default_beacon_freq :: number(),
-    default_pingslot_freq :: number()
+    rx1_offset :: integer(),
+    rx2_datarate :: integer(),
+    rx2_freq :: number(),
+    beacon_freq :: number(),
+    pingslot_freq :: number()
 }).
 
 -record(stat, {
