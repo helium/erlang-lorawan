@@ -443,13 +443,15 @@ parse_fdownopts(
     [{new_channel_req, ChIndex, Freq, MaxDr, MinDr} | parse_fdownopts(Rest)];
 parse_fdownopts(<<16#08, _RFU:4, Delay:4, Rest/binary>>) ->
     [{rx_timing_setup_req, Delay} | parse_fdownopts(Rest)];
-parse_fdownopts(<<16#09, _RFU:2, DownlinkDwellTime:1, UplinkDwellTime:1, MaxEIRP:4, Rest/binary>>) ->
+parse_fdownopts(
+    <<16#09, _RFU:2, DownlinkDwellTime:1, UplinkDwellTime:1, MaxEIRP:4, Rest/binary>>) ->
     [{tx_param_setup_req, DownlinkDwellTime, UplinkDwellTime, MaxEIRP} | parse_fdownopts(Rest)];
 parse_fdownopts(
     <<16#0A, ChIndex:8, Freq:24/little-unsigned-integer, MaxDr:4, MinDr:4, Rest/binary>>
 ) ->
     [{dl_channel_req, ChIndex, Freq, MaxDr, MinDr} | parse_fdownopts(Rest)];
-parse_fdownopts(<<16#0D, A:32/little-unsigned-integer, B:8/little-unsigned-integer, Rest/binary>>) ->
+parse_fdownopts(
+    <<16#0D, A:32/little-unsigned-integer, B:8/little-unsigned-integer, Rest/binary>>) ->
     [{device_time_ans, A, B} | parse_fdownopts(Rest)];
 parse_fdownopts(<<>>) ->
     [];
@@ -547,7 +549,8 @@ sample_join_request_02() ->
     {<<"AQEBAgICBAMCAWcJ">>, <<"7A47F143D7CEF033DFA0D4B75E04A316">>,
         <<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 % sample_join_request_01_2() ->
-%     {<<"20fd5ef68da6f52e331b53d546fdb2ad3c9801c93fc961e78e7e3c23af31422392">>,<<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
+%     {<<"20fd5ef68da6f52e331b53d546fdb2ad3c9801c93fc961e78e7e3c23af31422392">>,
+%      <<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 join_accept_sample() ->
     {<<"IIE/R/UI/6JnC24j4B+EueJdnEEV8C7qCz3T4gs+ypLa">>, <<1:128>>, <<2:128>>}.
 join_accept_sample_2() ->
