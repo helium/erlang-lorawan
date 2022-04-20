@@ -27,6 +27,10 @@ region_to_plan(Region) ->
 		'AS923_4' -> plan_as923_1()
 	end.
 
+-spec max_payload_size(integer()) -> integer().
+max_payload_size(_DataRateID) ->
+	250.
+
 -spec rx2_datarate(#channel_plan{}) -> integer().
 rx2_datarate(Plan) ->
 	Plan#channel_plan.rx2_datarate.
@@ -152,7 +156,7 @@ plan_as923_1() ->
 		max_eirp_db = 16,
 		default_rx1_offset = 0,
 		rx1_offset = 7,
-		rx2_datarate = 0,
+		rx2_datarate = 2,
 		rx2_freq = 923.2,
 		beacon_freq = 923.4,
 		pingslot_freq = 923.4
@@ -184,7 +188,7 @@ plan_au915() ->
 		max_eirp_db = 30,
 		default_rx1_offset = 0,
 		rx1_offset = 5,
-		rx2_datarate = 0,
+		rx2_datarate = 8,
 		rx2_freq = 923.2,
 		beacon_freq = 923.4,
 		pingslot_freq = 923.4
@@ -217,7 +221,7 @@ plan_us915() ->
 		max_eirp_db = 30,
 		default_rx1_offset = 0,
 		rx1_offset = 3,
-		rx2_datarate = 0,
+		rx2_datarate = 8,
 		rx2_freq = 923.3,
 		beacon_freq = 923.3,
 		pingslot_freq = 923.3
