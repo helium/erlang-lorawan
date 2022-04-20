@@ -515,7 +515,7 @@ encode_fupopts([]) ->
 %% ==================================================================
 %% Tests
 %% ==================================================================
-%%-ifdef(EUNIT).
+-ifdef(EUNIT).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -544,10 +544,10 @@ sample_uplink_2() ->
 sample_join_request_01() ->
     {<<"ANwAANB+1bNwHm/t9XzurwDIhgMK8sk=">>, <<"7A47F143D7CEF033DFA0D4B75E04A316">>,
         <<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
-sample_join_request_02() ->
-    %% {<<1, 1, 1, 2, 2, 2, 4, 3, 2, 1, 103, 9>>,<<1:128>>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
-    {<<"AQEBAgICBAMCAWcJ">>, <<"7A47F143D7CEF033DFA0D4B75E04A316">>,
-        <<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
+% sample_join_request_02() ->
+%     %% {<<1, 1, 1, 2, 2, 2, 4, 3, 2, 1, 103, 9>>,<<1:128>>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
+%     {<<"AQEBAgICBAMCAWcJ">>, <<"7A47F143D7CEF033DFA0D4B75E04A316">>,
+%         <<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 % sample_join_request_01_2() ->
 %     {<<"20fd5ef68da6f52e331b53d546fdb2ad3c9801c93fc961e78e7e3c23af31422392">>,
 %      <<"7A47F143D7CEF033DFA0D4B75E04A316">>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
@@ -1244,9 +1244,9 @@ payload_06_test() ->
     decode_encode(fun sample_03/0),
     fin.
 
-payload_07_test() ->
-    decode_encode(fun sample_join_request_02/0),
-    fin.
+% payload_07_test() ->
+%     decode_encode(fun sample_join_request_02/0),
+%     fin.
 
 payload_08_test() ->
     decode_encode(fun bw_uplink_730/0),
@@ -1329,4 +1329,4 @@ payload_1_test() ->
     decode_payload(Pay3),
     fin.
 
-%%-endif.
+-endif.
