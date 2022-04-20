@@ -309,7 +309,7 @@ plan_cn470() ->
 % 			#data_rate{id = 3, name = 'SF9BW125', max_size = 123, no_repeater_size = 123, bit_rate = 1760},
 % 			#data_rate{id = 4, name = 'SF8BW125', max_size = 239, no_repeater_size = 230, bit_rate = 3125},
 % 			#data_rate{id = 5, name = 'SF7BW125', max_size = 230, no_repeater_size = 230, bit_rate = 5470},
-% 			#data_rate{id = 6, name = 'SF7BW250', max_size = 230, no_repeater_size = 230, bit_rate = 11000},
+% #data_rate{id = 6, name = 'SF7BW250', max_size = 230, no_repeater_size = 230, bit_rate = 11000},
 % 			#data_rate{id = 7, name = 'FSK50', max_size = 230, no_repeater_size = 230, bit_rate = 50000},
 % 			#data_rate{id = 8, name = 'CR13BW137', max_size = 58, no_repeater_size = 58, bit_rate = 162},
 % 			#data_rate{id = 9, name = 'CR23BW137', max_size = 123, no_repeater_size = 123, bit_rate = 325},
