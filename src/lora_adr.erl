@@ -980,12 +980,12 @@ adr_harness_test() ->
     _DataRate0 = 0,
     State0 = new('US915'),
     State0.
-    % [
-    %     ?_test(begin
-    %         valid_exercise(State0, DataRate0, 22, 7.0, X, 3, 1)
-    %     end)
-    %  || X <- gen_startend_range(-120.0, 0.1, 0.0)
-    % ].
+% [
+%     ?_test(begin
+%         valid_exercise(State0, DataRate0, 22, 7.0, X, 3, 1)
+%     end)
+%  || X <- gen_startend_range(-120.0, 0.1, 0.0)
+% ].
 
 adr_exercise_test_() ->
     %% DataRate 0 in US915 regional parameters.

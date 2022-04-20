@@ -33,7 +33,7 @@
 -export([window2_dr/1, top_level_region/1, freq_to_chan/2]).
 -export([mk_join_accept_cf_list/1]).
 -export([dch2f/2, uch2f/2]).
--export([f2uch/2,f2dch/2]).
+-export([f2uch/2, f2dch/2]).
 
 -include("lorawan_db.hrl").
 
@@ -435,8 +435,21 @@ f2dch(Region, Freq) -> f2uch(Region, Freq).
 %% @end
 %% ------------------------------------------------------------------
 -spec uch2f(
-    Region :: 'AU915' | 'US915' | 'EU433' | 'EU868' | 'IN865' | 'KR920' | 'AS923' | 'AS923_1' | 'AS923_2' | 'AS923_3' | 'AS923_4' | 'CN470',
-    Channel :: channel()) -> freq_float().
+    Region ::
+        'AU915'
+        | 'US915'
+        | 'EU433'
+        | 'EU868'
+        | 'IN865'
+        | 'KR920'
+        | 'AS923'
+        | 'AS923_1'
+        | 'AS923_2'
+        | 'AS923_3'
+        | 'AS923_4'
+        | 'CN470',
+    Channel :: channel()
+) -> freq_float().
 uch2f('US915', Ch) ->
     case Ch < 64 of
         true ->
@@ -493,8 +506,21 @@ uch2f('CN470', Ch) ->
 %% @end
 %% ------------------------------------------------------------------
 -spec dch2f(
-    Region :: 'AU915' | 'US915' | 'EU433' | 'EU868' | 'IN865' | 'KR920' | 'AS923' | 'AS923_1' | 'AS923_2' | 'AS923_3' | 'AS923_4' | 'CN470',
-    Channel :: channel()) -> freq_float().
+    Region ::
+        'AU915'
+        | 'US915'
+        | 'EU433'
+        | 'EU868'
+        | 'IN865'
+        | 'KR920'
+        | 'AS923'
+        | 'AS923_1'
+        | 'AS923_2'
+        | 'AS923_3'
+        | 'AS923_4'
+        | 'CN470',
+    Channel :: channel()
+) -> freq_float().
 dch2f('US915', Ch) ->
     ch2fi(Ch, {9233, 6});
 dch2f('AU915', Ch) ->
@@ -860,16 +886,16 @@ uplink_power_table_('EU868') ->
         {4, 5},
         {5, 2}
     ].
-    % [
-    %     {0, 16},
-    %     {1, 14},
-    %     {2, 12},
-    %     {3, 10},
-    %     {4, 8},
-    %     {5, 6},
-    %     {6, 4},
-    %     {7, 2}
-    % ].
+% [
+%     {0, 16},
+%     {1, 14},
+%     {2, 12},
+%     {3, 10},
+%     {4, 8},
+%     {5, 6},
+%     {6, 4},
+%     {7, 2}
+% ].
 
 %% ------------------------------------------------------------------
 %% @doc
@@ -1195,7 +1221,7 @@ channel_plan(12) -> 'RU864';
 channel_plan(13) -> 'AS923_4'.
 
 all_channel_plans_test() ->
-    [channel_plan(X) || X <- [1,2,3,4,5,6,7,8,9,10,11,12,13]].
+    [channel_plan(X) || X <- [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]].
 
 print_channel(Region, Ch) ->
     Freq = uch2f(Region, Ch),
@@ -1203,7 +1229,7 @@ print_channel(Region, Ch) ->
     Freq.
 
 region_channels(Region) ->
-    [print_channel(Region, X) || X <- [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]].
+    [print_channel(Region, X) || X <- [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]].
 
 valid_channel(Region, Ch) ->
     % io:format("Region = ~w Ch=~w ~n", [Region, Ch]),

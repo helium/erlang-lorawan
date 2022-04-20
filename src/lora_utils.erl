@@ -18,7 +18,8 @@
     mtype/1,
     dir_string/1,
     padded/2,
-    parse_datarate/1]).
+    parse_datarate/1
+]).
 
 -export_type([spreading/0, bandwidth/0]).
 

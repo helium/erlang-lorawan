@@ -11,8 +11,15 @@
     payload_to_frame/3,
     frame_to_payload/3,
     encode_fopts/1,
-    encode_fupopts/1
+    encode_fupopts/1,
     %% internal functions
+    payload_join_request/1,
+    payload_join_accept/1,
+    payload_fctrl/1,
+    payload_fhdr/1,
+    fopts_mac_cid/1,
+    parse_fopts/1,
+    parse_fdownopts/1
 ]).
 
 -include("lorawan.hrl").
@@ -444,14 +451,16 @@ parse_fdownopts(
 parse_fdownopts(<<16#08, _RFU:4, Delay:4, Rest/binary>>) ->
     [{rx_timing_setup_req, Delay} | parse_fdownopts(Rest)];
 parse_fdownopts(
-    <<16#09, _RFU:2, DownlinkDwellTime:1, UplinkDwellTime:1, MaxEIRP:4, Rest/binary>>) ->
+    <<16#09, _RFU:2, DownlinkDwellTime:1, UplinkDwellTime:1, MaxEIRP:4, Rest/binary>>
+) ->
     [{tx_param_setup_req, DownlinkDwellTime, UplinkDwellTime, MaxEIRP} | parse_fdownopts(Rest)];
 parse_fdownopts(
     <<16#0A, ChIndex:8, Freq:24/little-unsigned-integer, MaxDr:4, MinDr:4, Rest/binary>>
 ) ->
     [{dl_channel_req, ChIndex, Freq, MaxDr, MinDr} | parse_fdownopts(Rest)];
 parse_fdownopts(
-    <<16#0D, A:32/little-unsigned-integer, B:8/little-unsigned-integer, Rest/binary>>) ->
+    <<16#0D, A:32/little-unsigned-integer, B:8/little-unsigned-integer, Rest/binary>>
+) ->
     [{device_time_ans, A, B} | parse_fdownopts(Rest)];
 parse_fdownopts(<<>>) ->
     [];
