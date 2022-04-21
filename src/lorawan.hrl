@@ -66,7 +66,7 @@
     max_duty_cycle :: integer(),
     dwell_time_limit :: integer(),
     tx_param_setup_allowed :: boolean(),
-    max_eirp_db :: float(),
+    max_eirp_db :: integer(),
     default_rx1_offset :: integer(),
     rx1_offset :: integer(),
     rx2_datarate :: integer(),

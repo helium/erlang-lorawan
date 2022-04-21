@@ -298,7 +298,7 @@ join_frame_to_payload(Frame, _NwkSKey, AppKey) ->
             <<PktHdr/binary, EncryptedReply/binary>>
     end.
 
--spec data_frame_to_message(#frame{}, binary(), binary()) -> binary().
+-spec data_frame_to_message(#frame{}, binary(), binary()) -> {binary(), binary()}.
 data_frame_to_message(Frame, NwkSKey, _AppSKey) ->
     FOpts = Frame#frame.fopts,
     % io:format("frame_to_payload FOpts = ~w~n", [FOpts]),
@@ -554,7 +554,7 @@ sample_join_request_01() ->
     {<<"ANwAANB+1bNwHm/t9XzurwDIhgMK8sk=">>, <<"7A47F143D7CEF033DFA0D4B75E04A316">>,
         <<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 % sample_join_request_02() ->
-%     %% {<<1, 1, 1, 2, 2, 2, 4, 3, 2, 1, 103, 9>>,<<1:128>>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
+% %% {<<1, 1, 1, 2, 2, 2, 4, 3, 2, 1, 103, 9>>,<<1:128>>,<<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 %     {<<"AQEBAgICBAMCAWcJ">>, <<"7A47F143D7CEF033DFA0D4B75E04A316">>,
 %         <<"B6B53F4A168A7A88BDF7EA135CE9CFCA">>}.
 % sample_join_request_01_2() ->
@@ -1010,7 +1010,9 @@ decode_join_accept(Payload) ->
     Bin0 = Payload,
 
     io:format(
-        "~n( MACPayload = AppNonce[3] | NetID[3] | DevAddr[4] | DLSettings[1] | RxDelay[1] | CFList[0|15] )~n"
+        "~n( MACPayload = AppNonce[3] | "
+        "NetID[3] | DevAddr[4] | DLSettings[1] | "
+        "RxDelay[1] | CFList[0|15] )~n"
     ),
     {JoinNonce, NetID, DevAddr, DLSettings, RXDelay, CFList} = payload_join_accept(Bin0),
     io:format("JoinNonce = ~s~n", [bin_to_hex(JoinNonce)]),

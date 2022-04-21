@@ -92,7 +92,7 @@ plan_eu868() ->
         dwell_time_limit = 0,
         tx_param_setup_allowed = false,
         % max_eirp_db = 16,
-        max_eirp_db = 20.0,
+        max_eirp_db = 20,
         default_rx1_offset = 0,
         rx1_offset = 5,
         rx2_datarate = 0,
@@ -122,7 +122,7 @@ plan_kr920() ->
         max_duty_cycle = 1,
         dwell_time_limit = 0,
         tx_param_setup_allowed = false,
-        max_eirp_db = 14.0,
+        max_eirp_db = 14,
         default_rx1_offset = 0,
         rx1_offset = 5,
         rx2_datarate = 0,
@@ -153,7 +153,7 @@ plan_as923_1() ->
         max_duty_cycle = 1,
         dwell_time_limit = 400,
         tx_param_setup_allowed = true,
-        max_eirp_db = 16.0,
+        max_eirp_db = 16,
         default_rx1_offset = 0,
         rx1_offset = 7,
         rx2_datarate = 2,
@@ -185,7 +185,7 @@ plan_au915() ->
         max_duty_cycle = 1,
         dwell_time_limit = 400,
         tx_param_setup_allowed = true,
-        max_eirp_db = 30.0,
+        max_eirp_db = 30,
         default_rx1_offset = 0,
         rx1_offset = 5,
         rx2_datarate = 8,
@@ -218,7 +218,7 @@ plan_us915() ->
         max_duty_cycle = 10000,
         dwell_time_limit = 400,
         tx_param_setup_allowed = false,
-        max_eirp_db = 30.0,
+        max_eirp_db = 30,
         default_rx1_offset = 0,
         rx1_offset = 3,
         rx2_datarate = 8,
@@ -248,7 +248,7 @@ plan_in865() ->
         max_duty_cycle = 1,
         dwell_time_limit = 0,
         tx_param_setup_allowed = false,
-        max_eirp_db = 30.0,
+        max_eirp_db = 30,
         default_rx1_offset = 0,
         rx1_offset = 7,
         rx2_datarate = 2,
@@ -278,7 +278,7 @@ plan_cn470() ->
         max_duty_cycle = 1,
         dwell_time_limit = 0,
         tx_param_setup_allowed = false,
-        max_eirp_db = 19.0,
+        max_eirp_db = 19,
         default_rx1_offset = 0,
         rx1_offset = 7,
         rx2_datarate = 0,
@@ -291,7 +291,7 @@ plan_cn470() ->
 %% ------------------------------------------------------------------
 %% EUNIT Tests
 %% ------------------------------------------------------------------
-%%-ifdef(TEST).
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
 % tx_power_1() ->
@@ -322,67 +322,60 @@ validate_u_channels(Region, List) ->
         lora_region:uch2f(Region, F)
      || F <- [0, 1, 2, 3, 4, 5, 6, 7]
     ],
-    ?assertEqual(List, TList),
-    fin.
+    ?assertEqual(List, TList).
 
 validate_d_channels(Region, List) ->
     TList = [
         lora_region:dch2f(Region, F)
      || F <- [0, 1, 2, 3, 4, 5, 6, 7]
     ],
-    ?assertEqual(List, TList),
-    fin.
+    ?assertEqual(List, TList).
 
+%%-spec validate_u_frequences(atom(), [float()]) -> any().
 validate_u_frequences('EU868', List) ->
     TList = [
         lora_region:f2uch('EU868', F)
      || F <- List
     ],
-    ?assertEqual([0, 1, 2, -11, -10, -9, -8, -7], TList),
-    fin;
+    ?assertEqual([0, 1, 2, -11, -10, -9, -8, -7], TList);
 validate_u_frequences('CN470', List) ->
     TList = [
         lora_region:f2uch('CN470', F)
      || F <- List
     ],
-    ?assertEqual([315, 316, 317, 318, 319, 320, 321, 322], TList),
-    fin;
+    ?assertEqual([315, 316, 317, 318, 319, 320, 321, 322], TList);
 validate_u_frequences('KR920', List) ->
     TList = [
         lora_region:f2uch('KR920', F)
      || F <- List
     ],
-    ?assertEqual([0, 1, 2, -3, -2, -1, 0, 1], TList),
-    fin;
+    ?assertEqual([0, 1, 2, -3, -2, -1, 0, 1], TList);
 validate_u_frequences(Region, List) ->
     TList = [
         lora_region:f2uch(Region, F)
      || F <- List
     ],
-    ?assertEqual([0, 1, 2, 3, 4, 5, 6, 7], TList),
-    fin.
+    ?assertEqual([0, 1, 2, 3, 4, 5, 6, 7], TList).
 
+%%-spec validate_d_frequences(atom(), [float()]) -> any().
 validate_d_frequences('CN470', List) ->
     TList = [
         lora_region:f2dch('CN470', F)
      || F <- List
     ],
-    ?assertEqual([465, 466, 467, 468, 469, 470, 471, 472], TList),
-    fin;
+    ?assertEqual([465, 466, 467, 468, 469, 470, 471, 472], TList);
 validate_d_frequences('KR920', List) ->
     TList = [
         lora_region:f2dch('KR920', F)
      || F <- List
     ],
-    ?assertEqual([-6, -5, -4, -3, -2, -1, 0, 1], TList),
-    fin;
+    ?assertEqual([-6, -5, -4, -3, -2, -1, 0, 1], TList);
 validate_d_frequences(Region, List) ->
     TList = [
         lora_region:f2dch(Region, F)
      || F <- List
     ],
-    ?assertEqual([0, 1, 2, 3, 4, 5, 6, 7], TList),
-    fin.
+    ?assertEqual([0, 1, 2, 3, 4, 5, 6, 7], TList).
 
 validate_tx_power(Plan) ->
     Region = Plan#channel_plan.region,
@@ -394,8 +387,7 @@ validate_tx_power(Plan) ->
     % io:format("PT0=~w~n", [PT0]),
     % io:format("PT1=~w~n", [PT1]),
     % io:format("Plan#channel_plan.tx_powers=~w~n", [Plan#channel_plan.tx_power]),
-    ?assertEqual(PT0, PT1),
-    fin.
+    ?assertEqual(PT0, PT1).
 
 exercise_plan(Plan) ->
     Region = Plan#channel_plan.region,
@@ -403,8 +395,7 @@ exercise_plan(Plan) ->
     validate_u_channels(Region, Plan#channel_plan.u_channels),
     validate_d_channels(Region, Plan#channel_plan.d_channels),
     validate_u_frequences(Region, Plan#channel_plan.u_channels),
-    validate_d_frequences(Region, Plan#channel_plan.d_channels),
-    fin.
+    validate_d_frequences(Region, Plan#channel_plan.d_channels).
 
 payload_util_test() ->
     % EU868_Plan = plan_eu868(),
@@ -420,8 +411,7 @@ payload_util_test() ->
     exercise_plan(plan_in865()),
     exercise_plan(plan_cn470()),
     exercise_plan(plan_kr920()),
-
     fin.
 
-%% -endif.
+-endif.
 %% end of file

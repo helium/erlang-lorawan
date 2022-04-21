@@ -799,7 +799,7 @@ codr_to_tuple(CodingRate) ->
     [A, B] = binary:split(CodingRate, [<<"/">>], [global, trim_all]),
     {binary_to_integer(A), binary_to_integer(B)}.
 
--type tx_power_table_entry() :: {Index :: pos_integer(), DBm :: number()}
+-type tx_power_table_entry() :: {Index :: pos_integer(), DBm :: float()}
 %% A tuple of `{TableIndex, dBm}'.
 .
 
