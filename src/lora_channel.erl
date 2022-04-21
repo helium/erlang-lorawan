@@ -38,13 +38,13 @@ rx2_datarate(Plan) ->
 
 -spec freq_to_channel(#channel_plan{}, number()) -> integer().
 freq_to_channel(Plan, Freq) ->
-    List = (Plan#channel_plan.channels),
+    List = (Plan#channel_plan.u_channels),
     Channel = index_of(Freq, List),
     Channel.
 
 -spec channel_to_freq(#channel_plan{}, integer()) -> number().
 channel_to_freq(Plan, Ch) ->
-    List = (Plan#channel_plan.channels),
+    List = (Plan#channel_plan.u_channels),
     Freq = lists:nth(Ch, List),
     Freq.
 
@@ -76,7 +76,6 @@ plan_eu868() ->
         min_freq = 863.0,
         max_freq = 870.0,
         %% channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
-        channels = [868.1, 868.3, 868.5, 864.3, 864.5, 864.7, 864.9, 865.1],
         u_channels = [868.1, 868.3, 868.5, 864.3, 864.5, 864.7, 864.9, 865.1],
         d_channels = [868.1, 868.3, 868.5, 868.7, 868.9, 869.1, 869.3, 869.5],
         channel_count = 8,
@@ -93,7 +92,7 @@ plan_eu868() ->
         dwell_time_limit = 0,
         tx_param_setup_allowed = false,
         % max_eirp_db = 16,
-        max_eirp_db = 20,
+        max_eirp_db = 20.0,
         default_rx1_offset = 0,
         rx1_offset = 5,
         rx2_datarate = 0,
@@ -123,7 +122,7 @@ plan_kr920() ->
         max_duty_cycle = 1,
         dwell_time_limit = 0,
         tx_param_setup_allowed = false,
-        max_eirp_db = 14,
+        max_eirp_db = 14.0,
         default_rx1_offset = 0,
         rx1_offset = 5,
         rx2_datarate = 0,
@@ -154,7 +153,7 @@ plan_as923_1() ->
         max_duty_cycle = 1,
         dwell_time_limit = 400,
         tx_param_setup_allowed = true,
-        max_eirp_db = 16,
+        max_eirp_db = 16.0,
         default_rx1_offset = 0,
         rx1_offset = 7,
         rx2_datarate = 2,
@@ -186,7 +185,7 @@ plan_au915() ->
         max_duty_cycle = 1,
         dwell_time_limit = 400,
         tx_param_setup_allowed = true,
-        max_eirp_db = 30,
+        max_eirp_db = 30.0,
         default_rx1_offset = 0,
         rx1_offset = 5,
         rx2_datarate = 8,
@@ -219,7 +218,7 @@ plan_us915() ->
         max_duty_cycle = 10000,
         dwell_time_limit = 400,
         tx_param_setup_allowed = false,
-        max_eirp_db = 30,
+        max_eirp_db = 30.0,
         default_rx1_offset = 0,
         rx1_offset = 3,
         rx2_datarate = 8,
@@ -249,7 +248,7 @@ plan_in865() ->
         max_duty_cycle = 1,
         dwell_time_limit = 0,
         tx_param_setup_allowed = false,
-        max_eirp_db = 30,
+        max_eirp_db = 30.0,
         default_rx1_offset = 0,
         rx1_offset = 7,
         rx2_datarate = 2,
@@ -279,7 +278,7 @@ plan_cn470() ->
         max_duty_cycle = 1,
         dwell_time_limit = 0,
         tx_param_setup_allowed = false,
-        max_eirp_db = 19,
+        max_eirp_db = 19.0,
         default_rx1_offset = 0,
         rx1_offset = 7,
         rx2_datarate = 0,

@@ -54,8 +54,6 @@
     dynamic_plan :: boolean(),
     min_freq :: number(),
     max_freq :: number(),
-    channels :: [float()],
-    f_channels :: [float()],
     u_channels :: [float()],
     d_channels :: [float()],
     channel_count :: integer(),
