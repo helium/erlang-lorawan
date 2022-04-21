@@ -1,4 +1,4 @@
--module(lora_channel).
+-module(lora_plan).
 
 -export([
     freq_to_channel/2,
