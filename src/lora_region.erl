@@ -1201,24 +1201,25 @@ ceiling(X) ->
 %% ------------------------------------------------------------------
 %% EUNIT Tests
 %% ------------------------------------------------------------------
-%%-ifdef(TEST).
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
-channel_plan(0) -> 'Unknown';
-channel_plan(1) -> 'EU868';
-channel_plan(2) -> 'US915';
-%% CN779 is deprecated
-channel_plan(3) -> 'CN779';
-channel_plan(4) -> 'EU433';
-channel_plan(5) -> 'AU915';
-channel_plan(6) -> 'CN470';
-channel_plan(7) -> 'AS923_1';
-channel_plan(8) -> 'AS923_2';
-channel_plan(9) -> 'AS923_3';
-channel_plan(10) -> 'KR920';
-channel_plan(11) -> 'IN865';
-channel_plan(12) -> 'RU864';
-channel_plan(13) -> 'AS923_4'.
+channel_plan(ID) ->
+    case ID of
+        1 -> 'EU868';
+        2 -> 'US915';
+        3 -> 'CN779';
+        4 -> 'EU433';
+        5 -> 'AU915';
+        6 -> 'CN470';
+        7 -> 'AS923_1';
+        8 -> 'AS923_2';
+        9 -> 'AS923_3';
+        10 -> 'KR920';
+        11 -> 'IN865';
+        12 -> 'RU864';
+        13 -> 'AS923_4'
+    end.
 
 all_channel_plans_test() ->
     [channel_plan(X) || X <- [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]].
@@ -1591,5 +1592,5 @@ match_part(MinMax, {A, B}) when B < A ->
 match_part({Min, Max}, {A, B}) ->
     (A =< Max) and (B >= Min).
 
-%%-endif.
+-endif.
 %% end of file
