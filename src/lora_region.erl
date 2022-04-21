@@ -223,7 +223,7 @@ datars(Region) ->
     TopLevelRegion = top_level_region(Region),
     datars_(TopLevelRegion).
 
--spec uplink_power_table(Region :: atom()) -> tx_power_table().
+%-spec uplink_power_table(Region :: atom()) -> tx_power_table().
 uplink_power_table(Region) ->
     TopLevelRegion = top_level_region(Region),
     uplink_power_table_(TopLevelRegion).
@@ -799,15 +799,15 @@ codr_to_tuple(CodingRate) ->
     [A, B] = binary:split(CodingRate, [<<"/">>], [global, trim_all]),
     {binary_to_integer(A), binary_to_integer(B)}.
 
--type tx_power_table_entry() :: {Index :: pos_integer(), DBm :: float()}
+%-type tx_power_table_entry() :: {Index :: pos_integer(), DBm :: number()}
 %% A tuple of `{TableIndex, dBm}'.
-.
+%.
 
--type tx_power_table() :: list(tx_power_table_entry())
+%-type tx_power_table() :: list(tx_power_table_entry())
 %% A table of available transmit powers, specific to a region.
-.
+%.
 
--spec uplink_power_table_(Region :: atom()) -> tx_power_table().
+%-spec uplink_power_table_(Region :: atom()) -> tx_power_table().
 uplink_power_table_('US915') ->
     [
         {0, 30},
