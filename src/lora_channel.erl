@@ -48,14 +48,14 @@ channel_to_freq(Plan, Ch) ->
     Freq = lists:nth(Ch, List),
     Freq.
 
--spec tx_power(#channel_plan{}, integer()) -> float().
+%-spec tx_power(#channel_plan{}, integer()) -> float().
 tx_power(Plan, Index) when Index < 16 ->
     List = (Plan#channel_plan.tx_power),
     Offset = lists:nth(Index, List),
     ComputedPower = Plan#channel_plan.max_eirp_db + Offset,
     ComputedPower.
 
--spec tx_power_list(#channel_plan{}) -> [float()].
+%-spec tx_power_list(#channel_plan{}) -> [float()].
 tx_power_list(Plan) ->
     List = (Plan#channel_plan.tx_power),
     [Plan#channel_plan.max_eirp_db + Offset || Offset <- List].
