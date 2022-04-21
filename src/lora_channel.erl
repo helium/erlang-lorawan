@@ -10,7 +10,7 @@
     max_payload_size/1
 ]).
 
--include("lorawan.hrl").
+-include("lora.hrl").
 
 -spec region_to_plan(atom()) -> #channel_plan{}.
 region_to_plan(Region) ->

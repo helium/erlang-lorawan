@@ -35,7 +35,7 @@
 -export([dch2f/2, uch2f/2]).
 -export([f2uch/2, f2dch/2]).
 
--include("lorawan_db.hrl").
+-include("lora_region.hrl").
 
 -define(DEFAULT_DOWNLINK_TX_POWER, 27).
 

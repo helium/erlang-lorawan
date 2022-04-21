@@ -22,7 +22,7 @@
     parse_fdownopts/1
 ]).
 
--include("lorawan.hrl").
+-include("lora.hrl").
 
 %%
 %% Public
