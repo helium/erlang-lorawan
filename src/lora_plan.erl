@@ -7,7 +7,11 @@
     tx_power_list/1,
     region_to_plan/1,
     rx2_datarate/1,
-    max_payload_size/1
+    max_payload_size/1,
+    datarate_to_index/2,
+    index_to_datarate/2,
+    datarate_to_atom/1,
+    atom_to_datarate/1
 ]).
 
 -include("lora.hrl").
@@ -27,6 +31,54 @@ region_to_plan(Region) ->
         'AS923_3' -> plan_as923_1();
         'AS923_4' -> plan_as923_1()
     end.
+
+-spec datarate_to_atom(binary()) -> atom().
+datarate_to_atom(Binary) ->
+    case Binary of
+        <<"SF12BW125">> -> 'SF12BW125';
+        <<"SF11BW125">> -> 'SF11BW125';
+        <<"SF10BW125">> -> 'SF10BW125';
+        <<"SF9BW125">> -> 'SF9BW125';
+        <<"SF8BW125">> -> 'SF8BW125';
+        <<"SF7BW125">> -> 'SF7BW125';
+        <<"SF12BW250">> -> 'SF12BW250';
+        <<"SF11BW250">> -> 'SF11BW250';
+        <<"SF10BW250">> -> 'SF10BW250';
+        <<"SF9BW250">> -> 'SF9BW250';
+        <<"SF8BW250">> -> 'SF8BW250';
+        <<"SF7BW250">> -> 'SF7BW250';
+        <<"SF12BW500">> -> 'SF12BW500';
+        <<"SF11BW500">> -> 'SF11BW500';
+        <<"SF10BW500">> -> 'SF10BW500';
+        <<"SF9BW500">> -> 'SF9BW500';
+        <<"SF8BW500">> -> 'SF8BW500';
+        <<"SF7BW500">> -> 'SF7BW500';
+        <<"LRFHSS1BW137">> -> 'LRFHSS1BW137';
+        <<"LRFHSS2BW137">> -> 'LRFHSS2BW137';
+        <<"LRFHSS1BW336">> -> 'LRFHSS1BW336';
+        <<"LRFHSS2BW336">> -> 'LRFHSS2BW336';
+        <<"LRFHSS1BW1523">> -> 'LRFHSS1BW1523';
+        <<"LRFHSS2BW1523">> -> 'LRFHSS2BW1523';
+        <<"FSK50">> -> 'FSK50';
+        <<"RFU">> -> 'RFU';
+        _ -> 'RFU'
+    end.
+
+-spec atom_to_datarate(atom()) -> binary().
+atom_to_datarate(Atom) ->
+    atom_to_binary(Atom).
+
+-spec datarate_to_index(#channel_plan{}, atom()) -> integer().
+datarate_to_index(Plan, Atom) ->
+    List = (Plan#channel_plan.data_rates),
+    Index = index_of(Atom, List),
+    Index.
+
+-spec index_to_datarate(#channel_plan{}, integer()) -> atom().
+index_to_datarate(Plan, Index) ->
+    List = (Plan#channel_plan.data_rates),
+    DR = lists:nth(Index, List),
+    DR.
 
 -spec max_payload_size(integer()) -> integer().
 max_payload_size(_DataRateID) ->
