@@ -11,7 +11,8 @@
     datarate_to_index/2,
     index_to_datarate/2,
     datarate_to_atom/1,
-    atom_to_datarate/1
+    atom_to_datarate/1,
+    downlink_eirp/2
 ]).
 
 -include("lora.hrl").
@@ -99,6 +100,20 @@ channel_to_freq(Plan, Ch) ->
     List = (Plan#channel_plan.u_channels),
     Freq = lists:nth(Ch, List),
     Freq.
+
+-spec downlink_eirp(#channel_plan{}, float()) -> integer().
+downlink_eirp(Plan, Freq) ->
+    Region = (Plan#channel_plan.region),
+    case Region of
+        'EU868' ->
+            BeaconRange = 869.4 =< Freq andalso Freq < 869.65,
+            case BeaconRange of
+                true -> 27;
+                false -> (Plan#channel_plan.max_eirp_db)
+            end;
+        _ ->
+            (Plan#channel_plan.max_eirp_db)
+    end.
 
 %-spec tx_power(#channel_plan{}, integer()) -> float().
 tx_power(Plan, Index) when Index < 16 ->
