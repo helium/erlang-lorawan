@@ -12,7 +12,8 @@
     index_to_datarate/2,
     datarate_to_atom/1,
     atom_to_datarate/1,
-    downlink_eirp/2
+    downlink_eirp/2,
+    max_uplink_snr/1
 ]).
 
 -include("lora.hrl").
@@ -65,6 +66,38 @@ datarate_to_atom(Binary) ->
         _ -> 'RFU'
     end.
 
+-spec datarate_to_tuple(atom()) -> {integer(), integer()}.
+datarate_to_tuple(DataRate) ->
+    case DataRate of
+        'SF12BW125' -> {12, 125};
+        'SF11BW125' -> {11, 125};
+        'SF10BW125' -> {10, 125};
+        'SF9BW125' -> {9, 125};
+        'SF8BW125' -> {8, 125};
+        'SF7BW125' -> {7, 125};
+        'SF12BW250' -> {12, 250};
+        'SF11BW250' -> {11, 250};
+        'SF10BW250' -> {10, 250};
+        'SF9BW250' -> {9, 250};
+        'SF8BW250' -> {8, 250};
+        'SF7BW250' -> {7, 250};
+        'SF12BW500' -> {12, 500};
+        'SF11BW500' -> {11, 500};
+        'SF10BW500' -> {10, 500};
+        'SF9BW500' -> {9, 500};
+        'SF8BW500' -> {8, 500};
+        'SF7BW500' -> {7, 500};
+        'LRFHSS1BW137' -> {7, 125};
+        'LRFHSS2BW137' -> {7, 125};
+        'LRFHSS1BW336' -> {7, 125};
+        'LRFHSS2BW336' -> {7, 125};
+        'LRFHSS1BW1523' -> {7, 125};
+        'LRFHSS2BW1523' -> {7, 125};
+        'FSK50' -> {7, 125};
+        'RFU' -> {7, 125};
+        _ -> {7, 125}
+    end.
+
 -spec atom_to_datarate(atom()) -> binary().
 atom_to_datarate(Atom) ->
     atom_to_binary(Atom).
@@ -80,6 +113,16 @@ index_to_datarate(Plan, Index) ->
     List = (Plan#channel_plan.data_rates),
     DR = lists:nth(Index, List),
     DR.
+
+-spec max_uplink_snr(atom()) -> float().
+max_uplink_snr(DataRate) ->
+    {SF, _} = datarate_to_tuple(DataRate),
+    max_snr(SF).
+
+%% from SX1272 DataSheet, Table 13
+max_snr(SF) ->
+    %% dB
+    -5 - 2.5 * (SF - 6).
 
 -spec max_payload_size(integer()) -> integer().
 max_payload_size(_DataRateID) ->
