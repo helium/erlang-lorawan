@@ -28,6 +28,7 @@
 %% -type data_rate() :: {0..15, atom()}.
 -type dr_range() :: {integer(), integer()}.
 -type dr_id() :: integer().
+-type dr_atom() :: atom().
 -type power_offset() :: integer().
 
 -record(datarate_plan, {
@@ -58,7 +59,7 @@
     d_channels :: [float()],
     channel_count :: integer(),
     join_channels :: dr_range(),
-    data_rates :: [dr_id()],
+    data_rates :: [dr_atom()],
     tx_power :: [power_offset()],
     join_dr :: dr_range(),
     mandatory_dr :: dr_range(),
