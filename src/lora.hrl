@@ -71,7 +71,7 @@
     default_rx1_offset :: integer(),
     rx1_offset :: integer(),
     rx2_datarate :: integer(),
-    rx2_freq :: number(),
+    rx2_freq :: float(),
     beacon_freq :: number(),
     pingslot_freq :: number()
 }).

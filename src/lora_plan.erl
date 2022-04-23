@@ -5,8 +5,10 @@
     channel_to_freq/2,
     tx_power/2,
     tx_power_list/1,
+    tx_power_table/1,
     region_to_plan/1,
     rx2_datarate/1,
+    rx2_tuple/1,
     max_payload_size/1,
     datarate_to_index/2,
     index_to_datarate/2,
@@ -132,6 +134,14 @@ max_payload_size(_DataRateID) ->
 rx2_datarate(Plan) ->
     Plan#channel_plan.rx2_datarate.
 
+-spec rx2_tuple(#channel_plan{}) -> {float(), atom()}.
+rx2_tuple(Plan) ->
+    RX2_Freq = Plan#channel_plan.rx2_freq,
+    DRIndex = Plan#channel_plan.rx2_datarate,
+    List = (Plan#channel_plan.data_rates),
+    DRAtom = index_of(DRIndex, List),
+    {RX2_Freq, DRAtom}.
+
 -spec freq_to_channel(#channel_plan{}, number()) -> integer().
 freq_to_channel(Plan, Freq) ->
     List = (Plan#channel_plan.u_channels),
@@ -158,17 +168,30 @@ downlink_eirp(Plan, Freq) ->
             (Plan#channel_plan.max_eirp_db)
     end.
 
-%-spec tx_power(#channel_plan{}, integer()) -> float().
+-spec tx_power(#channel_plan{}, integer()) -> pos_integer().
 tx_power(Plan, Index) when Index < 16 ->
     List = (Plan#channel_plan.tx_power),
     Offset = lists:nth(Index, List),
     ComputedPower = Plan#channel_plan.max_eirp_db + Offset,
     ComputedPower.
 
-%-spec tx_power_list(#channel_plan{}) -> [float()].
+-spec tx_power_list(#channel_plan{}) -> [pos_integer()].
 tx_power_list(Plan) ->
     List = (Plan#channel_plan.tx_power),
     [Plan#channel_plan.max_eirp_db + Offset || Offset <- List].
+
+-type tx_power_table_entry() :: {Index :: pos_integer(), DBm :: number()}.
+%% A tuple of `{TableIndex, dBm}'.
+-type tx_power_table() :: list(tx_power_table_entry()).
+%% A table of available transmit powers, specific to a region.
+
+-spec tx_power_table(#channel_plan{}) -> tx_power_table().
+tx_power_table(Plan) ->
+    TxPowers = tx_power_list(Plan),
+    Len = length(TxPowers),
+    IList = lists:seq(0, Len - 1),
+    TList = lists:zip(IList, TxPowers),
+    TList.
 
 index_of(Value, List) ->
     Map = lists:zip(List, lists:seq(1, length(List))),
