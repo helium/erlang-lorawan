@@ -16,7 +16,12 @@
     atom_to_datarate/1,
     downlink_eirp/2,
     max_uplink_snr/1,
-    rx_window/2
+    rx_window/5,
+    join1_window/3,
+    join2_window/2,
+    rx1_window/4,
+    rx2_window/3,
+    rx1_or_rx2_window/4
 ]).
 
 -include("lora.hrl").
@@ -105,11 +110,132 @@ datarate_to_tuple(DataRate) ->
 atom_to_datarate(Atom) ->
     atom_to_binary(Atom).
 
--spec rx_window(atom(), #channel_plan{}) ->
-    {number() | float(), atom(), integer() | 'immediately' | calendar:datetime()}.
-rx_window(_Type, Plan) ->
+%% ------------------------------------------------------------------
+%% Receive Window Functions
+%% ------------------------------------------------------------------
+
+-record(rxq, {
+    freq :: number(),
+    datr :: binary() | integer(),
+    codr :: binary(),
+    time :: calendar:datetime(),
+    tmms :: integer(),
+    %% for future use
+    reserved :: any(),
+    rssi :: number(),
+    lsnr :: number()
+}).
+
+-record(txq, {
+    freq :: number(),
+    datr :: binary() | integer(),
+    codr :: binary(),
+    time :: integer() | 'immediately' | calendar:datetime(),
+    powe :: 'undefined' | integer()
+}).
+
+-define(JOIN1_WINDOW, join1_window).
+-define(JOIN2_WINDOW, join2_window).
+-define(RX1_WINDOW, rx1_window).
+-define(RX2_WINDOW, rx2_window).
+
+-type window() :: ?JOIN1_WINDOW | ?JOIN2_WINDOW | ?RX1_WINDOW | ?RX2_WINDOW.
+
+new_txq() ->
+    #txq{
+        freq = 923.3,
+        datr = <<"SF12BW125">>,
+        codr = <<"hello">>,
+        time = 0
+    }.
+
+-spec join1_window(#channel_plan{}, integer(), #rxq{}) -> #txq{}.
+join1_window(Plan, DelaySeconds, RxQ) ->
     _Region = Plan#channel_plan.region,
-    {0, 'SF8BW125', 0}.
+    TxQ = new_txq(),
+    tx_window(?JOIN1_WINDOW, RxQ, TxQ, DelaySeconds).
+
+-spec join2_window(#channel_plan{}, #rxq{}) -> #txq{}.
+join2_window(Plan, RxQ) ->
+    _Region = Plan#channel_plan.region,
+    TxQ = new_txq(),
+    tx_window(?JOIN2_WINDOW, RxQ, TxQ).
+
+-spec rx1_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
+rx1_window(Plan, DelaySeconds, _Offset, RxQ) ->
+    _Region = Plan#channel_plan.region,
+    TxQ = new_txq(),
+    tx_window(?RX1_WINDOW, RxQ, TxQ, DelaySeconds).
+
+-spec rx2_window(#channel_plan{}, number(), #rxq{}) -> #txq{}.
+rx2_window(Plan, DelaySeconds, RxQ) ->
+    _Region = Plan#channel_plan.region,
+    TxQ = new_txq(),
+    tx_window(?RX2_WINDOW, RxQ, TxQ, DelaySeconds).
+
+-spec rx1_or_rx2_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
+rx1_or_rx2_window(Plan, Delay, Offset, RxQ) ->
+    Region = Plan#channel_plan.region,
+    case Region of
+        'EU868' ->
+            if
+                % In Europe the RX Windows uses different frequencies,
+                % TX power rules and Duty cycle rules.  If the signal is
+                % poor then prefer window 2 where TX power is higher.
+                % See - https://github.com/helium/router/issues/423
+                RxQ#rxq.rssi < -80 -> rx2_window(Plan, Delay, RxQ);
+                true -> rx1_window(Plan, Delay, Offset, RxQ)
+            end;
+        _ ->
+            rx1_window(Plan, Delay, Offset, RxQ)
+    end.
+
+-spec tx_window(window(), #rxq{}, #txq{}) -> #txq{}.
+tx_window(Window, #rxq{tmms = Stamp} = Rxq, TxQ) when is_integer(Stamp) ->
+    tx_window(Window, Rxq, TxQ, 0).
+
+%% LoRaWAN Link Layer v1.0.4 spec, Section 5.7 Setting Delay between TX and RX,
+%% Table 45 and "RX2 always opens 1s after RX1."
+-spec tx_window(atom(), #rxq{}, #txq{}, number()) -> #txq{}.
+tx_window(?JOIN1_WINDOW, #rxq{tmms = Stamp}, TxQ, _RxDelaySeconds) when is_integer(Stamp) ->
+    Delay = get_window(?JOIN1_WINDOW),
+    TxQ#txq{time = Stamp + Delay};
+tx_window(?JOIN2_WINDOW, #rxq{tmms = Stamp}, TxQ, _RxDelaySeconds) when is_integer(Stamp) ->
+    Delay = get_window(?JOIN2_WINDOW),
+    TxQ#txq{time = Stamp + Delay};
+tx_window(Window, #rxq{tmms = Stamp}, TxQ, RxDelaySeconds) when is_integer(Stamp) ->
+    %% TODO check if the time is a datetime, which would imply gps timebase
+    Delay =
+        case RxDelaySeconds of
+            N when N < 2 ->
+                get_window(Window);
+            N ->
+                case Window of
+                    ?RX2_WINDOW ->
+                        N * 1000000 + 1000000;
+                    _ ->
+                        N * 1000000
+                end
+        end,
+    TxQ#txq{time = Stamp + Delay}.
+
+%% These only specify LoRaWAN default values; see also tx_window()
+-spec get_window(window()) -> number().
+get_window(?JOIN1_WINDOW) -> 5000000;
+get_window(?JOIN2_WINDOW) -> 6000000;
+get_window(?RX1_WINDOW) -> 1000000;
+get_window(?RX2_WINDOW) -> 2000000.
+
+-spec rx_window(atom(), #channel_plan{}, non_neg_integer(), number(), #rxq{}) ->
+    {number() | float(), atom(), integer() | 'immediately' | calendar:datetime()}.
+rx_window(_Type, Plan, _RxDelay, _Offset, _RxQ) ->
+    _Region = Plan#channel_plan.region,
+    TxTime = calendar:now_to_datetime(os:timestamp()),
+    {0, 'SF8BW125', TxTime}.
+
+%% ------------------------------------------------------------------
+%% DataRate Functions
+%% ------------------------------------------------------------------
 
 -spec datarate_to_index(#channel_plan{}, atom()) -> integer().
 datarate_to_index(Plan, Atom) ->
