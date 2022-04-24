@@ -12,6 +12,9 @@
     max_payload_size/1,
     datarate_to_index/2,
     index_to_datarate/2,
+    datar_to_down/3,
+    dr_to_down/3,
+    atom_to_down/2,
     datarate_to_atom/1,
     atom_to_datarate/1,
     downlink_eirp/2,
@@ -105,6 +108,10 @@ datarate_to_tuple(DataRate) ->
         'RFU' -> {7, 125};
         _ -> {7, 125}
     end.
+
+-spec max_payload_size(atom()) -> integer().
+max_payload_size(_DataRate) ->
+    250.
 
 -spec atom_to_datarate(atom()) -> binary().
 atom_to_datarate(Atom) ->
@@ -249,6 +256,18 @@ index_to_datarate(Plan, Index) ->
     DR = lists:nth(Index, List),
     DR.
 
+%% ------------------------------------------------------------------
+%% @doc Up Datarate tuple to Down Datarate tuple
+%% @end
+%% ------------------------------------------------------------------
+-spec datar_to_down(#channel_plan{}, datar(), non_neg_integer()) -> datar().
+datar_to_down(_Plan, DataR, _Offset) ->
+	DataR.
+
+-spec dr_to_down(#channel_plan{}, dr(), non_neg_integer()) -> dr().
+dr_to_down(_Plan, DR, _Offset) ->
+	DR.
+
 -spec max_uplink_snr(atom()) -> float().
 max_uplink_snr(DataRate) ->
     {SF, _} = datarate_to_tuple(DataRate),
@@ -258,10 +277,6 @@ max_uplink_snr(DataRate) ->
 max_snr(SF) ->
     %% dB
     -5 - 2.5 * (SF - 6).
-
--spec max_payload_size(integer()) -> integer().
-max_payload_size(_DataRateID) ->
-    250.
 
 -spec rx2_datarate(#channel_plan{}) -> integer().
 rx2_datarate(Plan) ->
