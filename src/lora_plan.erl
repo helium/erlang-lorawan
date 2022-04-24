@@ -15,7 +15,8 @@
     datarate_to_atom/1,
     atom_to_datarate/1,
     downlink_eirp/2,
-    max_uplink_snr/1
+    max_uplink_snr/1,
+    rx_window/2
 ]).
 
 -include("lora.hrl").
@@ -103,6 +104,12 @@ datarate_to_tuple(DataRate) ->
 -spec atom_to_datarate(atom()) -> binary().
 atom_to_datarate(Atom) ->
     atom_to_binary(Atom).
+
+-spec rx_window(atom(), #channel_plan{}) ->
+    {number() | float(), atom(), integer() | 'immediately' | calendar:datetime()}.
+rx_window(_Type, Plan) ->
+    _Region = Plan#channel_plan.region,
+    {0, 'SF8BW125', 0}.
 
 -spec datarate_to_index(#channel_plan{}, atom()) -> integer().
 datarate_to_index(Plan, Atom) ->
@@ -506,29 +513,6 @@ plan_cn470() ->
 %% ------------------------------------------------------------------
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
-
-% tx_power_1() ->
-% 	#tx_power{
-%    	id = 1,
-%     	eirp = 16
-%    }.
-
-% dr_list() ->
-%    Data_Rates = [
-% 			#data_rate{id = 0, name = 'SF12BW125', max_size = 59, no_repeater_size = 59, bit_rate = 250},
-% 			#data_rate{id = 1, name = 'SF11BW125', max_size = 59, no_repeater_size = 59, bit_rate = 440},
-% 			#data_rate{id = 2, name = 'SF10BW125', max_size = 59, no_repeater_size = 59, bit_rate = 980},
-% 			#data_rate{id = 3, name = 'SF9BW125', max_size = 123, no_repeater_size = 123, bit_rate = 1760},
-% 			#data_rate{id = 4, name = 'SF8BW125', max_size = 239, no_repeater_size = 230, bit_rate = 3125},
-% 			#data_rate{id = 5, name = 'SF7BW125', max_size = 230, no_repeater_size = 230, bit_rate = 5470},
-% #data_rate{id = 6, name = 'SF7BW250', max_size = 230, no_repeater_size = 230, bit_rate = 11000},
-% 			#data_rate{id = 7, name = 'FSK50', max_size = 230, no_repeater_size = 230, bit_rate = 50000},
-% 			#data_rate{id = 8, name = 'CR13BW137', max_size = 58, no_repeater_size = 58, bit_rate = 162},
-% 			#data_rate{id = 9, name = 'CR23BW137', max_size = 123, no_repeater_size = 123, bit_rate = 325},
-% 			#data_rate{id = 10, name = 'CR13BW336', max_size = 58, no_repeater_size = 58, bit_rate = 162},
-% 			#data_rate{id = 11, name = 'CR23BW336', max_size = 123, no_repeater_size = 123, bit_rate = 325}
-%    ],
-%    Data_Rates.
 
 validate_u_channels(Region, List) ->
     TList = [
