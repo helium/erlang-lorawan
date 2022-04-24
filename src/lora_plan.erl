@@ -14,7 +14,6 @@
     index_to_datarate/2,
     datar_to_down/3,
     dr_to_down/3,
-    atom_to_down/2,
     datarate_to_atom/1,
     atom_to_datarate/1,
     downlink_eirp/2,
@@ -260,13 +259,16 @@ index_to_datarate(Plan, Index) ->
 %% @doc Up Datarate tuple to Down Datarate tuple
 %% @end
 %% ------------------------------------------------------------------
+-type datar() :: string() | binary() | non_neg_integer().
+-type dr() :: non_neg_integer().
+
 -spec datar_to_down(#channel_plan{}, datar(), non_neg_integer()) -> datar().
 datar_to_down(_Plan, DataR, _Offset) ->
-	DataR.
+    DataR.
 
 -spec dr_to_down(#channel_plan{}, dr(), non_neg_integer()) -> dr().
 dr_to_down(_Plan, DR, _Offset) ->
-	DR.
+    DR.
 
 -spec max_uplink_snr(atom()) -> float().
 max_uplink_snr(DataRate) ->
