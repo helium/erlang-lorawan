@@ -221,8 +221,7 @@ netid_addr_range(NetID, NetIDList0) ->
         true ->
             NetIDList = lists:takewhile(fun(X) -> X =/= NetID end, NetIDList0),
             Lower = lists:foldl(fun(X, Sum) -> netid_size(X) + Sum end, 0, NetIDList),
-            NetIDPlusList = NetIDList ++ [NetID],
-            Upper = lists:foldl(fun(X, Sum) -> netid_size(X) + Sum end, 0, NetIDPlusList),
+            Upper = Lower + netid_size(NetID),
             {Lower, Upper}
     end.
 
