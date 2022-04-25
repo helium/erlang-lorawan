@@ -9,6 +9,8 @@
     region_to_plan/1,
     rx2_datarate/1,
     rx2_tuple/1,
+    max_uplink_payload_size/2,
+    max_downlink_payload_size/2,
     max_payload_size/2,
     datarate_to_index/2,
     index_to_datarate/2,
@@ -108,9 +110,18 @@ datarate_to_tuple(DataRate) ->
         _ -> {7, 125}
     end.
 
--spec max_payload_size(#channel_plan{}, atom()) -> integer().
-max_payload_size(Plan, DataRate) ->
-	DwellTime = Plan#channel_plan.dwell_time_limit,
+-spec max_uplink_payload_size(#channel_plan{}, atom()) -> integer().
+max_uplink_payload_size(Plan, DataRate) ->
+	DwellTime = Plan#channel_plan.uplink_dwell_time,
+	max_payload_size(DataRate, DwellTime).
+
+-spec max_downlink_payload_size(#channel_plan{}, atom()) -> integer().
+max_downlink_payload_size(Plan, DataRate) ->
+	DwellTime = Plan#channel_plan.downlink_dwell_time,
+	max_payload_size(DataRate, DwellTime).
+
+-spec max_payload_size(atom(), integer()) -> integer().
+max_payload_size(DataRate, DwellTime) ->
 	case DwellTime of
 		1000 ->
 		   case DataRate of
@@ -435,7 +446,8 @@ plan_eu868() ->
         mandatory_dr = {0, 5},
         optional_dr = {6, 7},
         max_duty_cycle = 1,
-        dwell_time_limit = 0,
+        uplink_dwell_time = 0,
+        downlink_dwell_time = 0,
         tx_param_setup_allowed = false,
         % max_eirp_db = 16,
         max_eirp_db = 20,
@@ -473,7 +485,8 @@ plan_kr920() ->
         mandatory_dr = {0, 5},
         optional_dr = {0, 0},
         max_duty_cycle = 1,
-        dwell_time_limit = 0,
+        uplink_dwell_time = 0,
+        downlink_dwell_time = 0,
         tx_param_setup_allowed = false,
         max_eirp_db = 14,
         default_rx1_offset = 0,
@@ -517,7 +530,8 @@ plan_as923_1() ->
         mandatory_dr = {0, 5},
         optional_dr = {6, 7},
         max_duty_cycle = 1,
-        dwell_time_limit = 400,
+        uplink_dwell_time = 0,
+        downlink_dwell_time = 400,
         tx_param_setup_allowed = true,
         max_eirp_db = 16,
         default_rx1_offset = 0,
@@ -565,7 +579,8 @@ plan_au915() ->
         mandatory_dr = {0, 6},
         optional_dr = {7, 7},
         max_duty_cycle = 1,
-        dwell_time_limit = 400,
+        uplink_dwell_time = 400,
+        downlink_dwell_time = 0,
         tx_param_setup_allowed = true,
         max_eirp_db = 30,
         default_rx1_offset = 0,
@@ -613,7 +628,8 @@ plan_us915() ->
         mandatory_dr = {0, 4},
         optional_dr = {5, 6},
         max_duty_cycle = 10000,
-        dwell_time_limit = 400,
+        uplink_dwell_time = 400,
+        downlink_dwell_time = 400,
         tx_param_setup_allowed = false,
         max_eirp_db = 30,
         default_rx1_offset = 0,
@@ -652,7 +668,8 @@ plan_in865() ->
         mandatory_dr = {0, 5},
         optional_dr = {7, 7},
         max_duty_cycle = 1,
-        dwell_time_limit = 0,
+        uplink_dwell_time = 0,
+        downlink_dwell_time = 0,
         tx_param_setup_allowed = false,
         max_eirp_db = 30,
         default_rx1_offset = 0,
@@ -689,7 +706,8 @@ plan_cn470() ->
         mandatory_dr = {0, 5},
         optional_dr = {7, 7},
         max_duty_cycle = 1,
-        dwell_time_limit = 1000,
+        uplink_dwell_time = 1000,
+        downlink_dwell_time = 1000,
         tx_param_setup_allowed = false,
         max_eirp_db = 19,
         default_rx1_offset = 0,
@@ -779,21 +797,25 @@ validate_tx_power(Plan) ->
     % io:format("Plan#channel_plan.tx_powers=~w~n", [Plan#channel_plan.tx_power]),
     ?assertEqual(PT0, PT1).
 
+validate_payload_size(Plan) ->
+	 Region = Plan#channel_plan.region,
+	 DR_0 = 'SF8BW125',
+	 M1 = max_uplink_payload_size(Plan, DR_0),
+	 DR_0_Idx = datarate_to_index(Plan, DR_0),
+	 M2 = lora_region:max_payload_size(Region, DR_0_Idx),
+	 ?assertEqual(M1, M2).
+
 exercise_plan(Plan) ->
     Region = Plan#channel_plan.region,
-    validate_tx_power(Plan),
-    validate_u_channels(Region, Plan#channel_plan.u_channels),
-    validate_d_channels(Region, Plan#channel_plan.d_channels),
-    validate_u_frequences(Region, Plan#channel_plan.u_channels),
-    validate_d_frequences(Region, Plan#channel_plan.d_channels).
+    io:format("Region=~w~n", [Region]),
+    validate_payload_size(Plan).
+    % validate_tx_power(Plan),
+    % validate_u_channels(Region, Plan#channel_plan.u_channels),
+    % validate_d_channels(Region, Plan#channel_plan.d_channels),
+    % validate_u_frequences(Region, Plan#channel_plan.u_channels),
+    % validate_d_frequences(Region, Plan#channel_plan.d_channels).
 
-payload_util_test() ->
-    % EU868_Plan = plan_eu868(),
-    % AS923_1_Plan = plan_as923_1(),
-
-    Freq = lora_region:uch2f('EU868', 0),
-    io:format("Freq=~w~n", [Freq]),
-
+plan_test() ->
     exercise_plan(plan_eu868()),
     exercise_plan(plan_as923_1()),
     exercise_plan(plan_us915()),
