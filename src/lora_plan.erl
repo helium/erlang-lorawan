@@ -9,7 +9,7 @@
     region_to_plan/1,
     rx2_datarate/1,
     rx2_tuple/1,
-    max_payload_size/1,
+    max_payload_size/2,
     datarate_to_index/2,
     index_to_datarate/2,
     datar_to_down/3,
@@ -108,9 +108,59 @@ datarate_to_tuple(DataRate) ->
         _ -> {7, 125}
     end.
 
--spec max_payload_size(atom()) -> integer().
-max_payload_size(_DataRate) ->
-    250.
+-spec max_payload_size(#channel_plan{}, atom()) -> integer().
+max_payload_size(Plan, DataRate) ->
+	DwellTime = Plan#channel_plan.dwell_time_limit,
+	case DwellTime of
+		1000 ->
+		   case DataRate of
+		       'SF12BW125' -> 0;
+		       'SF11BW125' -> 31;
+		       'SF10BW125' -> 94;
+		       'SF9BW125' -> 192;
+		       'SF8BW125' -> 230;
+		       'SF7BW125' -> 230;
+		       _ -> 230
+		   end;
+		400 ->
+		   case DataRate of
+		       'SF12BW125' -> 0;
+		       'SF11BW125' -> 0;
+		       'SF10BW125' -> 19;
+		       'SF9BW125' -> 61;
+		       'SF8BW125' -> 133;
+		       'SF7BW125' -> 230;
+		       'SF12BW500' -> 61;
+		       'SF11BW500' -> 137;
+		       'SF10BW500' -> 230;
+		       'LRFHSS1BW137' -> 58;
+		       'LRFHSS2BW137' -> 123;
+		       'LRFHSS1BW336' -> 58;
+		       'LRFHSS2BW336' -> 123;
+		       'LRFHSS1BW1523' -> 58;
+		       'LRFHSS2BW1523' -> 123;
+		       _ -> 230
+		   end;
+		_ ->
+		   case DataRate of
+		       'SF12BW125' -> 59;
+		       'SF11BW125' -> 59;
+		       'SF10BW125' -> 59;
+		       'SF9BW125' -> 123;
+		       'SF8BW125' -> 230;
+		       'SF7BW250' -> 230;
+		       'SF12BW500' -> 61;
+		       'SF11BW500' -> 137;
+		       'SF10BW500' -> 230;
+		       'LRFHSS1BW137' -> 58;
+		       'LRFHSS2BW137' -> 123;
+		       'LRFHSS1BW336' -> 58;
+		       'LRFHSS2BW336' -> 123;
+		       'LRFHSS1BW1523' -> 58;
+		       'LRFHSS2BW1523' -> 123;
+		       _ -> 230
+		   end
+	end.
 
 -spec atom_to_datarate(atom()) -> binary().
 atom_to_datarate(Atom) ->
@@ -639,7 +689,7 @@ plan_cn470() ->
         mandatory_dr = {0, 5},
         optional_dr = {7, 7},
         max_duty_cycle = 1,
-        dwell_time_limit = 0,
+        dwell_time_limit = 1000,
         tx_param_setup_allowed = false,
         max_eirp_db = 19,
         default_rx1_offset = 0,
