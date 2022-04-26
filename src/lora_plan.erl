@@ -313,8 +313,13 @@ datarate_to_index(Plan, Atom) ->
 -spec index_to_datarate(#channel_plan{}, integer()) -> atom().
 index_to_datarate(Plan, Index) ->
     List = (Plan#channel_plan.data_rates),
-    DR = lists:nth(Index, List),
-    DR.
+    Len = length(List),
+    case Index < Len of
+        true ->
+            lists:nth(Index + 1, List);
+        false ->
+            'RFU'
+    end.
 
 %% ------------------------------------------------------------------
 %% @doc Up Datarate tuple to Down Datarate tuple
@@ -350,7 +355,7 @@ rx2_tuple(Plan) ->
     RX2_Freq = Plan#channel_plan.rx2_freq,
     DRIndex = Plan#channel_plan.rx2_datarate,
     List = (Plan#channel_plan.data_rates),
-    DRAtom = index_of(DRIndex, List, {0.0, 'RFU'}),
+    DRAtom = lists:nth(DRIndex, List),
     {RX2_Freq, DRAtom}.
 
 -spec freq_to_channel(#channel_plan{}, number()) -> integer().
@@ -801,9 +806,15 @@ validate_downlink_size(Plan, DataRateAtom) ->
     Region = Plan#channel_plan.region,
     M1 = max_uplink_payload_size(Plan, DataRateAtom),
     DRIdx = datarate_to_index(Plan, DataRateAtom),
-    M2 = lora_region:max_payload_size(Region, DRIdx),
-    io:format("Region=~w DRIndex=~w Max=~w~n", [Region, DRIdx, M2]),
-    ?assertEqual(M1, M2).
+    case DRIdx of
+        15 ->
+            ?assertEqual(true, true);
+        _ ->
+            DRAtom = index_to_datarate(Plan, DRIdx),
+            ?assertEqual(DRAtom, DataRateAtom),
+            M2 = lora_region:max_payload_size(Region, DRIdx),
+            ?assertEqual(M1, M2)
+    end.
 
 validate_payload_size(Plan) ->
     validate_downlink_size(Plan, 'SF12BW125'),
@@ -816,12 +827,12 @@ validate_payload_size(Plan) ->
 exercise_plan(Plan) ->
     Region = Plan#channel_plan.region,
     io:format("Region=~w~n", [Region]),
-    validate_payload_size(Plan).
-% validate_tx_power(Plan),
-% validate_u_channels(Region, Plan#channel_plan.u_channels),
-% validate_d_channels(Region, Plan#channel_plan.d_channels),
-% validate_u_frequences(Region, Plan#channel_plan.u_channels),
-% validate_d_frequences(Region, Plan#channel_plan.d_channels).
+    validate_payload_size(Plan),
+    validate_tx_power(Plan),
+    validate_u_channels(Region, Plan#channel_plan.u_channels),
+    validate_d_channels(Region, Plan#channel_plan.d_channels),
+    validate_u_frequences(Region, Plan#channel_plan.u_channels),
+    validate_d_frequences(Region, Plan#channel_plan.d_channels).
 
 plan_test() ->
     exercise_plan(plan_eu868()),
