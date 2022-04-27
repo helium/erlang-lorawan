@@ -261,12 +261,17 @@ join2_window(Plan, RxQ) ->
     tx_window(?JOIN2_WINDOW, RxQ, TxQ).
 
 -spec rx1_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
-rx1_window(Plan, DelaySeconds, _Offset, RxQ) ->
+rx1_window(Plan, DelaySeconds, Offset, RxQ) ->
     Region = Plan#channel_plan.region,
     % DownFreq = rx1_down_freq(Plan, RxQ, Offset),
     io:format("Region=~w RxQ.freq=~w~n", [Region, RxQ#rxq.freq]),
     DownFreq = up_to_down_freq(Plan, RxQ#rxq.freq),
-    TxQ = new_txq(DownFreq, RxQ#rxq.datr, <<"4/5">>, 0),
+    DataRateAtom = datarate_to_atom(RxQ#rxq.datr),
+    DataRateIdx = datarate_to_index(Plan, DataRateAtom),
+    DownDRIdx = up_to_down_datarate(Plan, DataRateIdx, Offset),
+    DownDRAtom = lora_plan:index_to_datarate(Plan, DownDRIdx),
+    DownDRStr = lora_plan:atom_to_datarate(DownDRAtom),
+    TxQ = new_txq(DownFreq, DownDRStr, <<"4/5">>, 0),
     tx_window(?RX1_WINDOW, RxQ, TxQ, DelaySeconds).
 
 -spec rx2_window(#channel_plan{}, number(), #rxq{}) -> #txq{}.
@@ -358,6 +363,52 @@ index_to_datarate(Plan, Index) ->
             'RFU'
     end.
 
+-spec up_to_down_datarate(#channel_plan{}, integer(), integer()) -> integer().
+up_to_down_datarate(Plan, Index, Offset) ->
+    Region = Plan#channel_plan.region,
+    OffsetList = dr_offset_list(Region, Index),
+    DownIndex = lists:nth(Offset + 1, OffsetList),
+    DownIndex.
+
+dr_offset_list(Region, Index) when Region == 'US915' ->
+    case Index of
+        0 -> [10, 9, 8, 8];
+        1 -> [11, 10, 9, 8];
+        2 -> [12, 11, 10, 9];
+        3 -> [13, 12, 11, 10];
+        4 -> [13, 13, 12, 11]
+    end;
+dr_offset_list(Region, Index) when Region == 'AU915' ->
+    case Index of
+        0 -> [8, 8, 8, 8, 8, 8];
+        1 -> [9, 8, 8, 8, 8, 8];
+        2 -> [10, 9, 8, 8, 8, 8];
+        3 -> [11, 10, 9, 8, 8, 8];
+        4 -> [12, 11, 10, 9, 8, 8];
+        5 -> [13, 12, 11, 10, 9, 8];
+        6 -> [13, 13, 12, 11, 10, 9]
+    end;
+dr_offset_list(Region, Index) when Region == 'CN470' ->
+    case Index of
+        0 -> [0, 0, 0, 0, 0, 0];
+        1 -> [1, 0, 0, 0, 0, 0];
+        2 -> [2, 1, 0, 0, 0, 0];
+        3 -> [3, 2, 1, 0, 0, 0];
+        4 -> [4, 3, 2, 1, 0, 0];
+        5 -> [5, 4, 3, 2, 1, 0]
+    end;
+dr_offset_list(_Region, Index) ->
+    case Index of
+        0 -> [0, 0, 0, 0, 0, 0];
+        1 -> [1, 0, 0, 0, 0, 0];
+        2 -> [2, 1, 0, 0, 0, 0];
+        3 -> [3, 2, 1, 0, 0, 0];
+        4 -> [4, 3, 2, 1, 0, 0];
+        5 -> [5, 4, 3, 2, 1, 0];
+        6 -> [6, 5, 4, 3, 2, 1];
+        7 -> [7, 6, 5, 4, 3, 2]
+    end.
+
 %% ------------------------------------------------------------------
 %% @doc Up Datarate tuple to Down Datarate tuple
 %% @end
@@ -395,6 +446,10 @@ rx2_tuple(Plan) ->
     DRAtom = lists:nth(DRIndex, List),
     {RX2_Freq, DRAtom}.
 
+%% ------------------------------------------------------------------
+%% Frequency and Channel Functions
+%% ------------------------------------------------------------------
+
 -spec freq_to_channel(#channel_plan{}, number()) -> integer().
 freq_to_channel(Plan, Freq) ->
     List = (Plan#channel_plan.u_channels),
@@ -430,6 +485,10 @@ downlink_eirp(Plan, Freq) ->
             (Plan#channel_plan.max_eirp_db)
     end.
 
+%% ------------------------------------------------------------------
+%% TX Power Functions
+%% ------------------------------------------------------------------
+
 -spec tx_power(#channel_plan{}, integer()) -> pos_integer().
 tx_power(Plan, Index) when Index < 16 ->
     List = (Plan#channel_plan.tx_power),
@@ -455,12 +514,20 @@ tx_power_table(Plan) ->
     TList = lists:zip(IList, TxPowers),
     TList.
 
+%% ------------------------------------------------------------------
+%% Utility Functions
+%% ------------------------------------------------------------------
+
 index_of(Value, List, Default) ->
     Map = lists:zip(List, lists:seq(1, length(List))),
     case lists:keyfind(Value, 1, Map) of
         {Value, Index} -> Index - 1;
         false -> Default
     end.
+
+%% ------------------------------------------------------------------
+%% Plan Record Functions
+%% ------------------------------------------------------------------
 
 plan_eu868() ->
     EU868 = #channel_plan{
@@ -904,7 +971,7 @@ validate_window(Plan, DataRateAtom) ->
     io:format("TxQ_P=~w~n", [TxQ_P]),
     TxQ_R = lora_region:rx1_window(Region, 0, 0, RxQ),
 	io:format("TxQ_R=~w~n", [TxQ_R]),
-	% ?assertEqual(TxQ_R, TxQ_P),
+	?assertEqual(TxQ_R, TxQ_P),
 
     TxQDataRate = lora_plan:datarate_to_atom(TxQ_P#txq.datr),
     io:format("TxQDataRate=~w~n", [TxQDataRate]),
