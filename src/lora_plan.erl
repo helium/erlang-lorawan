@@ -218,7 +218,6 @@ new_txq(Freq, DataRate, Codr, Time) ->
 -spec join1_window(#channel_plan{}, integer(), #rxq{}) -> #txq{}.
 join1_window(Plan, DelaySeconds, RxQ) ->
     Region = Plan#channel_plan.region,
-    io:format("Join1 Region=~w RxQ.freq=~w~n", [Region, RxQ#rxq.freq]),
     DownFreq = up_to_down_freq(Plan, RxQ#rxq.freq),
     DataRateAtom = datarate_to_atom(RxQ#rxq.datr),
     DataRateIdx = datarate_to_index(Plan, DataRateAtom),
@@ -239,7 +238,6 @@ join2_window(Plan, RxQ) ->
 -spec rx1_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
 rx1_window(Plan, DelaySeconds, Offset, RxQ) ->
     Region = Plan#channel_plan.region,
-    io:format("RX1 Region=~w RxQ.freq=~w~n", [Region, RxQ#rxq.freq]),
     DownFreq = up_to_down_freq(Plan, RxQ#rxq.freq),
     DataRateAtom = datarate_to_atom(RxQ#rxq.datr),
     DataRateIdx = datarate_to_index(Plan, DataRateAtom),
@@ -433,7 +431,7 @@ channel_to_freq(Plan, Ch) ->
 -spec up_to_down_freq(#channel_plan{}, number()) -> number().
 up_to_down_freq(Plan, Freq) ->
     UList = (Plan#channel_plan.u_channels),
-    io:format("Freq=~w UList=~w~n", [Freq, UList]),
+    % io:format("Freq=~w UList=~w~n", [Freq, UList]),
     UChannel = index_of(Freq, UList, 1),
     DList = (Plan#channel_plan.d_channels),
     DownFreq = lists:nth(UChannel + 1, DList),
@@ -905,14 +903,51 @@ validate_payload_size(Plan) ->
     validate_downlink_size(Plan, 'SF8BW125'),
     validate_downlink_size(Plan, 'SF7BW125').
 
+validate_txq(Plan, TxQ) ->
+    Region = Plan#channel_plan.region,
+    DRAtom = lora_plan:datarate_to_atom(TxQ#txq.datr),
+    DRIdx = lora_plan:datarate_to_index(Plan, DRAtom),
+    DRAtom2 = lora_plan:index_to_datarate(Plan, DRIdx),
+    %% DR = datar_to_dr(Plan, TxQ#txq.datr),
+    Tuple = lora_region:dr_to_tuple(Region, DRIdx),
+    ?assertEqual(DRAtom, DRAtom2).
+
+validate_rx2_window(Plan, RxQ) ->
+    Region = Plan#channel_plan.region,
+    TxQ_P = rx2_window(Plan, 0, RxQ),
+    TxQ_R = lora_region:rx2_window(Region, 0, RxQ),
+    ?assertEqual(TxQ_R, TxQ_P),
+    validate_txq(Plan, TxQ_P).
+
+validate_join2_window(Plan, RxQ) ->
+    Region = Plan#channel_plan.region,
+    TxQ_P = join2_window(Plan, RxQ),
+    TxQ_R = lora_region:join2_window(Region, RxQ),
+    ?assertEqual(TxQ_R, TxQ_P),
+    validate_txq(Plan, TxQ_P).
+
+validate_rx1_window(Plan, RxQ) ->
+    Region = Plan#channel_plan.region,
+    TxQ_P = rx1_window(Plan, 0, 0, RxQ),
+    TxQ_R = lora_region:rx1_window(Region, 0, 0, RxQ),
+    ?assertEqual(TxQ_R, TxQ_P),
+    validate_txq(Plan, TxQ_P).
+
+validate_join1_window(Plan, RxQ) ->
+    Region = Plan#channel_plan.region,
+    TxQ_P = join1_window(Plan, 0, RxQ),
+    TxQ_R = lora_region:join1_window(Region, 0, RxQ),
+    ?assertEqual(TxQ_R, TxQ_P),
+    validate_txq(Plan, TxQ_P).
+
 validate_window(Plan, DataRateAtom) ->
     Region = Plan#channel_plan.region,
-    io:format("Region=~w~n", [Region]),
+    % io:format("Region=~w~n", [Region]),
     DataRateStr = atom_to_datarate(DataRateAtom),
     [JoinChannel | _] = Plan#channel_plan.u_channels,
-    io:format("JoinChannel=~w~n", [JoinChannel]),
-    Now = os:timestamp(),
+    % io:format("JoinChannel=~w~n", [JoinChannel]),
 
+    Now = os:timestamp(),
     RxQ = #rxq{
         freq = JoinChannel,
         datr = DataRateStr,
@@ -923,56 +958,24 @@ validate_window(Plan, DataRateAtom) ->
         lsnr = 10.1
     },
 
-    RX2_P = rx2_window(Plan, 0, RxQ),
-    io:format("RX2_P=~w~n", [RX2_P]),
-    RX2_R = lora_region:rx2_window(Region, 0, RxQ),
-    io:format("RX2_R=~w~n", [RX2_R]),
-    ?assertEqual(RX2_R, RX2_P),
-
-    Join2_P = join2_window(Plan, RxQ),
-    io:format("Join2_P=~w~n", [Join2_P]),
-    Join2_R = lora_region:join2_window(Region, RxQ),
-    io:format("Join2_R=~w~n", [Join2_R]),
-    ?assertEqual(Join2_R, Join2_P),
-
-    TxQ_P = rx1_window(Plan, 0, 0, RxQ),
-    io:format("TxQ_P=~w~n", [TxQ_P]),
-    TxQ_R = lora_region:rx1_window(Region, 0, 0, RxQ),
-	io:format("TxQ_R=~w~n", [TxQ_R]),
-	?assertEqual(TxQ_R, TxQ_P),
-
-    Join1_P = join1_window(Plan, 0, RxQ),
-    io:format("Join1_P=~w~n", [Join1_P]),
-    Join1_R = lora_region:join1_window(Region, 0, RxQ),
-    io:format("Join1_R=~w~n", [Join1_R]),
-    ?assertEqual(Join1_R, Join1_P),
-
-    TxQDataRate = lora_plan:datarate_to_atom(TxQ_P#txq.datr),
-    io:format("TxQDataRate=~w~n", [TxQDataRate]),
-    DRIdx = lora_plan:datarate_to_index(Plan, TxQDataRate),
-    io:format("DRIdx=~w~n", [DRIdx]),
-    %% DR = datar_to_dr(Plan, TxQ#txq.datr),
-    Tuple = lora_region:dr_to_tuple(Region, DRIdx),
-    io:format("Tuple=~w~n", [Tuple]),
-    % ?assertEqual(JoinChannel, TxQ#txq.freq),
-    % ?assertEqual(500, element(2, Tuple)),
-    % ?assert(DRIdx >= 8),
-    % ?assert(DRIdx =< 13),
+    validate_rx2_window(Plan, RxQ),
+    validate_join2_window(Plan, RxQ),
+    validate_rx1_window(Plan, RxQ),
+    validate_join1_window(Plan, RxQ),
 
     TxQ_2 = rx2_window(Plan, 0, RxQ),
-    io:format("TxQ_2=~w~n", [TxQ_2]),
+    % io:format("TxQ_2=~w~n", [TxQ_2]),
     DRIdx_2 = lora_region:datar_to_dr(Region, TxQ_2#txq.datr),
-    io:format("DRIdx_2=~w~n", [DRIdx_2]),
+    % io:format("DRIdx_2=~w~n", [DRIdx_2]),
     % ?assertEqual(lora_region:datar_to_dr('US915', TxQ#txq.datr), 8),
     % ?assertEqual(JoinChannel, TxQ_2#txq.freq),
 
     TxQ_3 = join2_window(Plan, RxQ),
-    io:format("TxQ_3=~w~n", [TxQ_3]),
+    % io:format("TxQ_3=~w~n", [TxQ_3]),
     DRIdx_3 = lora_region:datar_to_dr(Region, TxQ_3#txq.datr),
-    io:format("DRIdx_3=~w~n", [DRIdx_3]),
+    % io:format("DRIdx_3=~w~n", [DRIdx_3]),
     % ?assertEqual(lora_region:datar_to_dr('US915', TxQ#txq.datr), 8),
     % ?assertEqual(JoinChannel, TxQ_3#txq.freq),
-
     ok.
 
 exercise_plan(Plan) ->
