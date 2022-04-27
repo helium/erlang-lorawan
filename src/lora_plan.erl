@@ -208,36 +208,72 @@ atom_to_datarate(Atom) ->
 
 -type window() :: ?JOIN1_WINDOW | ?JOIN2_WINDOW | ?RX1_WINDOW | ?RX2_WINDOW.
 
-new_txq() ->
+new_txq(Freq, DataRate, Codr, Time) ->
     #txq{
-        freq = 923.3,
-        datr = <<"SF12BW125">>,
-        codr = <<"hello">>,
-        time = 0
+        freq = Freq,
+        datr = DataRate,
+        codr = Codr,
+        time = Time
     }.
+
+-spec rx1_down_freq(#channel_plan{}, #rxq{}, number()) -> integer().
+%% we calculate in fixed-point numbers
+rx1_down_freq(Plan, #rxq{freq = Freq} = _RxQ, _Offset) when Plan#channel_plan.region == 'US915' ->
+    RxCh = lora_region:f2uch(Freq, {9023, 2}, {9030, 16}),
+    DownCh = RxCh rem 8,
+    DownFreq = dchannel_to_freq(Plan, DownCh),
+    DownFreq;
+rx1_down_freq(Plan, #rxq{freq = Freq} = _RxQ, _Offset) when Plan#channel_plan.region == 'AU915' ->
+    RxCh = lora_region:f2uch(Freq, {9152, 2}, {9159, 16}),
+    DownCh = RxCh rem 8,
+    DownFreq = dchannel_to_freq(Plan, DownCh),
+    DownFreq;
+rx1_down_freq(Plan, #rxq{freq = Freq} = _RxQ, _Offset) when Plan#channel_plan.region == 'CN470' ->
+    RxCh = lora_region:f2uch(Freq, {4703, 2}),
+    DownCh = RxCh rem 48,
+    DownFreq = dchannel_to_freq(Plan, DownCh),
+    DownFreq;
+rx1_down_freq(Plan, #rxq{freq = Freq} = _RxQ, _Offset) when Plan#channel_plan.region == 'AS923' ->
+    Freq;
+rx1_down_freq(_Plan, #rxq{freq = Freq} = _RxQ, _Offset) ->
+    Freq.
+
+-spec dchannel_to_freq(#channel_plan{}, integer()) -> number().
+dchannel_to_freq(Plan, Ch) ->
+	 io:format("dchannel_to_freq=~w~n", [Ch]),
+    List = (Plan#channel_plan.d_channels),
+    Freq = lists:nth(Ch + 1, List),
+    Freq.
 
 -spec join1_window(#channel_plan{}, integer(), #rxq{}) -> #txq{}.
 join1_window(Plan, DelaySeconds, RxQ) ->
     _Region = Plan#channel_plan.region,
-    TxQ = new_txq(),
+    DownFreq = rx1_down_freq(Plan, RxQ, 0),
+    TxQ = new_txq(DownFreq, RxQ#rxq.datr, <<"4/5">>, 0),
     tx_window(?JOIN1_WINDOW, RxQ, TxQ, DelaySeconds).
 
 -spec join2_window(#channel_plan{}, #rxq{}) -> #txq{}.
 join2_window(Plan, RxQ) ->
     _Region = Plan#channel_plan.region,
-    TxQ = new_txq(),
+    DownFreq = rx1_down_freq(Plan, RxQ, 0),
+    TxQ = new_txq(DownFreq, RxQ#rxq.datr, <<"4/5">>, 0),
     tx_window(?JOIN2_WINDOW, RxQ, TxQ).
 
 -spec rx1_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
 rx1_window(Plan, DelaySeconds, _Offset, RxQ) ->
-    _Region = Plan#channel_plan.region,
-    TxQ = new_txq(),
+    Region = Plan#channel_plan.region,
+    % DownFreq = rx1_down_freq(Plan, RxQ, Offset),
+    io:format("Region=~w RxQ.freq=~w~n", [Region, RxQ#rxq.freq]),
+    DownFreq = up_to_down_freq(Plan, RxQ#rxq.freq),
+    TxQ = new_txq(DownFreq, RxQ#rxq.datr, <<"4/5">>, 0),
     tx_window(?RX1_WINDOW, RxQ, TxQ, DelaySeconds).
 
 -spec rx2_window(#channel_plan{}, number(), #rxq{}) -> #txq{}.
 rx2_window(Plan, DelaySeconds, RxQ) ->
-    _Region = Plan#channel_plan.region,
-    TxQ = new_txq(),
+    DownFreq = Plan#channel_plan.rx2_freq,
+    DRAtom = index_to_datarate(Plan, Plan#channel_plan.rx2_datarate),
+    DataRateStr = atom_to_datarate(DRAtom),
+    TxQ = new_txq(DownFreq, DataRateStr, <<"4/5">>, 0),
     tx_window(?RX2_WINDOW, RxQ, TxQ, DelaySeconds).
 
 -spec rx1_or_rx2_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
@@ -369,6 +405,15 @@ channel_to_freq(Plan, Ch) ->
     List = (Plan#channel_plan.u_channels),
     Freq = lists:nth(Ch, List),
     Freq.
+
+-spec up_to_down_freq(#channel_plan{}, number()) -> number().
+up_to_down_freq(Plan, Freq) ->
+    UList = (Plan#channel_plan.u_channels),
+    io:format("Freq=~w UList=~w~n", [Freq, UList]),
+    UChannel = index_of(Freq, UList, 1),
+    DList = (Plan#channel_plan.d_channels),
+    DownFreq = lists:nth(UChannel + 1, DList),
+    DownFreq.
 
 -spec downlink_eirp(#channel_plan{}, float()) -> integer().
 downlink_eirp(Plan, Freq) ->
@@ -535,7 +580,7 @@ plan_as923_1() ->
         mandatory_dr = {0, 5},
         optional_dr = {6, 7},
         max_duty_cycle = 1,
-        uplink_dwell_time = 0,
+        uplink_dwell_time = 400,
         downlink_dwell_time = 400,
         tx_param_setup_allowed = true,
         max_eirp_db = 16,
@@ -585,15 +630,15 @@ plan_au915() ->
         optional_dr = {7, 7},
         max_duty_cycle = 1,
         uplink_dwell_time = 400,
-        downlink_dwell_time = 0,
+        downlink_dwell_time = 400,
         tx_param_setup_allowed = true,
         max_eirp_db = 30,
         default_rx1_offset = 0,
         rx1_offset = 5,
         rx2_datarate = 8,
-        rx2_freq = 923.2,
-        beacon_freq = 923.4,
-        pingslot_freq = 923.4
+        rx2_freq = 923.3,
+        beacon_freq = 923.3,
+        pingslot_freq = 923.3
     },
     Plan.
 
@@ -727,7 +772,7 @@ plan_cn470() ->
 %% ------------------------------------------------------------------
 %% EUNIT Tests
 %% ------------------------------------------------------------------
--ifdef(TEST).
+%-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
 validate_u_channels(Region, List) ->
@@ -824,10 +869,69 @@ validate_payload_size(Plan) ->
     validate_downlink_size(Plan, 'SF8BW125'),
     validate_downlink_size(Plan, 'SF7BW125').
 
+validate_window(Plan, DataRateAtom) ->
+    Region = Plan#channel_plan.region,
+    io:format("Region=~w~n", [Region]),
+    DataRateStr = atom_to_datarate(DataRateAtom),
+    [JoinChannel | _] = Plan#channel_plan.u_channels,
+    io:format("JoinChannel=~w~n", [JoinChannel]),
+    Now = os:timestamp(),
+
+    RxQ = #rxq{
+        freq = JoinChannel,
+        datr = DataRateStr,
+        codr = <<"4/5">>,
+        time = calendar:now_to_datetime(Now),
+        tmms = 0,
+        rssi = 42.2,
+        lsnr = 10.1
+    },
+
+    RX2_P = rx2_window(Plan, 0, RxQ),
+    io:format("RX2_P=~w~n", [RX2_P]),
+    RX2_R = lora_region:rx2_window(Region, 0, RxQ),
+    io:format("RX2_R=~w~n", [RX2_R]),
+    ?assertEqual(RX2_R, RX2_P),
+
+    TxQ_P = rx1_window(Plan, 0, 0, RxQ),
+    io:format("TxQ_P=~w~n", [TxQ_P]),
+    TxQ_R = lora_region:rx1_window(Region, 0, 0, RxQ),
+	io:format("TxQ_R=~w~n", [TxQ_R]),
+	% ?assertEqual(TxQ_R, TxQ_P),
+
+    TxQDataRate = lora_plan:datarate_to_atom(TxQ_P#txq.datr),
+    io:format("TxQDataRate=~w~n", [TxQDataRate]),
+    DRIdx = lora_plan:datarate_to_index(Plan, TxQDataRate),
+    io:format("DRIdx=~w~n", [DRIdx]),
+    %% DR = datar_to_dr(Plan, TxQ#txq.datr),
+    Tuple = lora_region:dr_to_tuple(Region, DRIdx),
+    io:format("Tuple=~w~n", [Tuple]),
+    % ?assertEqual(JoinChannel, TxQ#txq.freq),
+    % ?assertEqual(500, element(2, Tuple)),
+    % ?assert(DRIdx >= 8),
+    % ?assert(DRIdx =< 13),
+
+    TxQ_2 = rx2_window(Plan, 0, RxQ),
+    io:format("TxQ_2=~w~n", [TxQ_2]),
+    DRIdx_2 = lora_region:datar_to_dr(Region, TxQ_2#txq.datr),
+    io:format("DRIdx_2=~w~n", [DRIdx_2]),
+    % ?assertEqual(lora_region:datar_to_dr('US915', TxQ#txq.datr), 8),
+    % ?assertEqual(JoinChannel, TxQ_2#txq.freq),
+
+    TxQ_3 = join2_window(Plan, RxQ),
+    io:format("TxQ_3=~w~n", [TxQ_3]),
+    DRIdx_3 = lora_region:datar_to_dr(Region, TxQ_3#txq.datr),
+    io:format("DRIdx_3=~w~n", [DRIdx_3]),
+    % ?assertEqual(lora_region:datar_to_dr('US915', TxQ#txq.datr), 8),
+    % ?assertEqual(JoinChannel, TxQ_3#txq.freq),
+
+    ok.
+
 exercise_plan(Plan) ->
     Region = Plan#channel_plan.region,
     io:format("Region=~w~n", [Region]),
-    validate_payload_size(Plan),
+    validate_window(Plan, 'SF10BW125'),
+    %validate_payload_size(Plan),
     validate_tx_power(Plan),
     validate_u_channels(Region, Plan#channel_plan.u_channels),
     validate_d_channels(Region, Plan#channel_plan.d_channels),
@@ -844,5 +948,5 @@ plan_test() ->
     % exercise_plan(plan_kr920()),
     fin.
 
--endif.
+%-endif.
 %% end of file
