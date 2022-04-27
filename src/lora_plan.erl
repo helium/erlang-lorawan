@@ -20,7 +20,6 @@
     atom_to_datarate/1,
     downlink_eirp/2,
     max_uplink_snr/1,
-    rx_window/5,
     join1_window/3,
     join2_window/2,
     rx1_window/4,
@@ -216,35 +215,6 @@ new_txq(Freq, DataRate, Codr, Time) ->
         time = Time
     }.
 
--spec rx1_down_freq(#channel_plan{}, #rxq{}, number()) -> integer().
-%% we calculate in fixed-point numbers
-rx1_down_freq(Plan, #rxq{freq = Freq} = _RxQ, _Offset) when Plan#channel_plan.region == 'US915' ->
-    RxCh = lora_region:f2uch(Freq, {9023, 2}, {9030, 16}),
-    DownCh = RxCh rem 8,
-    DownFreq = dchannel_to_freq(Plan, DownCh),
-    DownFreq;
-rx1_down_freq(Plan, #rxq{freq = Freq} = _RxQ, _Offset) when Plan#channel_plan.region == 'AU915' ->
-    RxCh = lora_region:f2uch(Freq, {9152, 2}, {9159, 16}),
-    DownCh = RxCh rem 8,
-    DownFreq = dchannel_to_freq(Plan, DownCh),
-    DownFreq;
-rx1_down_freq(Plan, #rxq{freq = Freq} = _RxQ, _Offset) when Plan#channel_plan.region == 'CN470' ->
-    RxCh = lora_region:f2uch(Freq, {4703, 2}),
-    DownCh = RxCh rem 48,
-    DownFreq = dchannel_to_freq(Plan, DownCh),
-    DownFreq;
-rx1_down_freq(Plan, #rxq{freq = Freq} = _RxQ, _Offset) when Plan#channel_plan.region == 'AS923' ->
-    Freq;
-rx1_down_freq(_Plan, #rxq{freq = Freq} = _RxQ, _Offset) ->
-    Freq.
-
--spec dchannel_to_freq(#channel_plan{}, integer()) -> number().
-dchannel_to_freq(Plan, Ch) ->
-	 io:format("dchannel_to_freq=~w~n", [Ch]),
-    List = (Plan#channel_plan.d_channels),
-    Freq = lists:nth(Ch + 1, List),
-    Freq.
-
 -spec join1_window(#channel_plan{}, integer(), #rxq{}) -> #txq{}.
 join1_window(Plan, DelaySeconds, RxQ) ->
     Region = Plan#channel_plan.region,
@@ -269,7 +239,6 @@ join2_window(Plan, RxQ) ->
 -spec rx1_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
 rx1_window(Plan, DelaySeconds, Offset, RxQ) ->
     Region = Plan#channel_plan.region,
-    % DownFreq = rx1_down_freq(Plan, RxQ, Offset),
     io:format("RX1 Region=~w RxQ.freq=~w~n", [Region, RxQ#rxq.freq]),
     DownFreq = up_to_down_freq(Plan, RxQ#rxq.freq),
     DataRateAtom = datarate_to_atom(RxQ#rxq.datr),
@@ -340,13 +309,6 @@ get_window(?JOIN1_WINDOW) -> 5000000;
 get_window(?JOIN2_WINDOW) -> 6000000;
 get_window(?RX1_WINDOW) -> 1000000;
 get_window(?RX2_WINDOW) -> 2000000.
-
--spec rx_window(atom(), #channel_plan{}, non_neg_integer(), number(), #rxq{}) ->
-    {number() | float(), atom(), integer() | 'immediately' | calendar:datetime()}.
-rx_window(_Type, Plan, _RxDelay, _Offset, _RxQ) ->
-    _Region = Plan#channel_plan.region,
-    TxTime = calendar:now_to_datetime(os:timestamp()),
-    {0, 'SF8BW125', TxTime}.
 
 %% ------------------------------------------------------------------
 %% DataRate Functions
@@ -979,9 +941,9 @@ validate_window(Plan, DataRateAtom) ->
 	io:format("TxQ_R=~w~n", [TxQ_R]),
 	?assertEqual(TxQ_R, TxQ_P),
 
-    Join1_P = join1_window(Plan, RxQ),
+    Join1_P = join1_window(Plan, 0, RxQ),
     io:format("Join1_P=~w~n", [Join1_P]),
-    Join1_R = lora_region:join1_window(Region, RxQ),
+    Join1_R = lora_region:join1_window(Region, 0, RxQ),
     io:format("Join1_R=~w~n", [Join1_R]),
     ?assertEqual(Join1_R, Join1_P),
 
