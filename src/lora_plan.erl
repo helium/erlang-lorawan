@@ -123,51 +123,71 @@ max_payload_size(DataRate, DwellTime) ->
     case DwellTime of
         1000 ->
             case DataRate of
-                'SF12BW125' -> 0;
-                'SF11BW125' -> 31;
-                'SF10BW125' -> 94;
-                'SF9BW125' -> 192;
-                'SF8BW125' -> 230;
-                'SF7BW125' -> 230;
-                _ -> 230
+                'SF12BW125' -> 51;
+                'SF11BW125' -> 51;
+                'SF10BW125' -> 51;
+                'SF9BW125' -> 115;
+                'SF8BW125' -> 242;
+                'SF7BW125' -> 242;
+                _ -> 250
             end;
         400 ->
-            case DataRate of
-                'SF12BW125' -> 0;
-                'SF11BW125' -> 0;
-                'SF10BW125' -> 19;
-                'SF9BW125' -> 61;
-                'SF8BW125' -> 133;
-                'SF7BW125' -> 230;
-                'SF12BW500' -> 61;
-                'SF11BW500' -> 137;
-                'SF10BW500' -> 230;
-                'LRFHSS1BW137' -> 58;
-                'LRFHSS2BW137' -> 123;
-                'LRFHSS1BW336' -> 58;
-                'LRFHSS2BW336' -> 123;
-                'LRFHSS1BW1523' -> 58;
-                'LRFHSS2BW1523' -> 123;
-                _ -> 230
-            end;
-        _ ->
             case DataRate of
                 'SF12BW125' -> 59;
                 'SF11BW125' -> 59;
                 'SF10BW125' -> 59;
                 'SF9BW125' -> 123;
-                'SF8BW125' -> 230;
-                'SF7BW250' -> 230;
+                'SF8BW125' -> 250;
+                'SF7BW125' -> 250;
                 'SF12BW500' -> 61;
                 'SF11BW500' -> 137;
-                'SF10BW500' -> 230;
-                'LRFHSS1BW137' -> 58;
-                'LRFHSS2BW137' -> 123;
-                'LRFHSS1BW336' -> 58;
-                'LRFHSS2BW336' -> 123;
-                'LRFHSS1BW1523' -> 58;
-                'LRFHSS2BW1523' -> 123;
-                _ -> 230
+                'SF10BW500' -> 250;
+                'LRFHSS1BW137' -> 50;
+                'LRFHSS2BW137' -> 115;
+                'LRFHSS1BW336' -> 50;
+                'LRFHSS2BW336' -> 115;
+                'LRFHSS1BW1523' -> 50;
+                'LRFHSS2BW1523' -> 115;
+                _ -> 250
+            end;
+        401 ->
+            case DataRate of
+                'SF12BW125' -> 11;
+                'SF11BW125' -> 11;
+                'SF10BW125' -> 11;
+                'SF9BW125' -> 53;
+                'SF8BW125' -> 125;
+                'SF7BW125' -> 242;
+                'SF12BW500' -> 53;
+                'SF11BW500' -> 129;
+                'SF10BW500' -> 242;
+                'LRFHSS1BW137' -> 50;
+                'LRFHSS2BW137' -> 115;
+                'LRFHSS1BW336' -> 50;
+                'LRFHSS2BW336' -> 115;
+                'LRFHSS1BW1523' -> 50;
+                'LRFHSS2BW1523' -> 115;
+                _ -> 250
+            end;
+        _ ->
+            case DataRate of
+                'SF12BW125' -> 51;
+                'SF11BW125' -> 51;
+                'SF10BW125' -> 51;
+                'SF9BW125' -> 115;
+                'SF8BW125' -> 242;
+                'SF7BW125' -> 242;
+                'SF7BW250' -> 242;
+                'SF12BW500' -> 53;
+                'SF11BW500' -> 129;
+                'SF10BW500' -> 242;
+                'LRFHSS1BW137' -> 51;
+                'LRFHSS2BW137' -> 115;
+                'LRFHSS1BW336' -> 50;
+                'LRFHSS2BW336' -> 115;
+                'LRFHSS1BW1523' -> 50;
+                'LRFHSS2BW1523' -> 115;
+                _ -> 250
             end
     end.
 
@@ -701,8 +721,8 @@ plan_us915() ->
         mandatory_dr = {0, 4},
         optional_dr = {5, 6},
         max_duty_cycle = 10000,
-        uplink_dwell_time = 400,
-        downlink_dwell_time = 400,
+        uplink_dwell_time = 401,
+        downlink_dwell_time = 401,
         tx_param_setup_allowed = false,
         max_eirp_db = 30,
         default_rx1_offset = 0,
@@ -870,35 +890,40 @@ validate_tx_power(Plan) ->
     % io:format("Plan#channel_plan.tx_powers=~w~n", [Plan#channel_plan.tx_power]),
     ?assertEqual(PT0, PT1).
 
-% validate_downlink_size(Plan, DataRateAtom) ->
-%     Region = Plan#channel_plan.region,
-%     M1 = max_uplink_payload_size(Plan, DataRateAtom),
-%     DRIdx = datarate_to_index(Plan, DataRateAtom),
-%     case DRIdx of
-%         15 ->
-%             ?assertEqual(true, true);
-%         _ ->
-%             DRAtom = index_to_datarate(Plan, DRIdx),
-%             ?assertEqual(DRAtom, DataRateAtom),
-%             M2 = lora_region:max_payload_size(Region, DRIdx),
-%             ?assertEqual(M1, M2)
-%     end.
+validate_downlink_size(Plan, DataRateAtom) ->
+    Region = Plan#channel_plan.region,
+    M1 = max_uplink_payload_size(Plan, DataRateAtom),
+    DRIdx = datarate_to_index(Plan, DataRateAtom),
+    case DRIdx of
+        15 ->
+            ?assertEqual(true, true);
+        _ ->
+            DRAtom = index_to_datarate(Plan, DRIdx),
+            ?assertEqual(DRAtom, DataRateAtom),
+            M2 = lora_region:max_payload_size(Region, DRIdx),
+            io:format("DRAtom=~w DR~w ~w~n", [DRAtom, DRIdx, M2]),
+            ?assertEqual(M2, M1)
+    end.
 
-% validate_payload_size(Plan) ->
-%     validate_downlink_size(Plan, 'SF12BW125'),
-%     validate_downlink_size(Plan, 'SF11BW125'),
-%     validate_downlink_size(Plan, 'SF10BW125'),
-%     validate_downlink_size(Plan, 'SF9BW125'),
-%     validate_downlink_size(Plan, 'SF8BW125'),
-%     validate_downlink_size(Plan, 'SF7BW125').
+validate_payload_size(Plan) ->
+    validate_downlink_size(Plan, 'SF12BW125'),
+    validate_downlink_size(Plan, 'SF11BW125'),
+    validate_downlink_size(Plan, 'SF10BW125'),
+    validate_downlink_size(Plan, 'SF9BW125'),
+    validate_downlink_size(Plan, 'SF8BW125'),
+    validate_downlink_size(Plan, 'SF7BW125'),
+    validate_downlink_size(Plan, 'SF7BW250'),
+    validate_downlink_size(Plan, 'SF12BW500'),
+    validate_downlink_size(Plan, 'SF11BW500'),
+    validate_downlink_size(Plan, 'SF10BW500').
 
 validate_txq(Plan, TxQ) ->
-    Region = Plan#channel_plan.region,
+    _Region = Plan#channel_plan.region,
     DRAtom = lora_plan:datarate_to_atom(TxQ#txq.datr),
     DRIdx = lora_plan:datarate_to_index(Plan, DRAtom),
     DRAtom2 = lora_plan:index_to_datarate(Plan, DRIdx),
     %% DR = datar_to_dr(Plan, TxQ#txq.datr),
-    _Tuple = lora_region:dr_to_tuple(Region, DRIdx),
+    %% _Tuple = lora_region:dr_to_tuple(Region, DRIdx),
     ?assertEqual(DRAtom, DRAtom2).
 
 validate_rx2_window(Plan, RxQ) ->
@@ -971,7 +996,7 @@ exercise_plan(Plan) ->
     Region = Plan#channel_plan.region,
     io:format("Region=~w~n", [Region]),
     validate_window(Plan, 'SF10BW125'),
-    %validate_payload_size(Plan),
+    validate_payload_size(Plan),
     validate_tx_power(Plan),
     validate_u_channels(Region, Plan#channel_plan.u_channels),
     validate_d_channels(Region, Plan#channel_plan.d_channels),
