@@ -217,7 +217,7 @@ new_txq(Freq, DataRate, Codr, Time) ->
 
 -spec join1_window(#channel_plan{}, integer(), #rxq{}) -> #txq{}.
 join1_window(Plan, DelaySeconds, RxQ) ->
-    Region = Plan#channel_plan.region,
+    _Region = Plan#channel_plan.region,
     DownFreq = up_to_down_freq(Plan, RxQ#rxq.freq),
     DataRateAtom = datarate_to_atom(RxQ#rxq.datr),
     DataRateIdx = datarate_to_index(Plan, DataRateAtom),
@@ -237,7 +237,7 @@ join2_window(Plan, RxQ) ->
 
 -spec rx1_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
 rx1_window(Plan, DelaySeconds, Offset, RxQ) ->
-    Region = Plan#channel_plan.region,
+    _Region = Plan#channel_plan.region,
     DownFreq = up_to_down_freq(Plan, RxQ#rxq.freq),
     DataRateAtom = datarate_to_atom(RxQ#rxq.datr),
     DataRateIdx = datarate_to_index(Plan, DataRateAtom),
@@ -806,7 +806,7 @@ plan_cn470() ->
 %% ------------------------------------------------------------------
 %% EUNIT Tests
 %% ------------------------------------------------------------------
-%-ifdef(TEST).
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
 validate_u_channels(Region, List) ->
@@ -881,27 +881,27 @@ validate_tx_power(Plan) ->
     % io:format("Plan#channel_plan.tx_powers=~w~n", [Plan#channel_plan.tx_power]),
     ?assertEqual(PT0, PT1).
 
-validate_downlink_size(Plan, DataRateAtom) ->
-    Region = Plan#channel_plan.region,
-    M1 = max_uplink_payload_size(Plan, DataRateAtom),
-    DRIdx = datarate_to_index(Plan, DataRateAtom),
-    case DRIdx of
-        15 ->
-            ?assertEqual(true, true);
-        _ ->
-            DRAtom = index_to_datarate(Plan, DRIdx),
-            ?assertEqual(DRAtom, DataRateAtom),
-            M2 = lora_region:max_payload_size(Region, DRIdx),
-            ?assertEqual(M1, M2)
-    end.
+% validate_downlink_size(Plan, DataRateAtom) ->
+%     Region = Plan#channel_plan.region,
+%     M1 = max_uplink_payload_size(Plan, DataRateAtom),
+%     DRIdx = datarate_to_index(Plan, DataRateAtom),
+%     case DRIdx of
+%         15 ->
+%             ?assertEqual(true, true);
+%         _ ->
+%             DRAtom = index_to_datarate(Plan, DRIdx),
+%             ?assertEqual(DRAtom, DataRateAtom),
+%             M2 = lora_region:max_payload_size(Region, DRIdx),
+%             ?assertEqual(M1, M2)
+%     end.
 
-validate_payload_size(Plan) ->
-    validate_downlink_size(Plan, 'SF12BW125'),
-    validate_downlink_size(Plan, 'SF11BW125'),
-    validate_downlink_size(Plan, 'SF10BW125'),
-    validate_downlink_size(Plan, 'SF9BW125'),
-    validate_downlink_size(Plan, 'SF8BW125'),
-    validate_downlink_size(Plan, 'SF7BW125').
+% validate_payload_size(Plan) ->
+%     validate_downlink_size(Plan, 'SF12BW125'),
+%     validate_downlink_size(Plan, 'SF11BW125'),
+%     validate_downlink_size(Plan, 'SF10BW125'),
+%     validate_downlink_size(Plan, 'SF9BW125'),
+%     validate_downlink_size(Plan, 'SF8BW125'),
+%     validate_downlink_size(Plan, 'SF7BW125').
 
 validate_txq(Plan, TxQ) ->
     Region = Plan#channel_plan.region,
@@ -909,7 +909,7 @@ validate_txq(Plan, TxQ) ->
     DRIdx = lora_plan:datarate_to_index(Plan, DRAtom),
     DRAtom2 = lora_plan:index_to_datarate(Plan, DRIdx),
     %% DR = datar_to_dr(Plan, TxQ#txq.datr),
-    Tuple = lora_region:dr_to_tuple(Region, DRIdx),
+    _Tuple = lora_region:dr_to_tuple(Region, DRIdx),
     ?assertEqual(DRAtom, DRAtom2).
 
 validate_rx2_window(Plan, RxQ) ->
@@ -965,14 +965,14 @@ validate_window(Plan, DataRateAtom) ->
 
     TxQ_2 = rx2_window(Plan, 0, RxQ),
     % io:format("TxQ_2=~w~n", [TxQ_2]),
-    DRIdx_2 = lora_region:datar_to_dr(Region, TxQ_2#txq.datr),
+    _DRIdx_2 = lora_region:datar_to_dr(Region, TxQ_2#txq.datr),
     % io:format("DRIdx_2=~w~n", [DRIdx_2]),
     % ?assertEqual(lora_region:datar_to_dr('US915', TxQ#txq.datr), 8),
     % ?assertEqual(JoinChannel, TxQ_2#txq.freq),
 
     TxQ_3 = join2_window(Plan, RxQ),
     % io:format("TxQ_3=~w~n", [TxQ_3]),
-    DRIdx_3 = lora_region:datar_to_dr(Region, TxQ_3#txq.datr),
+    _DRIdx_3 = lora_region:datar_to_dr(Region, TxQ_3#txq.datr),
     % io:format("DRIdx_3=~w~n", [DRIdx_3]),
     % ?assertEqual(lora_region:datar_to_dr('US915', TxQ#txq.datr), 8),
     % ?assertEqual(JoinChannel, TxQ_3#txq.freq),
@@ -999,5 +999,5 @@ plan_test() ->
     % exercise_plan(plan_kr920()),
     fin.
 
-%-endif.
+-endif.
 %% end of file
