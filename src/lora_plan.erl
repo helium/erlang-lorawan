@@ -223,7 +223,7 @@ join1_window(Plan, DelaySeconds, RxQ) ->
     DownDRIdx = up_to_down_datarate(Plan, DataRateIdx, 0),
     DownDRAtom = lora_plan:index_to_datarate(Plan, DownDRIdx),
     DownDRStr = lora_plan:atom_to_datarate(DownDRAtom),
-    TxQ = new_txq(DownFreq, DownDRStr, <<"4/5">>, 0),
+    TxQ = new_txq(DownFreq, DownDRStr, RxQ#rxq.codr, RxQ#rxq.time),
     tx_window(?JOIN1_WINDOW, RxQ, TxQ, DelaySeconds).
 
 -spec join2_window(#channel_plan{}, #rxq{}) -> #txq{}.
@@ -231,7 +231,7 @@ join2_window(Plan, RxQ) ->
     DownFreq = Plan#channel_plan.rx2_freq,
     DRAtom = index_to_datarate(Plan, Plan#channel_plan.rx2_datarate),
     DataRateStr = atom_to_datarate(DRAtom),
-    TxQ = new_txq(DownFreq, DataRateStr, <<"4/5">>, 0),
+    TxQ = new_txq(DownFreq, DataRateStr, RxQ#rxq.codr, RxQ#rxq.time),
     tx_window(?JOIN2_WINDOW, RxQ, TxQ).
 
 -spec rx1_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
@@ -243,7 +243,7 @@ rx1_window(Plan, DelaySeconds, Offset, RxQ) ->
     DownDRIdx = up_to_down_datarate(Plan, DataRateIdx, Offset),
     DownDRAtom = lora_plan:index_to_datarate(Plan, DownDRIdx),
     DownDRStr = lora_plan:atom_to_datarate(DownDRAtom),
-    TxQ = new_txq(DownFreq, DownDRStr, <<"4/5">>, 0),
+    TxQ = new_txq(DownFreq, DownDRStr, RxQ#rxq.codr, RxQ#rxq.time),
     tx_window(?RX1_WINDOW, RxQ, TxQ, DelaySeconds).
 
 -spec rx2_window(#channel_plan{}, number(), #rxq{}) -> #txq{}.
@@ -251,7 +251,7 @@ rx2_window(Plan, DelaySeconds, RxQ) ->
     DownFreq = Plan#channel_plan.rx2_freq,
     DRAtom = index_to_datarate(Plan, Plan#channel_plan.rx2_datarate),
     DataRateStr = atom_to_datarate(DRAtom),
-    TxQ = new_txq(DownFreq, DataRateStr, <<"4/5">>, 0),
+    TxQ = new_txq(DownFreq, DataRateStr, RxQ#rxq.codr, RxQ#rxq.time),
     tx_window(?RX2_WINDOW, RxQ, TxQ, DelaySeconds).
 
 -spec rx1_or_rx2_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
