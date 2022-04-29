@@ -37,11 +37,11 @@ region_to_plan(Region) ->
         'CN470' -> plan_cn470();
         'KR920' -> plan_kr920();
         'IN865' -> plan_in865();
-        'AS923' -> plan_as923_1();
+        'AS923' -> plan_as923();
         'AS923_1' -> plan_as923_1();
-        'AS923_2' -> plan_as923_1();
-        'AS923_3' -> plan_as923_1();
-        'AS923_4' -> plan_as923_1()
+        'AS923_2' -> plan_as923_2();
+        'AS923_3' -> plan_as923_3();
+        'AS923_4' -> plan_as923_4()
     end.
 
 -spec datarate_to_atom(binary()) -> atom().
@@ -512,7 +512,6 @@ plan_eu868() ->
         dynamic_plan = true,
         min_freq = 863.0,
         max_freq = 870.0,
-        %% channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
         u_channels = [868.1, 868.3, 868.5, 864.3, 864.5, 864.7, 864.9, 865.1],
         d_channels = [868.1, 868.3, 868.5, 868.7, 868.9, 869.1, 869.3, 869.5],
         channel_count = 8,
@@ -555,7 +554,7 @@ plan_eu868() ->
 
 plan_kr920() ->
     Plan = #channel_plan{
-        id = 1,
+        id = 10,
         name = 'KR920',
         region = 'KR920',
         dynamic_plan = true,
@@ -591,15 +590,14 @@ plan_kr920() ->
     },
     Plan.
 
-plan_as923_1() ->
+plan_as923() ->
     Plan = #channel_plan{
-        id = 1,
-        name = 'AS923_1',
-        region = 'AS923_1',
+        id = 7,
+        name = 'AS923',
+        region = 'AS923',
         dynamic_plan = true,
         min_freq = 915.0,
         max_freq = 928.0,
-        %% channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
         u_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
         d_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
         channel_count = 8,
@@ -636,15 +634,190 @@ plan_as923_1() ->
     },
     Plan.
 
+plan_as923_1() ->
+    Plan = #channel_plan{
+        id = 7,
+        name = 'AS923_1',
+        region = 'AS923_1',
+        dynamic_plan = true,
+        min_freq = 915.0,
+        max_freq = 928.0,
+        u_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
+        d_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
+        channel_count = 8,
+        join_channels = {0, 1},
+        data_rates = [
+            'SF12BW125',
+            'SF11BW125',
+            'SF10BW125',
+            'SF9BW125',
+            'SF8BW125',
+            'SF7BW125',
+            'SF7BW250',
+            'FSK50',
+            'LRFHSS1BW137',
+            'LRFHSS2BW137',
+            'LRFHSS1BW336',
+            'LRFHSS2BW336'
+        ],
+        tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
+        join_dr = {2, 5},
+        mandatory_dr = {0, 5},
+        optional_dr = {6, 7},
+        max_duty_cycle = 1,
+        uplink_dwell_time = 400,
+        downlink_dwell_time = 400,
+        tx_param_setup_allowed = true,
+        max_eirp_db = 16,
+        default_rx1_offset = 0,
+        rx1_offset = 7,
+        rx2_datarate = 2,
+        rx2_freq = 923.2,
+        beacon_freq = 923.4,
+        pingslot_freq = 923.4
+    },
+    Plan.
+
+plan_as923_2() ->
+    Plan = #channel_plan{
+        id = 8,
+        name = 'AS923_2',
+        region = 'AS923_2',
+        dynamic_plan = true,
+        min_freq = 920.0,
+        max_freq = 923.0,
+        u_channels = [921.4, 921.6, 921.8, 922.0, 922.2, 922.4, 922.6, 922.8],
+        d_channels = [921.4, 921.6, 921.8, 922.0, 922.2, 922.4, 922.6, 922.8],
+        channel_count = 8,
+        join_channels = {0, 1},
+        data_rates = [
+            'SF12BW125',
+            'SF11BW125',
+            'SF10BW125',
+            'SF9BW125',
+            'SF8BW125',
+            'SF7BW125',
+            'SF7BW250',
+            'FSK50',
+            'LRFHSS1BW137',
+            'LRFHSS2BW137',
+            'LRFHSS1BW336',
+            'LRFHSS2BW336'
+        ],
+        tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
+        join_dr = {2, 5},
+        mandatory_dr = {0, 5},
+        optional_dr = {6, 7},
+        max_duty_cycle = 1,
+        uplink_dwell_time = 400,
+        downlink_dwell_time = 400,
+        tx_param_setup_allowed = true,
+        max_eirp_db = 16,
+        default_rx1_offset = 0,
+        rx1_offset = 7,
+        rx2_datarate = 2,
+        rx2_freq = 921.4,
+        beacon_freq = 921.6,
+        pingslot_freq = 921.6
+    },
+    Plan.
+
+plan_as923_3() ->
+    Plan = #channel_plan{
+        id = 9,
+        name = 'AS923_3',
+        region = 'AS923_3',
+        dynamic_plan = true,
+        min_freq = 915.0,
+        max_freq = 921.0,
+        u_channels = [916.6, 916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0],
+        d_channels = [916.6, 916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0],
+        channel_count = 8,
+        join_channels = {0, 1},
+        data_rates = [
+            'SF12BW125',
+            'SF11BW125',
+            'SF10BW125',
+            'SF9BW125',
+            'SF8BW125',
+            'SF7BW125',
+            'SF7BW250',
+            'FSK50',
+            'LRFHSS1BW137',
+            'LRFHSS2BW137',
+            'LRFHSS1BW336',
+            'LRFHSS2BW336'
+        ],
+        tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
+        join_dr = {2, 5},
+        mandatory_dr = {0, 5},
+        optional_dr = {6, 7},
+        max_duty_cycle = 1,
+        uplink_dwell_time = 400,
+        downlink_dwell_time = 400,
+        tx_param_setup_allowed = true,
+        max_eirp_db = 16,
+        default_rx1_offset = 0,
+        rx1_offset = 7,
+        rx2_datarate = 2,
+        rx2_freq = 916.6,
+        beacon_freq = 916.8,
+        pingslot_freq = 916.8
+    },
+    Plan.
+
+plan_as923_4() ->
+    Plan = #channel_plan{
+        id = 13,
+        name = 'AS923_4',
+        region = 'AS923_4',
+        dynamic_plan = true,
+        min_freq = 917.0,
+        max_freq = 920.0,
+        u_channels = [917.3, 917.5, 917.7, 917.9, 918.1, 918.3, 918.5, 918.7],
+        d_channels = [917.3, 917.5, 917.7, 917.9, 918.1, 918.3, 918.5, 918.7],
+        channel_count = 8,
+        join_channels = {0, 1},
+        data_rates = [
+            'SF12BW125',
+            'SF11BW125',
+            'SF10BW125',
+            'SF9BW125',
+            'SF8BW125',
+            'SF7BW125',
+            'SF7BW250',
+            'FSK50',
+            'LRFHSS1BW137',
+            'LRFHSS2BW137',
+            'LRFHSS1BW336',
+            'LRFHSS2BW336'
+        ],
+        tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
+        join_dr = {2, 5},
+        mandatory_dr = {0, 5},
+        optional_dr = {6, 7},
+        max_duty_cycle = 1,
+        uplink_dwell_time = 400,
+        downlink_dwell_time = 400,
+        tx_param_setup_allowed = true,
+        max_eirp_db = 16,
+        default_rx1_offset = 0,
+        rx1_offset = 7,
+        rx2_datarate = 2,
+        rx2_freq = 917.3,
+        beacon_freq = 917.5,
+        pingslot_freq = 917.5
+    },
+    Plan.
+
 plan_au915() ->
     Plan = #channel_plan{
-        id = 1,
+        id = 5,
         name = 'AU915',
         region = 'AU915',
         dynamic_plan = false,
         min_freq = 915.0,
         max_freq = 928.0,
-        %% channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
         u_channels = [915.2, 915.4, 915.6, 915.8, 916.0, 916.2, 916.4, 916.6],
         d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
         channel_count = 8,
@@ -693,8 +866,6 @@ plan_us915() ->
         dynamic_plan = false,
         min_freq = 902.0,
         max_freq = 928.0,
-        %% channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
-        %% u_channels = [903.9, 904.1, 904.3, 904.5, 904.7, 904.9, 905.1, 905.3],
         u_channels = [902.3, 902.5, 902.7, 902.9, 903.1, 903.3, 903.5, 903.7],
         d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
         channel_count = 8,
@@ -736,7 +907,7 @@ plan_us915() ->
 
 plan_in865() ->
     Plan = #channel_plan{
-        id = 1,
+        id = 11,
         name = 'IN865',
         region = 'IN865',
         dynamic_plan = true,
@@ -776,7 +947,7 @@ plan_in865() ->
 
 plan_cn470() ->
     Plan = #channel_plan{
-        id = 1,
+        id = 6,
         name = 'CN470',
         region = 'CN470',
         dynamic_plan = true,
