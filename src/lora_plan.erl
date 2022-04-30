@@ -11,6 +11,7 @@
     rx2_tuple/1,
     max_uplink_payload_size/2,
     max_downlink_payload_size/2,
+    max_downlink_snr/3,
     max_payload_size/2,
     datarate_to_index/2,
     index_to_datarate/2,
@@ -399,9 +400,16 @@ dr_offset_list(_Region, Index) ->
 %% @end
 %% ------------------------------------------------------------------
 
--spec max_uplink_snr(atom()) -> float().
+-spec max_uplink_snr(atom()) -> number().
 max_uplink_snr(DataRate) ->
     {SF, _} = datarate_to_tuple(DataRate),
+    max_snr(SF).
+
+-spec max_downlink_snr(#channel_plan{}, non_neg_integer(), number()) -> number().
+max_downlink_snr(Plan, DR, Offset) ->
+    DownDR = up_to_down_datarate(Plan, DR, Offset),
+    DRAtom = index_to_datarate(Plan, DownDR),
+    {SF, _} = datarate_to_tuple(DRAtom),
     max_snr(SF).
 
 %% from SX1272 DataSheet, Table 13
