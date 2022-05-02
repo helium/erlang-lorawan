@@ -144,6 +144,9 @@ max_payload_size(DataRate, DwellTime) ->
                 'SF12BW500' -> 61;
                 'SF11BW500' -> 137;
                 'SF10BW500' -> 250;
+                'SF9BW500' -> 250;
+                'SF8BW500' -> 250;
+                'SF7BW500' -> 250;
                 'LRFHSS1BW137' -> 50;
                 'LRFHSS2BW137' -> 115;
                 'LRFHSS1BW336' -> 50;
@@ -163,6 +166,9 @@ max_payload_size(DataRate, DwellTime) ->
                 'SF12BW500' -> 53;
                 'SF11BW500' -> 129;
                 'SF10BW500' -> 242;
+                'SF9BW500' -> 242;
+                'SF8BW500' -> 242;
+                'SF7BW500' -> 242;
                 'LRFHSS1BW137' -> 50;
                 'LRFHSS2BW137' -> 115;
                 'LRFHSS1BW336' -> 50;
@@ -183,6 +189,9 @@ max_payload_size(DataRate, DwellTime) ->
                 'SF12BW500' -> 53;
                 'SF11BW500' -> 129;
                 'SF10BW500' -> 242;
+                'SF9BW500' -> 242;
+                'SF8BW500' -> 242;
+                'SF7BW500' -> 242;
                 'LRFHSS1BW137' -> 51;
                 'LRFHSS2BW137' -> 115;
                 'LRFHSS1BW336' -> 50;
