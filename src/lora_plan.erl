@@ -527,7 +527,7 @@ index_of(Value, List, Default) ->
 %% ------------------------------------------------------------------
 
 plan_eu868() ->
-    EU868 = #channel_plan{
+    Plan = #channel_plan{
         id = 1,
         name = 'EU868',
         region = 'EU868',
@@ -572,18 +572,113 @@ plan_eu868() ->
         beacon_freq = 869.525,
         pingslot_freq = 869.525
     },
-    EU868.
+    Plan.
 
-plan_kr920() ->
+plan_us915() ->
     Plan = #channel_plan{
-        id = 10,
-        name = 'KR920',
-        region = 'KR920',
+        id = 2,
+        name = 'US915',
+        region = 'US915',
+        dynamic_plan = false,
+        min_freq = 902.0,
+        max_freq = 928.0,
+        u_channels = [902.3, 902.5, 902.7, 902.9, 903.1, 903.3, 903.5, 903.7],
+        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
+        channel_count = 8,
+        join_channels = {0, 7},
+        data_rates = [
+            'SF10BW125',
+            'SF9BW125',
+            'SF8BW125',
+            'SF7BW125',
+            'SF8BW500',
+            'LRFHSS1BW1523',
+            'LRFHSS2BW1523',
+            'RFU',
+            'SF12BW500',
+            'SF11BW500',
+            'SF10BW500',
+            'SF9BW500',
+            'SF8BW500',
+            'SF8BW500'
+        ],
+        %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
+        tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
+        join_dr = {2, 5},
+        mandatory_dr = {0, 4},
+        optional_dr = {5, 6},
+        max_duty_cycle = 10000,
+        uplink_dwell_time = 401,
+        downlink_dwell_time = 401,
+        tx_param_setup_allowed = false,
+        max_eirp_db = 30,
+        default_rx1_offset = 0,
+        rx1_offset = 3,
+        rx2_datarate = 8,
+        rx2_freq = 923.3,
+        beacon_freq = 923.3,
+        pingslot_freq = 923.3
+    },
+    Plan.
+
+plan_au915() ->
+    Plan = #channel_plan{
+        id = 5,
+        name = 'AU915',
+        region = 'AU915',
+        dynamic_plan = false,
+        min_freq = 915.0,
+        max_freq = 928.0,
+        u_channels = [915.2, 915.4, 915.6, 915.8, 916.0, 916.2, 916.4, 916.6],
+        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
+        channel_count = 8,
+        join_channels = {0, 7},
+        data_rates = [
+            'SF12BW125',
+            'SF11BW125',
+            'SF10BW125',
+            'SF9BW125',
+            'SF8BW125',
+            'SF7BW125',
+            'SF8BW500',
+            'LRFHSS1BW1523',
+            'SF12BW500',
+            'SF11BW500',
+            'SF10BW500',
+            'SF9BW500',
+            'SF8BW500',
+            'SF8BW500',
+            'SF7BW500'
+        ],
+        %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
+        tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
+        join_dr = {2, 5},
+        mandatory_dr = {0, 6},
+        optional_dr = {7, 7},
+        max_duty_cycle = 1,
+        uplink_dwell_time = 400,
+        downlink_dwell_time = 400,
+        tx_param_setup_allowed = true,
+        max_eirp_db = 30,
+        default_rx1_offset = 0,
+        rx1_offset = 5,
+        rx2_datarate = 8,
+        rx2_freq = 923.3,
+        beacon_freq = 923.3,
+        pingslot_freq = 923.3
+    },
+    Plan.
+
+plan_cn470() ->
+    Plan = #channel_plan{
+        id = 6,
+        name = 'CN470',
+        region = 'CN470',
         dynamic_plan = true,
-        min_freq = 920.9,
-        max_freq = 923.3,
-        u_channels = [922.1, 922.3, 922.5, 921.5, 921.7, 921.9, 922.1, 922.3],
-        d_channels = [920.9, 921.1, 921.3, 921.5, 921.7, 921.9, 922.1, 922.3],
+        min_freq = 470.0,
+        max_freq = 510.0,
+        u_channels = [470.3, 470.5, 470.7, 470.9, 471.1, 471.3, 471.5, 471.7],
+        d_channels = [500.3, 500.5, 500.7, 500.9, 501.1, 501.3, 501.5, 501.7],
         channel_count = 8,
         join_channels = {0, 2},
         data_rates = [
@@ -594,21 +689,21 @@ plan_kr920() ->
             'SF8BW125',
             'SF7BW125'
         ],
-        tx_power = [0, -2, -4, -6, -8, -10, -12],
+        tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
         join_dr = {0, 5},
         mandatory_dr = {0, 5},
-        optional_dr = {0, 0},
+        optional_dr = {7, 7},
         max_duty_cycle = 1,
-        uplink_dwell_time = 0,
-        downlink_dwell_time = 0,
+        uplink_dwell_time = 1000,
+        downlink_dwell_time = 1000,
         tx_param_setup_allowed = false,
-        max_eirp_db = 14,
+        max_eirp_db = 19,
         default_rx1_offset = 0,
-        rx1_offset = 5,
+        rx1_offset = 7,
         rx2_datarate = 0,
-        rx2_freq = 921.9,
-        beacon_freq = 923.1,
-        pingslot_freq = 923.1
+        rx2_freq = 505.3,
+        beacon_freq = 508.3,
+        pingslot_freq = 508.3
     },
     Plan.
 
@@ -832,98 +927,41 @@ plan_as923_4() ->
     },
     Plan.
 
-plan_au915() ->
+plan_kr920() ->
     Plan = #channel_plan{
-        id = 5,
-        name = 'AU915',
-        region = 'AU915',
-        dynamic_plan = false,
-        min_freq = 915.0,
-        max_freq = 928.0,
-        u_channels = [915.2, 915.4, 915.6, 915.8, 916.0, 916.2, 916.4, 916.6],
-        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
+        id = 10,
+        name = 'KR920',
+        region = 'KR920',
+        dynamic_plan = true,
+        min_freq = 920.9,
+        max_freq = 923.3,
+        u_channels = [922.1, 922.3, 922.5, 921.5, 921.7, 921.9, 922.1, 922.3],
+        d_channels = [920.9, 921.1, 921.3, 921.5, 921.7, 921.9, 922.1, 922.3],
         channel_count = 8,
-        join_channels = {0, 7},
+        join_channels = {0, 2},
         data_rates = [
             'SF12BW125',
             'SF11BW125',
             'SF10BW125',
             'SF9BW125',
             'SF8BW125',
-            'SF7BW125',
-            'SF8BW500',
-            'LRFHSS1BW1523',
-            'SF12BW500',
-            'SF11BW500',
-            'SF10BW500',
-            'SF9BW500',
-            'SF8BW500',
-            'SF8BW500',
-            'SF7BW500'
+            'SF7BW125'
         ],
-        %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
-        tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
-        join_dr = {2, 5},
-        mandatory_dr = {0, 6},
-        optional_dr = {7, 7},
+        tx_power = [0, -2, -4, -6, -8, -10, -12],
+        join_dr = {0, 5},
+        mandatory_dr = {0, 5},
+        optional_dr = {0, 0},
         max_duty_cycle = 1,
-        uplink_dwell_time = 400,
-        downlink_dwell_time = 400,
-        tx_param_setup_allowed = true,
-        max_eirp_db = 30,
+        uplink_dwell_time = 0,
+        downlink_dwell_time = 0,
+        tx_param_setup_allowed = false,
+        max_eirp_db = 14,
         default_rx1_offset = 0,
         rx1_offset = 5,
-        rx2_datarate = 8,
-        rx2_freq = 923.3,
-        beacon_freq = 923.3,
-        pingslot_freq = 923.3
-    },
-    Plan.
-
-plan_us915() ->
-    Plan = #channel_plan{
-        id = 2,
-        name = 'US915',
-        region = 'US915',
-        dynamic_plan = false,
-        min_freq = 902.0,
-        max_freq = 928.0,
-        u_channels = [902.3, 902.5, 902.7, 902.9, 903.1, 903.3, 903.5, 903.7],
-        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
-        channel_count = 8,
-        join_channels = {0, 7},
-        data_rates = [
-            'SF10BW125',
-            'SF9BW125',
-            'SF8BW125',
-            'SF7BW125',
-            'SF8BW500',
-            'LRFHSS1BW1523',
-            'LRFHSS2BW1523',
-            'RFU',
-            'SF12BW500',
-            'SF11BW500',
-            'SF10BW500',
-            'SF9BW500',
-            'SF8BW500',
-            'SF8BW500'
-        ],
-        %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
-        tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
-        join_dr = {2, 5},
-        mandatory_dr = {0, 4},
-        optional_dr = {5, 6},
-        max_duty_cycle = 10000,
-        uplink_dwell_time = 401,
-        downlink_dwell_time = 401,
-        tx_param_setup_allowed = false,
-        max_eirp_db = 30,
-        default_rx1_offset = 0,
-        rx1_offset = 3,
-        rx2_datarate = 8,
-        rx2_freq = 923.3,
-        beacon_freq = 923.3,
-        pingslot_freq = 923.3
+        rx2_datarate = 0,
+        rx2_freq = 921.9,
+        beacon_freq = 923.1,
+        pingslot_freq = 923.1
     },
     Plan.
 
@@ -964,44 +1002,6 @@ plan_in865() ->
         rx2_freq = 866.550,
         beacon_freq = 866.550,
         pingslot_freq = 866.550
-    },
-    Plan.
-
-plan_cn470() ->
-    Plan = #channel_plan{
-        id = 6,
-        name = 'CN470',
-        region = 'CN470',
-        dynamic_plan = true,
-        min_freq = 470.0,
-        max_freq = 510.0,
-        u_channels = [470.3, 470.5, 470.7, 470.9, 471.1, 471.3, 471.5, 471.7],
-        d_channels = [500.3, 500.5, 500.7, 500.9, 501.1, 501.3, 501.5, 501.7],
-        channel_count = 8,
-        join_channels = {0, 2},
-        data_rates = [
-            'SF12BW125',
-            'SF11BW125',
-            'SF10BW125',
-            'SF9BW125',
-            'SF8BW125',
-            'SF7BW125'
-        ],
-        tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
-        join_dr = {0, 5},
-        mandatory_dr = {0, 5},
-        optional_dr = {7, 7},
-        max_duty_cycle = 1,
-        uplink_dwell_time = 1000,
-        downlink_dwell_time = 1000,
-        tx_param_setup_allowed = false,
-        max_eirp_db = 19,
-        default_rx1_offset = 0,
-        rx1_offset = 7,
-        rx2_datarate = 0,
-        rx2_freq = 505.3,
-        beacon_freq = 508.3,
-        pingslot_freq = 508.3
     },
     Plan.
 
