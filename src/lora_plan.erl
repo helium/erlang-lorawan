@@ -6,6 +6,7 @@
     tx_power/2,
     tx_power_list/1,
     tx_power_table/1,
+    max_tx_power/1,
     region_to_plan/1,
     rx2_datarate/1,
     rx2_tuple/1,
@@ -471,6 +472,10 @@ downlink_eirp(Plan, Freq) ->
 %% ------------------------------------------------------------------
 %% TX Power Functions
 %% ------------------------------------------------------------------
+
+-spec max_tx_power(#channel_plan{}) -> pos_integer().
+max_tx_power(Plan) ->
+   Plan#channel_plan.max_eirp_db.
 
 -spec tx_power(#channel_plan{}, integer()) -> pos_integer().
 tx_power(Plan, Index) when Index < 16 ->
