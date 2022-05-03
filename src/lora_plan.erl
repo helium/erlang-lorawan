@@ -9,7 +9,7 @@
     max_downlink_payload_size/2,
     max_payload_size/2,
     max_downlink_snr/3,
-    max_uplink_snr/1,
+    max_uplink_snr/2,
     freq_to_channel/2,
     channel_to_freq/2,
     tx_power/2,
@@ -194,13 +194,15 @@ dr_offset_list(_Region, Index) ->
 
 -spec max_uplink_payload_size(#channel_plan{}, data_rate()) -> integer().
 max_uplink_payload_size(Plan, DataRate) ->
+    Atom = datarate_to_atom(Plan, DataRate),
     DwellTime = Plan#channel_plan.uplink_dwell_time,
-    max_payload_size(DataRate, DwellTime).
+    max_payload_size(Atom, DwellTime).
 
 -spec max_downlink_payload_size(#channel_plan{}, data_rate()) -> integer().
 max_downlink_payload_size(Plan, DataRate) ->
+    Atom = datarate_to_atom(Plan, DataRate),
     DwellTime = Plan#channel_plan.downlink_dwell_time,
-    max_payload_size(DataRate, DwellTime).
+    max_payload_size(Atom, DwellTime).
 
 -spec max_payload_size(atom(), integer()) -> integer().
 max_payload_size(DataRate, DwellTime) ->
@@ -284,14 +286,16 @@ max_payload_size(DataRate, DwellTime) ->
             end
     end.
 
--spec max_uplink_snr(atom()) -> number().
-max_uplink_snr(DataRate) ->
-    {SF, _} = datarate_to_tuple(DataRate),
+-spec max_uplink_snr(#channel_plan{}, data_rate()) -> number().
+max_uplink_snr(Plan, DataRate) ->
+    DataRateAtom = datarate_to_atom(Plan, DataRate),
+    {SF, _} = datarate_to_tuple(DataRateAtom),
     max_snr(SF).
 
--spec max_downlink_snr(#channel_plan{}, non_neg_integer(), number()) -> number().
-max_downlink_snr(Plan, DR, Offset) ->
-    DownDR = up_to_down_datarate(Plan, DR, Offset),
+-spec max_downlink_snr(#channel_plan{}, data_rate(), number()) -> number().
+max_downlink_snr(Plan, DataRate, Offset) ->
+    Index = datarate_to_index(Plan, DataRate),
+    DownDR = up_to_down_datarate(Plan, Index, Offset),
     DRAtom = datarate_to_atom(Plan, DownDR),
     {SF, _} = datarate_to_tuple(DRAtom),
     max_snr(SF).
