@@ -9,6 +9,7 @@
     max_downlink_payload_size/2,
     max_payload_size/2,
     max_downlink_snr/3,
+    max_uplink_snr/1,
     max_uplink_snr/2,
     freq_to_channel/2,
     channel_to_freq/2,
@@ -289,6 +290,11 @@ max_payload_size(DataRate, DwellTime) ->
 -spec max_uplink_snr(#channel_plan{}, data_rate()) -> number().
 max_uplink_snr(Plan, DataRate) ->
     DataRateAtom = datarate_to_atom(Plan, DataRate),
+    {SF, _} = datarate_to_tuple(DataRateAtom),
+    max_snr(SF).
+
+-spec max_uplink_snr(atom()) -> number().
+max_uplink_snr(DataRateAtom) ->
     {SF, _} = datarate_to_tuple(DataRateAtom),
     max_snr(SF).
 
