@@ -30,18 +30,19 @@
 -type dr_id() :: integer().
 -type dr_atom() :: atom().
 -type power_offset() :: integer().
+-type data_rate() :: atom() | binary() | integer().
 
 -record(datarate_plan, {
     drlist :: [{number(), atom(), atom()}]
 }).
 
--record(data_rate, {
-    id :: 1..8,
-    name :: atom(),
-    max_size :: integer(),
-    no_repeater_size :: integer(),
-    bit_rate :: integer()
-}).
+% -record(data_rate, {
+%     id :: 1..8,
+%     name :: atom(),
+%     max_size :: integer(),
+%     no_repeater_size :: integer(),
+%     bit_rate :: integer()
+% }).
 
 -record(tx_power, {
     id :: 1..8,

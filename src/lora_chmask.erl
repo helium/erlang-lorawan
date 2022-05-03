@@ -100,28 +100,26 @@ make_link_adr_req_(Region, {TXPower, DataRate, Chans}, FOptsOut) when
     Region == 'US915'; Region == 'AU915'
 ->
     Plan = lora_plan:region_to_plan(Region),
-    DataRateAtom = lora_plan:datarate_to_atom(DataRate),
-    DataRateIdx = lora_plan:datarate_to_index(Plan, DataRateAtom),
+    DRIndex = lora_plan:datarate_to_index(Plan, DataRate),
     case all_bit({0, 63}, Chans) of
         true ->
             [
-                {link_adr_req, DataRateIdx, TXPower, build_chmask(Chans, {64, 71}), 6, 0}
+                {link_adr_req, DRIndex, TXPower, build_chmask(Chans, {64, 71}), 6, 0}
                 | FOptsOut
             ];
         false ->
             [
-                {link_adr_req, DataRateIdx, TXPower, build_chmask(Chans, {64, 71}), 7, 0}
+                {link_adr_req, DRIndex, TXPower, build_chmask(Chans, {64, 71}), 7, 0}
                 | append_mask(Region, 3, {TXPower, DataRate, Chans}, FOptsOut)
             ]
     end;
 make_link_adr_req_(Region, {TXPower, DataRate, Chans}, FOptsOut) when Region == 'CN470' ->
     Plan = lora_plan:region_to_plan(Region),
-    DataRateAtom = lora_plan:datarate_to_atom(DataRate),
-    DataRateIdx = lora_plan:datarate_to_index(Plan, DataRateAtom),
+    DRIndex = lora_plan:datarate_to_index(Plan, DataRate),
     case all_bit({0, 95}, Chans) of
         true ->
             [
-                {link_adr_req, DataRateIdx, TXPower, 0, 6, 0}
+                {link_adr_req, DRIndex, TXPower, 0, 6, 0}
                 | FOptsOut
             ];
         false ->
@@ -129,10 +127,9 @@ make_link_adr_req_(Region, {TXPower, DataRate, Chans}, FOptsOut) when Region == 
     end;
 make_link_adr_req_(Region, {TXPower, DataRate, Chans}, FOptsOut) ->
     Plan = lora_plan:region_to_plan(Region),
-    DataRateAtom = lora_plan:datarate_to_atom(DataRate),
-    DataRateIdx = lora_plan:datarate_to_index(Plan, DataRateAtom),
+    DRIndex = lora_plan:datarate_to_index(Plan, DataRate),
     [
-        {link_adr_req, DataRateIdx, TXPower, build_chmask(Chans, {0, 15}), 0, 0}
+        {link_adr_req, DRIndex, TXPower, build_chmask(Chans, {0, 15}), 0, 0}
         | FOptsOut
     ].
 
@@ -194,8 +191,7 @@ append_mask(Region, Idx, {0, <<"NoChange">>, Chans}, FOptsOut) ->
     );
 append_mask(Region, Idx, {TXPower, DataRate, Chans}, FOptsOut) ->
     Plan = lora_plan:region_to_plan(Region),
-    DataRateAtom = lora_plan:datarate_to_atom(DataRate),
-    DataRateIdx = lora_plan:datarate_to_index(Plan, DataRateAtom),
+    DRIndex = lora_plan:datarate_to_index(Plan, DataRate),
     append_mask(
         Region,
         Idx - 1,
@@ -205,7 +201,7 @@ append_mask(Region, Idx, {TXPower, DataRate, Chans}, FOptsOut) ->
                 FOptsOut;
             ChMask ->
                 [
-                    {link_adr_req, DataRateIdx, TXPower, ChMask, Idx, 0}
+                    {link_adr_req, DRIndex, TXPower, ChMask, Idx, 0}
                     | FOptsOut
                 ]
         end
@@ -242,6 +238,8 @@ match_part({Min, Max}, {A, B}) ->
 bits_test_() ->
     PlanEU868 = lora_plan:region_to_plan('EU868'),
     PlanUS915 = lora_plan:region_to_plan('US915'),
+    EU868Index = lora_plan:datarate_to_index(PlanEU868, 'SF12BW125'),
+    US915Index = lora_plan:datarate_to_index(PlanUS915, 'SF12BW500'),
     [
         ?_assertEqual([0, 1, 2, 5, 6, 7, 8, 9], expand_intervals([{0, 2}, {5, 9}])),
         ?_assertEqual(7, build_chmask([{0, 2}], {0, 15})),
@@ -265,20 +263,20 @@ bits_test_() ->
         ?_assertEqual(false, all_bit({0, 15}, [{0, 2}])),
         ?_assertEqual(false, none_bit({0, 15}, [{0, 2}])),
         ?_assertEqual(
-            [{link_adr_req, lora_plan:datarate_to_index(PlanEU868, 'SF12BW125'), 14, 7, 0, 0}],
+            [{link_adr_req, EU868Index, 14, 7, 0, 0}],
             make_link_adr_req('EU868', {14, <<"SF12BW125">>, [{0, 2}]}, [])
         ),
         ?_assertEqual(
             [
-                {link_adr_req, lora_plan:datarate_to_index(PlanUS915, 'SF12BW500'), 20, 0, 7, 0},
-                {link_adr_req, lora_plan:datarate_to_index(PlanUS915, 'SF12BW500'), 20, 255, 0, 0}
+                {link_adr_req, US915Index, 20, 0, 7, 0},
+                {link_adr_req, US915Index, 20, 255, 0, 0}
             ],
             make_link_adr_req('US915', {20, <<"SF12BW500">>, [{0, 7}]}, [])
         ),
         ?_assertEqual(
             [
-                {link_adr_req, lora_plan:datarate_to_index(PlanUS915, 'SF12BW500'), 20, 2, 7, 0},
-                {link_adr_req, lora_plan:datarate_to_index(PlanUS915, 'SF12BW500'), 20, 65280, 0, 0}
+                {link_adr_req, US915Index, 20, 2, 7, 0},
+                {link_adr_req, US915Index, 20, 65280, 0, 0}
             ],
             make_link_adr_req('US915', {20, <<"SF12BW500">>, [{8, 15}, {65, 65}]}, [])
         )

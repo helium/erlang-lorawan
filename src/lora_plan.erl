@@ -1,6 +1,15 @@
 -module(lora_plan).
 
 -export([
+    datarate_to_index/2,
+    datarate_to_binary/2,
+    datarate_to_atom/2,
+    up_to_down_datarate/3,
+    max_uplink_payload_size/2,
+    max_downlink_payload_size/2,
+    max_payload_size/2,
+    max_downlink_snr/3,
+    max_uplink_snr/1,
     freq_to_channel/2,
     channel_to_freq/2,
     tx_power/2,
@@ -10,17 +19,6 @@
     region_to_plan/1,
     rx2_datarate/1,
     rx2_tuple/1,
-    max_uplink_payload_size/2,
-    max_downlink_payload_size/2,
-    max_downlink_snr/3,
-    max_payload_size/2,
-    datarate_to_index/2,
-    index_to_datarate/2,
-    up_to_down_datarate/3,
-    datarate_to_atom/1,
-    atom_to_datarate/1,
-    downlink_eirp/2,
-    max_uplink_snr/1,
     join1_window/3,
     join2_window/2,
     rx1_window/4,
@@ -46,8 +44,23 @@ region_to_plan(Region) ->
         'AS923_4' -> plan_as923_4()
     end.
 
--spec datarate_to_atom(binary()) -> atom().
-datarate_to_atom(Binary) ->
+%% ------------------------------------------------------------------
+%% DataRate Functions
+%% ------------------------------------------------------------------
+
+-spec datarate_to_atom(#channel_plan{}, data_rate()) -> atom().
+datarate_to_atom(Plan, Index) when is_integer(Index) ->
+    List = (Plan#channel_plan.data_rates),
+    Len = length(List),
+    case Index < Len of
+        true ->
+            lists:nth(Index + 1, List);
+        false ->
+            'RFU'
+    end;
+datarate_to_atom(_Plan, Atom) when is_atom(Atom) ->
+    Atom;
+datarate_to_atom(_Plan, Binary) when is_binary(Binary) ->
     case Binary of
         <<"SF12BW125">> -> 'SF12BW125';
         <<"SF11BW125">> -> 'SF11BW125';
@@ -77,6 +90,29 @@ datarate_to_atom(Binary) ->
         <<"RFU">> -> 'RFU';
         _ -> 'RFU'
     end.
+
+-spec datarate_to_index(#channel_plan{}, data_rate()) -> integer().
+datarate_to_index(_Plan, Index) when is_integer(Index) ->
+    io:format("datarate_to_index Index=~w~n", [Index]),
+    Index;
+datarate_to_index(Plan, Atom) when is_atom(Atom) ->
+    io:format("datarate_to_index Atom=~w~n", [Atom]),
+    List = (Plan#channel_plan.data_rates),
+    Index = index_of(Atom, List, 15),
+    Index;
+datarate_to_index(Plan, Binary) when is_binary(Binary) ->
+    io:format("datarate_to_index Binary=~w~n", [Binary]),
+    Atom = binary_to_atom(Binary),
+    datarate_to_index(Plan, Atom).
+
+-spec datarate_to_binary(#channel_plan{}, data_rate()) -> binary().
+datarate_to_binary(Plan, Index) when is_integer(Index) ->
+    Atom = datarate_to_atom(Plan, Index),
+    datarate_to_binary(Plan, Atom);
+datarate_to_binary(_Plan, Atom) when is_atom(Atom) ->
+    atom_to_binary(Atom);
+datarate_to_binary(_Plan, Binary) when is_binary(Binary) ->
+    Binary.
 
 -spec datarate_to_tuple(atom()) -> {integer(), integer()}.
 datarate_to_tuple(DataRate) ->
@@ -110,12 +146,58 @@ datarate_to_tuple(DataRate) ->
         _ -> {7, 125}
     end.
 
--spec max_uplink_payload_size(#channel_plan{}, atom()) -> integer().
+-spec up_to_down_datarate(#channel_plan{}, integer(), integer()) -> integer().
+up_to_down_datarate(Plan, Index, Offset) ->
+    Region = Plan#channel_plan.region,
+    OffsetList = dr_offset_list(Region, Index),
+    DownIndex = lists:nth(Offset + 1, OffsetList),
+    DownIndex.
+
+dr_offset_list(Region, Index) when Region == 'US915' ->
+    case Index of
+        0 -> [10, 9, 8, 8];
+        1 -> [11, 10, 9, 8];
+        2 -> [12, 11, 10, 9];
+        3 -> [13, 12, 11, 10];
+        4 -> [13, 13, 12, 11]
+    end;
+dr_offset_list(Region, Index) when Region == 'AU915' ->
+    case Index of
+        0 -> [8, 8, 8, 8, 8, 8];
+        1 -> [9, 8, 8, 8, 8, 8];
+        2 -> [10, 9, 8, 8, 8, 8];
+        3 -> [11, 10, 9, 8, 8, 8];
+        4 -> [12, 11, 10, 9, 8, 8];
+        5 -> [13, 12, 11, 10, 9, 8];
+        6 -> [13, 13, 12, 11, 10, 9]
+    end;
+dr_offset_list(Region, Index) when Region == 'CN470' ->
+    case Index of
+        0 -> [0, 0, 0, 0, 0, 0];
+        1 -> [1, 0, 0, 0, 0, 0];
+        2 -> [2, 1, 0, 0, 0, 0];
+        3 -> [3, 2, 1, 0, 0, 0];
+        4 -> [4, 3, 2, 1, 0, 0];
+        5 -> [5, 4, 3, 2, 1, 0]
+    end;
+dr_offset_list(_Region, Index) ->
+    case Index of
+        0 -> [0, 0, 0, 0, 0, 0];
+        1 -> [1, 0, 0, 0, 0, 0];
+        2 -> [2, 1, 0, 0, 0, 0];
+        3 -> [3, 2, 1, 0, 0, 0];
+        4 -> [4, 3, 2, 1, 0, 0];
+        5 -> [5, 4, 3, 2, 1, 0];
+        6 -> [6, 5, 4, 3, 2, 1];
+        7 -> [7, 6, 5, 4, 3, 2]
+    end.
+
+-spec max_uplink_payload_size(#channel_plan{}, data_rate()) -> integer().
 max_uplink_payload_size(Plan, DataRate) ->
     DwellTime = Plan#channel_plan.uplink_dwell_time,
     max_payload_size(DataRate, DwellTime).
 
--spec max_downlink_payload_size(#channel_plan{}, atom()) -> integer().
+-spec max_downlink_payload_size(#channel_plan{}, data_rate()) -> integer().
 max_downlink_payload_size(Plan, DataRate) ->
     DwellTime = Plan#channel_plan.downlink_dwell_time,
     max_payload_size(DataRate, DwellTime).
@@ -202,9 +284,22 @@ max_payload_size(DataRate, DwellTime) ->
             end
     end.
 
--spec atom_to_datarate(atom()) -> binary().
-atom_to_datarate(Atom) ->
-    atom_to_binary(Atom).
+-spec max_uplink_snr(atom()) -> number().
+max_uplink_snr(DataRate) ->
+    {SF, _} = datarate_to_tuple(DataRate),
+    max_snr(SF).
+
+-spec max_downlink_snr(#channel_plan{}, non_neg_integer(), number()) -> number().
+max_downlink_snr(Plan, DR, Offset) ->
+    DownDR = up_to_down_datarate(Plan, DR, Offset),
+    DRAtom = datarate_to_atom(Plan, DownDR),
+    {SF, _} = datarate_to_tuple(DRAtom),
+    max_snr(SF).
+
+%% from SX1272 DataSheet, Table 13
+max_snr(SF) ->
+    %% dB
+    -5 - 2.5 * (SF - 6).
 
 %% ------------------------------------------------------------------
 %% Receive Window Functions
@@ -249,19 +344,16 @@ new_txq(Freq, DataRate, Codr, Time) ->
 join1_window(Plan, DelaySeconds, RxQ) ->
     _Region = Plan#channel_plan.region,
     DownFreq = up_to_down_freq(Plan, RxQ#rxq.freq),
-    DataRateAtom = datarate_to_atom(RxQ#rxq.datr),
-    DataRateIdx = datarate_to_index(Plan, DataRateAtom),
+    DataRateIdx = datarate_to_index(Plan, RxQ#rxq.datr),
     DownDRIdx = up_to_down_datarate(Plan, DataRateIdx, 0),
-    DownDRAtom = lora_plan:index_to_datarate(Plan, DownDRIdx),
-    DownDRStr = lora_plan:atom_to_datarate(DownDRAtom),
+    DownDRStr = datarate_to_binary(Plan, DownDRIdx),
     TxQ = new_txq(DownFreq, DownDRStr, RxQ#rxq.codr, RxQ#rxq.time),
     tx_window(?JOIN1_WINDOW, RxQ, TxQ, DelaySeconds).
 
 -spec join2_window(#channel_plan{}, #rxq{}) -> #txq{}.
 join2_window(Plan, RxQ) ->
     DownFreq = Plan#channel_plan.rx2_freq,
-    DRAtom = index_to_datarate(Plan, Plan#channel_plan.rx2_datarate),
-    DataRateStr = atom_to_datarate(DRAtom),
+    DataRateStr = datarate_to_binary(Plan, Plan#channel_plan.rx2_datarate),
     TxQ = new_txq(DownFreq, DataRateStr, RxQ#rxq.codr, RxQ#rxq.time),
     tx_window(?JOIN2_WINDOW, RxQ, TxQ).
 
@@ -269,19 +361,16 @@ join2_window(Plan, RxQ) ->
 rx1_window(Plan, DelaySeconds, Offset, RxQ) ->
     _Region = Plan#channel_plan.region,
     DownFreq = up_to_down_freq(Plan, RxQ#rxq.freq),
-    DataRateAtom = datarate_to_atom(RxQ#rxq.datr),
-    DataRateIdx = datarate_to_index(Plan, DataRateAtom),
+    DataRateIdx = datarate_to_index(Plan, RxQ#rxq.datr),
     DownDRIdx = up_to_down_datarate(Plan, DataRateIdx, Offset),
-    DownDRAtom = lora_plan:index_to_datarate(Plan, DownDRIdx),
-    DownDRStr = lora_plan:atom_to_datarate(DownDRAtom),
+    DownDRStr = datarate_to_binary(Plan, DownDRIdx),
     TxQ = new_txq(DownFreq, DownDRStr, RxQ#rxq.codr, RxQ#rxq.time),
     tx_window(?RX1_WINDOW, RxQ, TxQ, DelaySeconds).
 
 -spec rx2_window(#channel_plan{}, number(), #rxq{}) -> #txq{}.
 rx2_window(Plan, DelaySeconds, RxQ) ->
     DownFreq = Plan#channel_plan.rx2_freq,
-    DRAtom = index_to_datarate(Plan, Plan#channel_plan.rx2_datarate),
-    DataRateStr = atom_to_datarate(DRAtom),
+    DataRateStr = datarate_to_binary(Plan, Plan#channel_plan.rx2_datarate),
     TxQ = new_txq(DownFreq, DataRateStr, RxQ#rxq.codr, RxQ#rxq.time),
     tx_window(?RX2_WINDOW, RxQ, TxQ, DelaySeconds).
 
@@ -339,93 +428,8 @@ get_window(?RX1_WINDOW) -> 1000000;
 get_window(?RX2_WINDOW) -> 2000000.
 
 %% ------------------------------------------------------------------
-%% DataRate Functions
+%% rx2 Functions
 %% ------------------------------------------------------------------
-
--spec datarate_to_index(#channel_plan{}, atom()) -> integer().
-datarate_to_index(Plan, Atom) ->
-    List = (Plan#channel_plan.data_rates),
-    Index = index_of(Atom, List, 15),
-    Index.
-
--spec index_to_datarate(#channel_plan{}, integer()) -> atom().
-index_to_datarate(Plan, Index) ->
-    List = (Plan#channel_plan.data_rates),
-    Len = length(List),
-    case Index < Len of
-        true ->
-            lists:nth(Index + 1, List);
-        false ->
-            'RFU'
-    end.
-
--spec up_to_down_datarate(#channel_plan{}, integer(), integer()) -> integer().
-up_to_down_datarate(Plan, Index, Offset) ->
-    Region = Plan#channel_plan.region,
-    OffsetList = dr_offset_list(Region, Index),
-    DownIndex = lists:nth(Offset + 1, OffsetList),
-    DownIndex.
-
-dr_offset_list(Region, Index) when Region == 'US915' ->
-    case Index of
-        0 -> [10, 9, 8, 8];
-        1 -> [11, 10, 9, 8];
-        2 -> [12, 11, 10, 9];
-        3 -> [13, 12, 11, 10];
-        4 -> [13, 13, 12, 11]
-    end;
-dr_offset_list(Region, Index) when Region == 'AU915' ->
-    case Index of
-        0 -> [8, 8, 8, 8, 8, 8];
-        1 -> [9, 8, 8, 8, 8, 8];
-        2 -> [10, 9, 8, 8, 8, 8];
-        3 -> [11, 10, 9, 8, 8, 8];
-        4 -> [12, 11, 10, 9, 8, 8];
-        5 -> [13, 12, 11, 10, 9, 8];
-        6 -> [13, 13, 12, 11, 10, 9]
-    end;
-dr_offset_list(Region, Index) when Region == 'CN470' ->
-    case Index of
-        0 -> [0, 0, 0, 0, 0, 0];
-        1 -> [1, 0, 0, 0, 0, 0];
-        2 -> [2, 1, 0, 0, 0, 0];
-        3 -> [3, 2, 1, 0, 0, 0];
-        4 -> [4, 3, 2, 1, 0, 0];
-        5 -> [5, 4, 3, 2, 1, 0]
-    end;
-dr_offset_list(_Region, Index) ->
-    case Index of
-        0 -> [0, 0, 0, 0, 0, 0];
-        1 -> [1, 0, 0, 0, 0, 0];
-        2 -> [2, 1, 0, 0, 0, 0];
-        3 -> [3, 2, 1, 0, 0, 0];
-        4 -> [4, 3, 2, 1, 0, 0];
-        5 -> [5, 4, 3, 2, 1, 0];
-        6 -> [6, 5, 4, 3, 2, 1];
-        7 -> [7, 6, 5, 4, 3, 2]
-    end.
-
-%% ------------------------------------------------------------------
-%% @doc Up Datarate tuple to Down Datarate tuple
-%% @end
-%% ------------------------------------------------------------------
-
--spec max_uplink_snr(atom()) -> number().
-max_uplink_snr(DataRate) ->
-    {SF, _} = datarate_to_tuple(DataRate),
-    max_snr(SF).
-
--spec max_downlink_snr(#channel_plan{}, non_neg_integer(), number()) -> number().
-max_downlink_snr(Plan, DR, Offset) ->
-    DownDR = up_to_down_datarate(Plan, DR, Offset),
-    DRAtom = index_to_datarate(Plan, DownDR),
-    {SF, _} = datarate_to_tuple(DRAtom),
-    max_snr(SF).
-
-%% from SX1272 DataSheet, Table 13
-max_snr(SF) ->
-    %% dB
-    -5 - 2.5 * (SF - 6).
 
 -spec rx2_datarate(#channel_plan{}) -> integer().
 rx2_datarate(Plan) ->
@@ -464,27 +468,13 @@ up_to_down_freq(Plan, Freq) ->
     DownFreq = lists:nth(UChannel + 1, DList),
     DownFreq.
 
--spec downlink_eirp(#channel_plan{}, float()) -> integer().
-downlink_eirp(Plan, Freq) ->
-    Region = (Plan#channel_plan.region),
-    case Region of
-        'EU868' ->
-            BeaconRange = 869.4 =< Freq andalso Freq < 869.65,
-            case BeaconRange of
-                true -> 27;
-                false -> (Plan#channel_plan.max_eirp_db)
-            end;
-        _ ->
-            (Plan#channel_plan.max_eirp_db)
-    end.
-
 %% ------------------------------------------------------------------
 %% TX Power Functions
 %% ------------------------------------------------------------------
 
 -spec max_tx_power(#channel_plan{}) -> pos_integer().
 max_tx_power(Plan) ->
-   Plan#channel_plan.max_eirp_db.
+    Plan#channel_plan.max_eirp_db.
 
 -spec tx_power(#channel_plan{}, integer()) -> pos_integer().
 tx_power(Plan, Index) when Index < 16 ->
@@ -1091,7 +1081,7 @@ validate_downlink_size(Plan, DataRateAtom) ->
         15 ->
             ?assertEqual(true, true);
         _ ->
-            DRAtom = index_to_datarate(Plan, DRIdx),
+            DRAtom = datarate_to_atom(Plan, DRIdx),
             ?assertEqual(DRAtom, DataRateAtom),
             M2 = lora_region:max_payload_size(Region, DRIdx),
             io:format("DRAtom=~w DR~w ~w~n", [DRAtom, DRIdx, M2]),
@@ -1112,9 +1102,9 @@ validate_payload_size(Plan) ->
 
 validate_txq(Plan, TxQ) ->
     _Region = Plan#channel_plan.region,
-    DRAtom = lora_plan:datarate_to_atom(TxQ#txq.datr),
+    DRAtom = lora_plan:datarate_to_atom(Plan, TxQ#txq.datr),
     DRIdx = lora_plan:datarate_to_index(Plan, DRAtom),
-    DRAtom2 = lora_plan:index_to_datarate(Plan, DRIdx),
+    DRAtom2 = lora_plan:datarate_to_atom(Plan, DRIdx),
     %% DR = datar_to_dr(Plan, TxQ#txq.datr),
     %% _Tuple = lora_region:dr_to_tuple(Region, DRIdx),
     ?assertEqual(DRAtom, DRAtom2).
@@ -1150,7 +1140,7 @@ validate_join1_window(Plan, RxQ) ->
 validate_window(Plan, DataRateAtom) ->
     Region = Plan#channel_plan.region,
     % io:format("Region=~w~n", [Region]),
-    DataRateStr = atom_to_datarate(DataRateAtom),
+    DataRateStr = datarate_to_binary(Plan, DataRateAtom),
     [JoinChannel | _] = Plan#channel_plan.u_channels,
     % io:format("JoinChannel=~w~n", [JoinChannel]),
 
