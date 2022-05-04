@@ -149,9 +149,22 @@ datarate_to_tuple(DataRate) ->
 
 -spec up_to_down_datarate(#channel_plan{}, integer(), integer()) -> integer().
 up_to_down_datarate(Plan, Index, Offset) ->
+    {MinOffset, MaxOffset} = Plan#channel_plan.rx1_offset,
+    TheOffset =
+        case Offset < MinOffset of
+            true ->
+                MinOffset;
+            false ->
+                case Offset > MaxOffset of
+                    true ->
+                        MaxOffset;
+                    false ->
+                        Offset
+                end
+        end,
     Region = Plan#channel_plan.region,
     OffsetList = dr_offset_list(Region, Index),
-    DownIndex = lists:nth(Offset + 1, OffsetList),
+    DownIndex = lists:nth(TheOffset + 1, OffsetList),
     DownIndex.
 
 dr_offset_list(Region, Index) when Region == 'US915' ->
@@ -565,8 +578,7 @@ plan_eu868() ->
         tx_param_setup_allowed = false,
         % max_eirp_db = 16,
         max_eirp_db = 20,
-        default_rx1_offset = 0,
-        rx1_offset = 5,
+        rx1_offset = {0, 5},
         rx2_datarate = 0,
         rx2_freq = 869.525,
         beacon_freq = 869.525,
@@ -612,8 +624,7 @@ plan_us915() ->
         downlink_dwell_time = 401,
         tx_param_setup_allowed = false,
         max_eirp_db = 30,
-        default_rx1_offset = 0,
-        rx1_offset = 3,
+        rx1_offset = {0, 3},
         rx2_datarate = 8,
         rx2_freq = 923.3,
         beacon_freq = 923.3,
@@ -660,8 +671,7 @@ plan_au915() ->
         downlink_dwell_time = 400,
         tx_param_setup_allowed = true,
         max_eirp_db = 30,
-        default_rx1_offset = 0,
-        rx1_offset = 5,
+        rx1_offset = {0, 5},
         rx2_datarate = 8,
         rx2_freq = 923.3,
         beacon_freq = 923.3,
@@ -698,8 +708,7 @@ plan_cn470() ->
         downlink_dwell_time = 1000,
         tx_param_setup_allowed = false,
         max_eirp_db = 19,
-        default_rx1_offset = 0,
-        rx1_offset = 7,
+        rx1_offset = {0, 7},
         rx2_datarate = 0,
         rx2_freq = 505.3,
         beacon_freq = 508.3,
@@ -742,8 +751,7 @@ plan_as923() ->
         downlink_dwell_time = 400,
         tx_param_setup_allowed = true,
         max_eirp_db = 16,
-        default_rx1_offset = 0,
-        rx1_offset = 7,
+        rx1_offset = {0, 7},
         rx2_datarate = 2,
         rx2_freq = 923.2,
         beacon_freq = 923.4,
@@ -786,8 +794,7 @@ plan_as923_1() ->
         downlink_dwell_time = 400,
         tx_param_setup_allowed = true,
         max_eirp_db = 16,
-        default_rx1_offset = 0,
-        rx1_offset = 7,
+        rx1_offset = {0, 7},
         rx2_datarate = 2,
         rx2_freq = 923.2,
         beacon_freq = 923.4,
@@ -830,8 +837,7 @@ plan_as923_2() ->
         downlink_dwell_time = 400,
         tx_param_setup_allowed = true,
         max_eirp_db = 16,
-        default_rx1_offset = 0,
-        rx1_offset = 7,
+        rx1_offset = {0, 7},
         rx2_datarate = 2,
         rx2_freq = 921.4,
         beacon_freq = 921.6,
@@ -874,8 +880,7 @@ plan_as923_3() ->
         downlink_dwell_time = 400,
         tx_param_setup_allowed = true,
         max_eirp_db = 16,
-        default_rx1_offset = 0,
-        rx1_offset = 7,
+        rx1_offset = {0, 7},
         rx2_datarate = 2,
         rx2_freq = 916.6,
         beacon_freq = 916.8,
@@ -918,8 +923,7 @@ plan_as923_4() ->
         downlink_dwell_time = 400,
         tx_param_setup_allowed = true,
         max_eirp_db = 16,
-        default_rx1_offset = 0,
-        rx1_offset = 7,
+        rx1_offset = {0, 7},
         rx2_datarate = 2,
         rx2_freq = 917.3,
         beacon_freq = 917.5,
@@ -956,8 +960,7 @@ plan_kr920() ->
         downlink_dwell_time = 0,
         tx_param_setup_allowed = false,
         max_eirp_db = 14,
-        default_rx1_offset = 0,
-        rx1_offset = 5,
+        rx1_offset = {0, 5},
         rx2_datarate = 0,
         rx2_freq = 921.9,
         beacon_freq = 923.1,
@@ -996,8 +999,7 @@ plan_in865() ->
         downlink_dwell_time = 0,
         tx_param_setup_allowed = false,
         max_eirp_db = 30,
-        default_rx1_offset = 0,
-        rx1_offset = 7,
+        rx1_offset = {0, 7},
         rx2_datarate = 2,
         rx2_freq = 866.550,
         beacon_freq = 866.550,
