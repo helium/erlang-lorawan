@@ -94,15 +94,12 @@ datarate_to_atom(_Plan, Binary) when is_binary(Binary) ->
 
 -spec datarate_to_index(#channel_plan{}, data_rate()) -> integer().
 datarate_to_index(_Plan, Index) when is_integer(Index) ->
-    io:format("datarate_to_index Index=~w~n", [Index]),
     Index;
 datarate_to_index(Plan, Atom) when is_atom(Atom) ->
-    io:format("datarate_to_index Atom=~w~n", [Atom]),
     List = (Plan#channel_plan.data_rates),
     Index = index_of(Atom, List, 15),
     Index;
 datarate_to_index(Plan, Binary) when is_binary(Binary) ->
-    io:format("datarate_to_index Binary=~w~n", [Binary]),
     Atom = binary_to_atom(Binary),
     datarate_to_index(Plan, Atom).
 
