@@ -62,6 +62,7 @@
     u_channels :: [float()],
     d_channels :: [float()],
     channel_count :: integer(),
+    bank_offset :: integer(),
     join_channels :: dr_range(),
     data_rates :: [dr_atom()],
     tx_power :: [power_offset()],
