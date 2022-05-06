@@ -50,9 +50,12 @@
 }).
 
 -record(channel_plan, {
-    id :: 1..13,
-    name :: atom(),
-    region :: atom(),
+    %% ID from the Region spec
+    channel_plan_id :: 1..13,
+    %% base_region: EU868, US915, AS923, etc.
+    base_region :: atom(),
+    %% plan_name: EU868_A, US915_SB2, AS923_1A, AS923_1B, etc.
+    plan_name :: atom(),
     dynamic_plan :: boolean(),
     min_freq :: number(),
     max_freq :: number(),

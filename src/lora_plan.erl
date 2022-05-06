@@ -32,17 +32,18 @@
 -spec region_to_plan(atom()) -> #channel_plan{}.
 region_to_plan(Region) ->
     case Region of
-        'EU868' -> plan_eu868();
-        'US915' -> plan_us915();
-        'AU915' -> plan_au915();
-        'CN470' -> plan_cn470();
-        'KR920' -> plan_kr920();
-        'IN865' -> plan_in865();
-        'AS923' -> plan_as923();
-        'AS923_1' -> plan_as923_1();
-        'AS923_2' -> plan_as923_2();
-        'AS923_3' -> plan_as923_3();
-        'AS923_4' -> plan_as923_4()
+        'EU868' -> plan_eu868_A();
+        'US915' -> plan_us915_SB2();
+        'AU915' -> plan_au915_SB2();
+        'CN470' -> plan_cn470_A();
+        'KR920' -> plan_kr920_A();
+        'IN865' -> plan_in865_A();
+        'AS923' -> plan_as923_A();
+        'AS923_1' -> plan_as923_1A();
+        'AS923_2' -> plan_as923_2A();
+        'AS923_3' -> plan_as923_3A();
+        'AS923_4' -> plan_as923_4A();
+        'AS923_1B' -> plan_as923_1B()
     end.
 
 %% ------------------------------------------------------------------
@@ -159,7 +160,7 @@ up_to_down_datarate(Plan, Index, Offset) ->
                         Offset
                 end
         end,
-    Region = Plan#channel_plan.region,
+    Region = Plan#channel_plan.base_region,
     OffsetList = dr_offset_list(Region, Index),
     DownIndex = lists:nth(TheOffset + 1, OffsetList),
     DownIndex.
@@ -362,7 +363,7 @@ new_txq(Freq, DataRate, Codr, Time) ->
 
 -spec join1_window(#channel_plan{}, integer(), #rxq{}) -> #txq{}.
 join1_window(Plan, DelaySeconds, RxQ) ->
-    _Region = Plan#channel_plan.region,
+    _Region = Plan#channel_plan.base_region,
     DownFreq = up_to_down_freq(Plan, RxQ#rxq.freq),
     DataRateIdx = datarate_to_index(Plan, RxQ#rxq.datr),
     DownDRIdx = up_to_down_datarate(Plan, DataRateIdx, 0),
@@ -379,7 +380,7 @@ join2_window(Plan, RxQ) ->
 
 -spec rx1_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
 rx1_window(Plan, DelaySeconds, Offset, RxQ) ->
-    _Region = Plan#channel_plan.region,
+    _Region = Plan#channel_plan.base_region,
     DownFreq = up_to_down_freq(Plan, RxQ#rxq.freq),
     DataRateIdx = datarate_to_index(Plan, RxQ#rxq.datr),
     DownDRIdx = up_to_down_datarate(Plan, DataRateIdx, Offset),
@@ -396,7 +397,7 @@ rx2_window(Plan, DelaySeconds, RxQ) ->
 
 -spec rx1_or_rx2_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
 rx1_or_rx2_window(Plan, Delay, Offset, RxQ) ->
-    Region = Plan#channel_plan.region,
+    Region = Plan#channel_plan.base_region,
     case Region of
         'EU868' ->
             if
@@ -536,11 +537,11 @@ index_of(Value, List, Default) ->
 %% Plan Record Functions
 %% ------------------------------------------------------------------
 
-plan_eu868() ->
+plan_eu868_A() ->
     Plan = #channel_plan{
-        id = 1,
-        name = 'EU868',
-        region = 'EU868',
+        channel_plan_id = 1,
+        plan_name = 'EU868_A',
+        base_region = 'EU868',
         dynamic_plan = true,
         min_freq = 863.0,
         max_freq = 870.0,
@@ -583,11 +584,11 @@ plan_eu868() ->
     },
     Plan.
 
-plan_us915() ->
+plan_us915_SB2() ->
     Plan = #channel_plan{
-        id = 2,
-        name = 'US915',
-        region = 'US915',
+        channel_plan_id = 2,
+        plan_name = 'US915_SB2',
+        base_region = 'US915',
         dynamic_plan = false,
         min_freq = 902.0,
         max_freq = 928.0,
@@ -629,11 +630,11 @@ plan_us915() ->
     },
     Plan.
 
-plan_au915() ->
+plan_au915_SB2() ->
     Plan = #channel_plan{
-        id = 5,
-        name = 'AU915',
-        region = 'AU915',
+        channel_plan_id = 5,
+        plan_name = 'AU915_SB2',
+        base_region = 'AU915',
         dynamic_plan = false,
         min_freq = 915.0,
         max_freq = 928.0,
@@ -676,11 +677,11 @@ plan_au915() ->
     },
     Plan.
 
-plan_cn470() ->
+plan_cn470_A() ->
     Plan = #channel_plan{
-        id = 6,
-        name = 'CN470',
-        region = 'CN470',
+        channel_plan_id = 6,
+        plan_name = 'CN470_A',
+        base_region = 'CN470',
         dynamic_plan = true,
         min_freq = 470.0,
         max_freq = 510.0,
@@ -713,11 +714,11 @@ plan_cn470() ->
     },
     Plan.
 
-plan_as923() ->
+plan_as923_A() ->
     Plan = #channel_plan{
-        id = 7,
-        name = 'AS923',
-        region = 'AS923',
+        channel_plan_id = 7,
+        plan_name = 'AS923_1A',
+        base_region = 'AS923',
         dynamic_plan = true,
         min_freq = 915.0,
         max_freq = 928.0,
@@ -756,11 +757,11 @@ plan_as923() ->
     },
     Plan.
 
-plan_as923_1() ->
+plan_as923_1A() ->
     Plan = #channel_plan{
-        id = 7,
-        name = 'AS923_1',
-        region = 'AS923_1',
+        channel_plan_id = 7,
+        plan_name = 'AS923_1A',
+        base_region = 'AS923_1',
         dynamic_plan = true,
         min_freq = 915.0,
         max_freq = 928.0,
@@ -799,11 +800,58 @@ plan_as923_1() ->
     },
     Plan.
 
-plan_as923_2() ->
+%%
+%% Defined from https://docs.google.com/spreadsheets/d/1Mw3qtSNLz4kSjJXZwptnw_pqbYAaxPrpXLsVKQrOY_U
+%% and https://docs.google.com/document/d/1ImdqnNkD7BDE8ocKvUI1M8Bke8GtTuFsMCcFcEGTEQk
+%%
+plan_as923_1B() ->
     Plan = #channel_plan{
-        id = 8,
-        name = 'AS923_2',
-        region = 'AS923_2',
+        channel_plan_id = 7,
+        plan_name = 'AS923_1B',
+        base_region = 'AS923_1',
+        dynamic_plan = true,
+        min_freq = 915.0,
+        max_freq = 923.0,
+        u_channels = [922.0, 922.2, 922.4, 922.6, 922.8, 923.0, 923.2, 923.4],
+        d_channels = [915.2, 915.4, 915.6, 915.8, 916.0, 916.2, 916.4, 916.6],
+        channel_count = 8,
+        join_channels = {6, 7},
+        data_rates = [
+            'SF12BW125',
+            'SF11BW125',
+            'SF10BW125',
+            'SF9BW125',
+            'SF8BW125',
+            'SF7BW125',
+            'SF7BW250',
+            'FSK50',
+            'LRFHSS1BW137',
+            'LRFHSS2BW137',
+            'LRFHSS1BW336',
+            'LRFHSS2BW336'
+        ],
+        tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
+        join_dr = {2, 5},
+        mandatory_dr = {0, 5},
+        optional_dr = {6, 7},
+        max_duty_cycle = 1,
+        uplink_dwell_time = 400,
+        downlink_dwell_time = 400,
+        tx_param_setup_allowed = true,
+        max_eirp_db = 16,
+        rx1_offset = {0, 7},
+        rx2_datarate = 2,
+        rx2_freq = 923.2,
+        beacon_freq = 923.4,
+        pingslot_freq = 923.4
+    },
+    Plan.
+
+plan_as923_2A() ->
+    Plan = #channel_plan{
+        channel_plan_id = 8,
+        plan_name = 'AS923_2A',
+        base_region = 'AS923_2',
         dynamic_plan = true,
         min_freq = 920.0,
         max_freq = 923.0,
@@ -842,11 +890,11 @@ plan_as923_2() ->
     },
     Plan.
 
-plan_as923_3() ->
+plan_as923_3A() ->
     Plan = #channel_plan{
-        id = 9,
-        name = 'AS923_3',
-        region = 'AS923_3',
+        channel_plan_id = 9,
+        plan_name = 'AS923_3A',
+        base_region = 'AS923_3',
         dynamic_plan = true,
         min_freq = 915.0,
         max_freq = 921.0,
@@ -885,11 +933,11 @@ plan_as923_3() ->
     },
     Plan.
 
-plan_as923_4() ->
+plan_as923_4A() ->
     Plan = #channel_plan{
-        id = 13,
-        name = 'AS923_4',
-        region = 'AS923_4',
+        channel_plan_id = 13,
+        plan_name = 'AS923_4A',
+        base_region = 'AS923_4',
         dynamic_plan = true,
         min_freq = 917.0,
         max_freq = 920.0,
@@ -928,11 +976,11 @@ plan_as923_4() ->
     },
     Plan.
 
-plan_kr920() ->
+plan_kr920_A() ->
     Plan = #channel_plan{
-        id = 10,
-        name = 'KR920',
-        region = 'KR920',
+        channel_plan_id = 10,
+        plan_name = 'KR920_A',
+        base_region = 'KR920',
         dynamic_plan = true,
         min_freq = 920.9,
         max_freq = 923.3,
@@ -965,11 +1013,11 @@ plan_kr920() ->
     },
     Plan.
 
-plan_in865() ->
+plan_in865_A() ->
     Plan = #channel_plan{
-        id = 11,
-        name = 'IN865',
-        region = 'IN865',
+        channel_plan_id = 11,
+        plan_name = 'IN865_A',
+        base_region = 'IN865',
         dynamic_plan = true,
         min_freq = 865.0,
         max_freq = 867.0,
@@ -1071,7 +1119,7 @@ validate_d_frequences(Region, List) ->
     ?assertEqual([0, 1, 2, 3, 4, 5, 6, 7], TList).
 
 validate_tx_power(Plan) ->
-    Region = Plan#channel_plan.region,
+    Region = Plan#channel_plan.base_region,
     PowerTable = lora_region:uplink_power_table(Region),
     PT0 = [X || {_I, X} <- PowerTable],
     PT1 = tx_power_list(Plan),
@@ -1083,7 +1131,7 @@ validate_tx_power(Plan) ->
     ?assertEqual(PT0, PT1).
 
 validate_downlink_size(Plan, DataRateAtom) ->
-    Region = Plan#channel_plan.region,
+    Region = Plan#channel_plan.base_region,
     M1 = max_uplink_payload_size(Plan, DataRateAtom),
     DRIdx = datarate_to_index(Plan, DataRateAtom),
     case DRIdx of
@@ -1110,7 +1158,7 @@ validate_payload_size(Plan) ->
     validate_downlink_size(Plan, 'SF10BW500').
 
 validate_txq(Plan, TxQ) ->
-    _Region = Plan#channel_plan.region,
+    _Region = Plan#channel_plan.base_region,
     DRAtom = lora_plan:datarate_to_atom(Plan, TxQ#txq.datr),
     DRIdx = lora_plan:datarate_to_index(Plan, DRAtom),
     DRAtom2 = lora_plan:datarate_to_atom(Plan, DRIdx),
@@ -1119,35 +1167,35 @@ validate_txq(Plan, TxQ) ->
     ?assertEqual(DRAtom, DRAtom2).
 
 validate_rx2_window(Plan, RxQ) ->
-    Region = Plan#channel_plan.region,
+    Region = Plan#channel_plan.base_region,
     TxQ_P = rx2_window(Plan, 0, RxQ),
     TxQ_R = lora_region:rx2_window(Region, 0, RxQ),
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
 validate_join2_window(Plan, RxQ) ->
-    Region = Plan#channel_plan.region,
+    Region = Plan#channel_plan.base_region,
     TxQ_P = join2_window(Plan, RxQ),
     TxQ_R = lora_region:join2_window(Region, RxQ),
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
 validate_rx1_window(Plan, RxQ) ->
-    Region = Plan#channel_plan.region,
+    Region = Plan#channel_plan.base_region,
     TxQ_P = rx1_window(Plan, 0, 0, RxQ),
     TxQ_R = lora_region:rx1_window(Region, 0, 0, RxQ),
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
 validate_join1_window(Plan, RxQ) ->
-    Region = Plan#channel_plan.region,
+    Region = Plan#channel_plan.base_region,
     TxQ_P = join1_window(Plan, 0, RxQ),
     TxQ_R = lora_region:join1_window(Region, 0, RxQ),
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
 validate_window(Plan, DataRateAtom) ->
-    Region = Plan#channel_plan.region,
+    Region = Plan#channel_plan.base_region,
     % io:format("Region=~w~n", [Region]),
     DataRateStr = datarate_to_binary(Plan, DataRateAtom),
     [JoinChannel | _] = Plan#channel_plan.u_channels,
@@ -1185,7 +1233,7 @@ validate_window(Plan, DataRateAtom) ->
     ok.
 
 exercise_plan(Plan) ->
-    Region = Plan#channel_plan.region,
+    Region = Plan#channel_plan.base_region,
     io:format("Region=~w~n", [Region]),
     validate_window(Plan, 'SF10BW125'),
     validate_payload_size(Plan),
@@ -1196,13 +1244,13 @@ exercise_plan(Plan) ->
     validate_d_frequences(Region, Plan#channel_plan.d_channels).
 
 plan_test() ->
-    exercise_plan(plan_eu868()),
-    exercise_plan(plan_as923_1()),
-    exercise_plan(plan_us915()),
-    exercise_plan(plan_au915()),
-    % exercise_plan(plan_in865()),
-    exercise_plan(plan_cn470()),
-    % exercise_plan(plan_kr920()),
+    exercise_plan(plan_eu868_A()),
+    exercise_plan(plan_as923_1A()),
+    exercise_plan(plan_us915_SB2()),
+    exercise_plan(plan_au915_SB2()),
+    % exercise_plan(plan_in865_A()),
+    exercise_plan(plan_cn470_A()),
+    % exercise_plan(plan_kr920_A()),
     fin.
 
 -endif.
