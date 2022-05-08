@@ -476,8 +476,9 @@ freq_to_channel(Plan, Freq) ->
 
 -spec channel_to_freq(#channel_plan{}, integer()) -> number().
 channel_to_freq(Plan, Ch) ->
+    Ch2 = Ch rem Plan#channel_plan.channel_count,
     List = (Plan#channel_plan.u_channels),
-    Freq = lists:nth(Ch, List),
+    Freq = lists:nth(Ch2 + 1, List),
     Freq.
 
 -spec up_to_down_freq(#channel_plan{}, number()) -> number().
@@ -535,6 +536,10 @@ index_of(Value, List, Default) ->
 
 %% ------------------------------------------------------------------
 %% Plan Record Functions
+%%
+%% u_channels frequencies are defined here.  Refer for source of truth.
+%% https://github.com/helium/sx1302_hal/blob/helium/hotspot/packet_forwarder/
+%%
 %% ------------------------------------------------------------------
 
 plan_eu868_A() ->
@@ -545,8 +550,8 @@ plan_eu868_A() ->
         dynamic_plan = true,
         min_freq = 863.0,
         max_freq = 870.0,
-        u_channels = [868.1, 868.3, 868.5, 864.3, 864.5, 864.7, 864.9, 865.1],
-        d_channels = [868.1, 868.3, 868.5, 868.7, 868.9, 869.1, 869.3, 869.5],
+        u_channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
+        d_channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
         channel_count = 8,
         bank_offset = 0,
         join_channels = {0, 2},
@@ -595,7 +600,7 @@ plan_us915_SB2() ->
         max_freq = 928.0,
         %% US915's subbank two set of channels
         u_channels = [903.9, 904.1, 904.3, 904.5, 904.7, 904.9, 905.1, 905.3],
-        %% US915's The eight downlink channels are hard-coded in the spec
+        %% The eight US915 downlink channels are hard-coded in the spec
         d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
         channel_count = 8,
         bank_offset = 8,
@@ -644,7 +649,7 @@ plan_au915_SB2() ->
         max_freq = 928.0,
         %% AU915's subbank two set of channels
         u_channels = [916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0, 918.2],
-        %% AU915's The eight downlink channels are hard-coded in the spec
+        %% The eight AU915 downlink channels are hard-coded in the spec
         d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
         channel_count = 8,
         bank_offset = 8,
@@ -692,8 +697,8 @@ plan_cn470_A() ->
         dynamic_plan = true,
         min_freq = 470.0,
         max_freq = 510.0,
-        u_channels = [470.3, 470.5, 470.7, 470.9, 471.1, 471.3, 471.5, 471.7],
-        d_channels = [500.3, 500.5, 500.7, 500.9, 501.1, 501.3, 501.5, 501.7],
+        u_channels = [486.3, 486.5, 486.7, 486.9, 487.1, 487.3, 487.5, 487.7],
+        d_channels = [506.7, 506.9, 507.2, 507.4, 507.6, 507.8, 508.0, 508.2],
         channel_count = 8,
         bank_offset = 0,
         join_channels = {0, 2},
@@ -998,9 +1003,9 @@ plan_kr920_A() ->
         dynamic_plan = true,
         min_freq = 920.9,
         max_freq = 923.3,
-        u_channels = [922.1, 922.3, 922.5, 921.5, 921.7, 921.9, 922.1, 922.3],
-        d_channels = [920.9, 921.1, 921.3, 921.5, 921.7, 921.9, 922.1, 922.3],
-        channel_count = 8,
+        u_channels = [922.1, 922.3, 922.5, 922.5, 922.7, 923.1, 923.3],
+        d_channels = [922.1, 922.3, 922.5, 922.5, 922.7, 923.1, 923.3],
+        channel_count = 7,
         bank_offset = 0,
         join_channels = {0, 2},
         data_rates = [
@@ -1036,9 +1041,9 @@ plan_in865_A() ->
         dynamic_plan = true,
         min_freq = 865.0,
         max_freq = 867.0,
-        u_channels = [865.0625, 865.4025, 865.985, 866.3, 866.4, 866.5, 866.6, 866.7],
-        d_channels = [866.0, 866.1, 866.2, 866.3, 866.4, 866.5, 866.6, 866.7],
-        channel_count = 8,
+        u_channels = [865.0625, 865.4025, 865.985],
+        d_channels = [865.0625, 865.4025, 865.985],
+        channel_count = 3,
         bank_offset = 0,
         join_channels = {0, 2},
         data_rates = [
@@ -1074,67 +1079,24 @@ plan_in865_A() ->
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
-validate_u_channels(Region, List, BankOffset) ->
-    OffsetList = [X + BankOffset || X <- [0, 1, 2, 3, 4, 5, 6, 7]],
-    TList = [
-        lora_region:uch2f(Region, F)
-     || F <- OffsetList
-    ],
-    ?assertEqual(List, TList).
+seek_freq(Plan, Freq) ->
+    Region = Plan#channel_plan.base_region,
+    lora_region:f2uch(Region, Freq).
 
-validate_d_channels(Region, List) ->
-    TList = [
-        lora_region:dch2f(Region, F)
-     || F <- [0, 1, 2, 3, 4, 5, 6, 7]
-    ],
-    ?assertEqual(List, TList).
+validate_channel(Plan, Ch) ->
+    % Region = Plan#channel_plan.base_region,
+    % io:format("Region=~w~n", [Region]),
+    F1 = channel_to_freq(Plan, Ch),
+    Ch2 = freq_to_channel(Plan, F1),
+    F2 = channel_to_freq(Plan, Ch2),
+    _OldCh = seek_freq(Plan, F2),
+    % io:format("Ch=~w F1=~w F2=~w OldCh=~w~n", [Ch, F1, F2, OldCh]),
+    ?assertEqual(F1, F2).
 
-%%-spec validate_u_frequences(atom(), [float()]) -> any().
-validate_u_frequences('EU868', List, _BankOffset) ->
-    TList = [
-        lora_region:f2uch('EU868', F)
-     || F <- List
-    ],
-    ?assertEqual([0, 1, 2, -11, -10, -9, -8, -7], TList);
-validate_u_frequences('CN470', List, _BankOffset) ->
-    TList = [
-        lora_region:f2uch('CN470', F)
-     || F <- List
-    ],
-    ?assertEqual([315, 316, 317, 318, 319, 320, 321, 322], TList);
-validate_u_frequences('KR920', List, _BankOffset) ->
-    TList = [
-        lora_region:f2uch('KR920', F)
-     || F <- List
-    ],
-    ?assertEqual([0, 1, 2, -3, -2, -1, 0, 1], TList);
-validate_u_frequences(Region, List, BankOffset) ->
-    OffsetList = [X + BankOffset || X <- [0, 1, 2, 3, 4, 5, 6, 7]],
-    TList = [
-        lora_region:f2uch(Region, F)
-     || F <- List
-    ],
-    ?assertEqual(OffsetList, TList).
-
-%%-spec validate_d_frequences(atom(), [float()]) -> any().
-validate_d_frequences('CN470', List) ->
-    TList = [
-        lora_region:f2dch('CN470', F)
-     || F <- List
-    ],
-    ?assertEqual([465, 466, 467, 468, 469, 470, 471, 472], TList);
-validate_d_frequences('KR920', List) ->
-    TList = [
-        lora_region:f2dch('KR920', F)
-     || F <- List
-    ],
-    ?assertEqual([-6, -5, -4, -3, -2, -1, 0, 1], TList);
-validate_d_frequences(Region, List) ->
-    TList = [
-        lora_region:f2dch(Region, F)
-     || F <- List
-    ],
-    ?assertEqual([0, 1, 2, 3, 4, 5, 6, 7], TList).
+validate_channels(Plan) ->
+    % Region = Plan#channel_plan.base_region,
+    ChannelList = lists:seq(0, 16),
+    [validate_channel(Plan, X) || X <- ChannelList].
 
 validate_tx_power(Plan) ->
     Region = Plan#channel_plan.base_region,
@@ -1159,7 +1121,7 @@ validate_downlink_size(Plan, DataRateAtom) ->
             DRAtom = datarate_to_atom(Plan, DRIdx),
             ?assertEqual(DRAtom, DataRateAtom),
             M2 = lora_region:max_payload_size(Region, DRIdx),
-            io:format("DRAtom=~w DR~w ~w~n", [DRAtom, DRIdx, M2]),
+            % io:format("DRAtom=~w DR~w ~w~n", [DRAtom, DRIdx, M2]),
             ?assertEqual(M2, M1)
     end.
 
@@ -1214,7 +1176,7 @@ validate_join1_window(Plan, RxQ) ->
 
 validate_window(Plan, DataRateAtom) ->
     Region = Plan#channel_plan.base_region,
-    % io:format("Region=~w~n", [Region]),
+    % io:format("validate_window Region=~w~n", [Region]),
     DataRateStr = datarate_to_binary(Plan, DataRateAtom),
     [JoinChannel | _] = Plan#channel_plan.u_channels,
     % io:format("JoinChannel=~w~n", [JoinChannel]),
@@ -1256,10 +1218,11 @@ exercise_plan(Plan) ->
     validate_window(Plan, 'SF10BW125'),
     validate_payload_size(Plan),
     validate_tx_power(Plan),
-    validate_u_channels(Region, Plan#channel_plan.u_channels, Plan#channel_plan.bank_offset),
-    validate_d_channels(Region, Plan#channel_plan.d_channels),
-    validate_u_frequences(Region, Plan#channel_plan.u_channels, Plan#channel_plan.bank_offset),
-    validate_d_frequences(Region, Plan#channel_plan.d_channels).
+    validate_channels(Plan).
+% validate_u_channels(Region, Plan#channel_plan.u_channels, Plan#channel_plan.bank_offset),
+% validate_d_channels(Region, Plan#channel_plan.d_channels),
+% validate_u_frequences(Region, Plan#channel_plan.u_channels, Plan#channel_plan.bank_offset),
+% validate_d_frequences(Region, Plan#channel_plan.d_channels).
 
 plan_test() ->
     exercise_plan(plan_eu868_A()),
@@ -1269,6 +1232,10 @@ plan_test() ->
     % exercise_plan(plan_in865_A()),
     exercise_plan(plan_cn470_A()),
     % exercise_plan(plan_kr920_A()),
+    % exercise_plan(plan_as923_2A()),
+    % exercise_plan(plan_as923_3A()),
+    % exercise_plan(plan_as923_4A()),
+    % exercise_plan(plan_as923_1A()),
     fin.
 
 -endif.
