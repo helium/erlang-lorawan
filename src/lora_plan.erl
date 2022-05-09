@@ -1079,6 +1079,19 @@ plan_in865_A() ->
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
+valid_uplink_freq(Plan, Freq) ->
+    Region = Plan#channel_plan.base_region,
+    F0 = lora_region:uch2f(Region, 0),
+    case Freq of
+        F0 ->
+            true;
+        _ ->
+            Ch = lora_region:f2uch(Region, Freq),
+            Freq2 = lora_region:uch2f(Region, Ch),
+            io:format("Freq=~w Ch=~w Freq2=~w ~n", [Freq, Ch, Freq2]),
+            (Ch > 0)
+    end.
+
 seek_freq(Plan, Freq) ->
     Region = Plan#channel_plan.base_region,
     lora_region:f2uch(Region, Freq).
@@ -1089,6 +1102,7 @@ validate_channel(Plan, Ch) ->
     F1 = channel_to_freq(Plan, Ch),
     Ch2 = freq_to_channel(Plan, F1),
     F2 = channel_to_freq(Plan, Ch2),
+    ?assert(valid_uplink_freq(Plan, F2)),
     _OldCh = seek_freq(Plan, F2),
     % io:format("Ch=~w F1=~w F2=~w OldCh=~w~n", [Ch, F1, F2, OldCh]),
     ?assertEqual(F1, F2).
@@ -1110,6 +1124,10 @@ validate_tx_power(Plan) ->
     % io:format("Plan#channel_plan.tx_powers=~w~n", [Plan#channel_plan.tx_power]),
     ?assertEqual(PT0, PT1).
 
+validate_downlink_size(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
+    ?assert(true);
+validate_downlink_size(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
+    ?assert(true);
 validate_downlink_size(Plan, DataRateAtom) ->
     Region = Plan#channel_plan.base_region,
     M1 = max_uplink_payload_size(Plan, DataRateAtom),
@@ -1121,7 +1139,7 @@ validate_downlink_size(Plan, DataRateAtom) ->
             DRAtom = datarate_to_atom(Plan, DRIdx),
             ?assertEqual(DRAtom, DataRateAtom),
             M2 = lora_region:max_payload_size(Region, DRIdx),
-            % io:format("DRAtom=~w DR~w ~w~n", [DRAtom, DRIdx, M2]),
+            io:format("DRAtom=~w DR~w ~w~n", [DRAtom, DRIdx, M2]),
             ?assertEqual(M2, M1)
     end.
 
@@ -1146,6 +1164,10 @@ validate_txq(Plan, TxQ) ->
     %% _Tuple = lora_region:dr_to_tuple(Region, DRIdx),
     ?assertEqual(DRAtom, DRAtom2).
 
+validate_rx2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
+    ?assert(true);
+validate_rx2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
+    ?assert(true);
 validate_rx2_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = rx2_window(Plan, 0, RxQ),
@@ -1153,6 +1175,10 @@ validate_rx2_window(Plan, RxQ) ->
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
+validate_join2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
+    ?assert(true);
+validate_join2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
+    ?assert(true);
 validate_join2_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = join2_window(Plan, RxQ),
@@ -1160,6 +1186,10 @@ validate_join2_window(Plan, RxQ) ->
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
+validate_rx1_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
+    ?assert(true);
+validate_rx1_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
+    ?assert(true);
 validate_rx1_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = rx1_window(Plan, 0, 0, RxQ),
@@ -1167,6 +1197,10 @@ validate_rx1_window(Plan, RxQ) ->
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
+validate_join1_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
+    ?assert(true);
+validate_join1_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
+    ?assert(true);
 validate_join1_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = join1_window(Plan, 0, RxQ),
@@ -1219,19 +1253,15 @@ exercise_plan(Plan) ->
     validate_payload_size(Plan),
     validate_tx_power(Plan),
     validate_channels(Plan).
-% validate_u_channels(Region, Plan#channel_plan.u_channels, Plan#channel_plan.bank_offset),
-% validate_d_channels(Region, Plan#channel_plan.d_channels),
-% validate_u_frequences(Region, Plan#channel_plan.u_channels, Plan#channel_plan.bank_offset),
-% validate_d_frequences(Region, Plan#channel_plan.d_channels).
 
 plan_test() ->
     exercise_plan(plan_eu868_A()),
     exercise_plan(plan_as923_1A()),
     exercise_plan(plan_us915_SB2()),
     exercise_plan(plan_au915_SB2()),
-    % exercise_plan(plan_in865_A()),
+    exercise_plan(plan_in865_A()),
     exercise_plan(plan_cn470_A()),
-    % exercise_plan(plan_kr920_A()),
+    exercise_plan(plan_kr920_A()),
     % exercise_plan(plan_as923_2A()),
     % exercise_plan(plan_as923_3A()),
     % exercise_plan(plan_as923_4A()),
