@@ -482,7 +482,8 @@ channel_to_freq(Plan, Ch) ->
     Freq.
 
 -spec up_to_down_freq(#channel_plan{}, number()) -> number().
-up_to_down_freq(Plan, Freq) ->
+up_to_down_freq(Plan, Freq0) ->
+    Freq = erlang:list_to_float(io_lib:format("~.4f", [Freq0])),
     UList = (Plan#channel_plan.u_channels),
     % io:format("Freq=~w UList=~w~n", [Freq, UList]),
     UChannel = index_of(Freq, UList, 1),
@@ -1078,6 +1079,20 @@ plan_in865_A() ->
 %% ------------------------------------------------------------------
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+
+uplink_to_downlink_rounding_test() ->
+    #channel_plan{u_channels=UChans, d_channels=DChans}=Plan = lora_plan:region_to_plan('US915'),
+
+    RoundingError = 0.00000000094,
+    lists:foreach(
+      fun({Up, Down}) ->
+              JsonUp = Up - RoundingError,
+              ?assertEqual(up_to_down_freq(Plan, JsonUp), Down)
+      end,
+      lists:zip(UChans, DChans)
+     ),
+
+    ok.
 
 valid_uplink_freq(Plan, Freq) ->
     Region = Plan#channel_plan.base_region,
