@@ -469,9 +469,10 @@ rx2_tuple(Plan) ->
 %% ------------------------------------------------------------------
 
 -spec freq_to_channel(#channel_plan{}, number()) -> integer().
-freq_to_channel(Plan, Freq) ->
+freq_to_channel(Plan, Freq0) ->
+    Freq1 = round_frequency(Freq0, Plan#channel_plan.float_precision),
     List = (Plan#channel_plan.u_channels),
-    Channel = index_of(Freq, List, 0),
+    Channel = index_of(Freq1, List, 0),
     Channel.
 
 -spec channel_to_freq(#channel_plan{}, integer()) -> number().
@@ -483,10 +484,10 @@ channel_to_freq(Plan, Ch) ->
 
 -spec up_to_down_freq(#channel_plan{}, number()) -> number().
 up_to_down_freq(Plan, Freq0) ->
-    Freq = erlang:list_to_float(io_lib:format("~.4f", [Freq0])),
+    Freq1 = round_frequency(Freq0, Plan#channel_plan.float_precision),
     UList = (Plan#channel_plan.u_channels),
     % io:format("Freq=~w UList=~w~n", [Freq, UList]),
-    UChannel = index_of(Freq, UList, 1),
+    UChannel = index_of(Freq1, UList, 0),
     DList = (Plan#channel_plan.d_channels),
     DownFreq = lists:nth(UChannel + 1, DList),
     DownFreq.
@@ -535,6 +536,10 @@ index_of(Value, List, Default) ->
         false -> Default
     end.
 
+-spec round_frequency(float() | number(), integer()) -> float().
+round_frequency(Value, Precision) ->
+    list_to_float(float_to_list(Value, [{decimals, Precision}, compact])).
+
 %% ------------------------------------------------------------------
 %% Plan Record Functions
 %%
@@ -549,6 +554,7 @@ plan_eu868_A() ->
         plan_name = 'EU868_A',
         base_region = 'EU868',
         dynamic_plan = true,
+        float_precision = 1,
         min_freq = 863.0,
         max_freq = 870.0,
         u_channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
@@ -597,6 +603,7 @@ plan_us915_SB2() ->
         plan_name = 'US915_SB2',
         base_region = 'US915',
         dynamic_plan = false,
+        float_precision = 1,
         min_freq = 902.0,
         max_freq = 928.0,
         %% US915's subbank two set of channels
@@ -646,6 +653,7 @@ plan_au915_SB2() ->
         plan_name = 'AU915_SB2',
         base_region = 'AU915',
         dynamic_plan = false,
+        float_precision = 1,
         min_freq = 915.0,
         max_freq = 928.0,
         %% AU915's subbank two set of channels
@@ -696,6 +704,7 @@ plan_cn470_A() ->
         plan_name = 'CN470_A',
         base_region = 'CN470',
         dynamic_plan = true,
+        float_precision = 1,
         min_freq = 470.0,
         max_freq = 510.0,
         u_channels = [486.3, 486.5, 486.7, 486.9, 487.1, 487.3, 487.5, 487.7],
@@ -734,6 +743,7 @@ plan_as923_A() ->
         plan_name = 'AS923_1A',
         base_region = 'AS923',
         dynamic_plan = true,
+        float_precision = 1,
         min_freq = 915.0,
         max_freq = 928.0,
         u_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
@@ -778,6 +788,7 @@ plan_as923_1A() ->
         plan_name = 'AS923_1A',
         base_region = 'AS923_1',
         dynamic_plan = true,
+        float_precision = 1,
         min_freq = 915.0,
         max_freq = 928.0,
         u_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
@@ -826,6 +837,7 @@ plan_as923_1B() ->
         plan_name = 'AS923_1B',
         base_region = 'AS923_1',
         dynamic_plan = true,
+        float_precision = 1,
         min_freq = 915.0,
         max_freq = 923.0,
         u_channels = [922.0, 922.2, 922.4, 922.6, 922.8, 923.0, 923.2, 923.4],
@@ -870,6 +882,7 @@ plan_as923_2A() ->
         plan_name = 'AS923_2A',
         base_region = 'AS923_2',
         dynamic_plan = true,
+        float_precision = 1,
         min_freq = 920.0,
         max_freq = 923.0,
         u_channels = [921.4, 921.6, 921.8, 922.0, 922.2, 922.4, 922.6, 922.8],
@@ -914,6 +927,7 @@ plan_as923_3A() ->
         plan_name = 'AS923_3A',
         base_region = 'AS923_3',
         dynamic_plan = true,
+        float_precision = 1,
         min_freq = 915.0,
         max_freq = 921.0,
         u_channels = [916.6, 916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0],
@@ -958,6 +972,7 @@ plan_as923_4A() ->
         plan_name = 'AS923_4A',
         base_region = 'AS923_4',
         dynamic_plan = true,
+        float_precision = 1,
         min_freq = 917.0,
         max_freq = 920.0,
         u_channels = [917.3, 917.5, 917.7, 917.9, 918.1, 918.3, 918.5, 918.7],
@@ -1002,6 +1017,7 @@ plan_kr920_A() ->
         plan_name = 'KR920_A',
         base_region = 'KR920',
         dynamic_plan = true,
+        float_precision = 1,
         min_freq = 920.9,
         max_freq = 923.3,
         u_channels = [922.1, 922.3, 922.5, 922.7, 922.9, 923.1, 923.3],
@@ -1040,8 +1056,9 @@ plan_in865_A() ->
         plan_name = 'IN865_A',
         base_region = 'IN865',
         dynamic_plan = true,
-        min_freq = 865.0,
-        max_freq = 867.0,
+        float_precision = 4,
+        min_freq = 865.0000,
+        max_freq = 867.0000,
         u_channels = [865.0625, 865.4025, 865.985],
         d_channels = [865.0625, 865.4025, 865.985],
         channel_count = 3,
@@ -1068,9 +1085,9 @@ plan_in865_A() ->
         max_eirp_db = 30,
         rx1_offset = {0, 7},
         rx2_datarate = 2,
-        rx2_freq = 866.550,
-        beacon_freq = 866.550,
-        pingslot_freq = 866.550
+        rx2_freq = 866.5500,
+        beacon_freq = 866.5500,
+        pingslot_freq = 866.5500
     },
     Plan.
 
@@ -1081,18 +1098,63 @@ plan_in865_A() ->
 -include_lib("eunit/include/eunit.hrl").
 
 uplink_to_downlink_rounding_test() ->
-    #channel_plan{u_channels=UChans, d_channels=DChans}=Plan = lora_plan:region_to_plan('US915'),
+    #channel_plan{u_channels = UChans, d_channels = DChans} =
+        Plan = lora_plan:region_to_plan('US915'),
 
     RoundingError = 0.00000000094,
     lists:foreach(
-      fun({Up, Down}) ->
-              JsonUp = Up - RoundingError,
-              ?assertEqual(up_to_down_freq(Plan, JsonUp), Down)
-      end,
-      lists:zip(UChans, DChans)
-     ),
+        fun({Up, Down}) ->
+            JsonUp = Up - RoundingError,
+            ?assertEqual(up_to_down_freq(Plan, JsonUp), Down)
+        end,
+        lists:zip(UChans, DChans)
+    ),
 
     ok.
+
+uplink_to_downlink_rounding_2_test() ->
+    #channel_plan{u_channels = UChans, d_channels = DChans} =
+        Plan = lora_plan:region_to_plan('IN865'),
+
+    RoundingError = 0.00000000094,
+    lists:foreach(
+        fun({Up, Down}) ->
+            JsonUp = Up - RoundingError,
+            ?assertEqual(up_to_down_freq(Plan, JsonUp), Down)
+        end,
+        lists:zip(UChans, DChans)
+    ),
+
+    ok.
+
+up_down_test() ->
+    UpF = 923.91,
+    DownF = up_to_down_freq(plan_us915_SB2(), UpF),
+    ?assertEqual(923.3, DownF),
+    UpF1 = 904.11,
+    DownF1 = up_to_down_freq(plan_us915_SB2(), UpF1),
+    ?assertEqual(923.9, DownF1).
+
+valid_round(F1, F2, Precision) ->
+    R2 = round_frequency(F2, Precision),
+    % io:format("F1=~w F2=~w R2=~w~n", [F1, F2, R2]),
+    ?assertEqual(F1, R2).
+
+round_00_test() ->
+    FList = [923.2, 923.21, 923.24, 923.19, 923.151, 923.2000000001, 923.1999999999],
+    [valid_round(923.2, X, 1) || X <- FList].
+
+round_01_test() ->
+    FList = [923.0, 923.01, 923.04, 923.05, 923.049, 923.0000000001, 923.04999999999],
+    [valid_round(923.0, X, 1) || X <- FList].
+
+round_02_test() ->
+    FList = [865.0625, 865.06251, 865.06249, 865.0625000000001, 865.0624999999999],
+    [valid_round(865.0625, X, 4) || X <- FList].
+
+round_03_test() ->
+    FList = [866.5500, 866.55001, 866.54999, 866.5500000000001, 866.5499999999999],
+    [valid_round(866.5500, X, 4) || X <- FList].
 
 valid_uplink_freq(Plan, Freq) ->
     Region = Plan#channel_plan.base_region,

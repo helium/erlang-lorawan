@@ -101,6 +101,7 @@
     max_datarate/1,
     min_datarate/1,
     new/1,
+    old_new/1,
     new/2,
     track_adr_answer/2,
     track_offer/2,
@@ -226,7 +227,7 @@
     %% is essentially an index into a table. It is probably safe to
     %% remove this and assume 0, but let's track it for completeness
     %% sake for the time being.
-    min_datarate :: pos_integer(),
+    min_datarate :: integer(),
     %% Spreading factor for corresponding `min_datarate'.
     %%
     %% Q: Why would a `max_spreading' correspond to `min_datarate'?
@@ -288,8 +289,8 @@
 %% behavior.
 %% @end
 %% ------------------------------------------------------------------
--spec new(Region :: atom()) -> handle().
-new(Region) ->
+-spec old_new(Region :: atom()) -> handle().
+old_new(Region) ->
     %% Filter gotthardp's table down to only 125kHz uplink DataRates.
     FilterMapFn = fun
         ({_, _, down}) ->
@@ -323,6 +324,105 @@ new(Region) ->
         min_txpower_idx = MinTxPowerIdx,
         min_txpower_dbm = MinTxPowerDBm
     }.
+
+%-spec new(Region :: atom()) -> handle().
+new(Region) ->
+    %% Filter gotthardp's table down to only 125kHz uplink DataRates.
+    {MinSF, MaxSF} = adr_sf_range(Region),
+    {MinDataRate, MaxDataRate} = adr_datarate_range(Region),
+    Datarates = adr_datarates(Region),
+    Plan = lora_plan:region_to_plan(Region),
+    TxPowers = lora_plan:tx_power_table(Plan),
+    [{MaxTxPowerIdx, MaxTxPowerDBm} | _] = TxPowers,
+    {MinTxPowerIdx, MinTxPowerDBm} = lists:last(TxPowers),
+    #device{
+        region = Region,
+        offer_history = [],
+        packet_history = [],
+        pending_adjustments = [],
+        accepted_adjustments = [],
+        datarates = Datarates,
+        txpowers = TxPowers,
+        min_datarate = MinDataRate,
+        max_spreading = MaxSF,
+        max_datarate = MaxDataRate,
+        min_spreading = MinSF,
+        max_txpower_idx = MaxTxPowerIdx,
+        max_txpower_dbm = MaxTxPowerDBm,
+        min_txpower_idx = MinTxPowerIdx,
+        min_txpower_dbm = MinTxPowerDBm
+    }.
+
+adr_datarates(Region) ->
+    case Region of
+        'US915' ->
+            [{0, {10, 125}}, {1, {9, 125}}, {2, {8, 125}}, {3, {7, 125}}];
+        'EU868' ->
+            [
+                {0, {12, 125}},
+                {1, {11, 125}},
+                {2, {10, 125}},
+                {3, {9, 125}},
+                {4, {8, 125}},
+                {5, {7, 125}}
+            ];
+        'AU915' ->
+            [
+                {0, {12, 125}},
+                {1, {11, 125}},
+                {2, {10, 125}},
+                {3, {9, 125}},
+                {4, {8, 125}},
+                {5, {7, 125}}
+            ];
+        'CN470' ->
+            [
+                {0, {12, 125}},
+                {1, {11, 125}},
+                {2, {10, 125}},
+                {3, {9, 125}},
+                {4, {8, 125}},
+                {5, {7, 125}}
+            ];
+        'AS923' ->
+            [
+                {0, {12, 125}},
+                {1, {11, 125}},
+                {2, {10, 125}},
+                {3, {9, 125}},
+                {4, {8, 125}},
+                {5, {7, 125}}
+            ];
+        _ ->
+            [
+                {0, {12, 125}},
+                {1, {11, 125}},
+                {2, {10, 125}},
+                {3, {9, 125}},
+                {4, {8, 125}},
+                {5, {7, 125}}
+            ]
+    end.
+
+adr_sf_range(Region) ->
+    case Region of
+        'US915' -> {7, 10};
+        'EU868' -> {7, 12};
+        'AU915' -> {7, 12};
+        'CN470' -> {7, 12};
+        'AS923' -> {7, 12};
+        _ -> {7, 12}
+    end.
+
+adr_datarate_range(Region) ->
+    case Region of
+        'US915' -> {0, 3};
+        'EU868' -> {0, 5};
+        'AU915' -> {0, 5};
+        'CN470' -> {0, 5};
+        'AS923' -> {0, 5};
+        _ -> {0, 5}
+    end.
 
 %% ------------------------------------------------------------------
 %% @doc Returns a new ADR handle for the specified region.
@@ -884,6 +984,20 @@ count_and_prune_offers_for_hash(
 -ifdef(EUNIT).
 
 -include_lib("eunit/include/eunit.hrl").
+
+plans() ->
+    ['IN865', 'KR920', 'US915', 'EU868', 'AU915', 'CN470', 'AS923'].
+
+validate_new(Region) ->
+    io:format("Region = ~w~n", [Region]),
+    State0 = new(Region),
+    io:format("State0 = ~w~n", [State0]),
+    State1 = old_new(Region),
+    io:format("State1 = ~w~n", [State1]),
+    ?assertEqual(State0, State1).
+
+plans_test() ->
+    [validate_new(X) || X <- plans()].
 
 device_history(#device{packet_history = History}) ->
     History.

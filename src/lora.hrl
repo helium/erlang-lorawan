@@ -57,6 +57,7 @@
     %% plan_name: EU868_A, US915_SB2, AS923_1A, AS923_1B, etc.
     plan_name :: atom(),
     dynamic_plan :: boolean(),
+    float_precision :: integer(),
     min_freq :: number(),
     max_freq :: number(),
     u_channels :: [float()],
