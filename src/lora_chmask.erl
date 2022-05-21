@@ -1,6 +1,8 @@
 -module(lora_chmask).
 
 -export([
+    cflist_type_0/1,
+    cflist_type_1/1,
     make_link_adr_req/3,
     join_cf_list/1
 ]).
@@ -9,57 +11,100 @@
 %% CFList functions
 %% -------------------------------------------------------------------
 
--spec join_cf_list(atom()) -> binary().
-join_cf_list('US915') ->
-    %% https://lora-alliance.org/wp-content/uploads/2021/05/RP-2-1.0.3.pdf
-    %% Page 33
-    Chans = [{8, 15}],
-    ChMaskTable = [
-        {2, mask, build_chmask(Chans, {0, 15})},
-        {2, mask, build_chmask(Chans, {16, 31})},
-        {2, mask, build_chmask(Chans, {32, 47})},
-        {2, mask, build_chmask(Chans, {48, 63})},
-        {2, mask, build_chmask(Chans, {64, 71})},
-        {2, rfu, 0},
-        {3, rfu, 0},
-        {1, cf_list_type, 1}
-    ],
-    cf_list_for_channel_mask_table(ChMaskTable);
-join_cf_list('EU868') ->
-    %% In this case the CFList is a list of five channel frequencies for the channels
-    %% three to seven whereby each frequency is encoded as a 24 bits unsigned integer
-    %% (three octets). All these channels are usable for DR0 to DR5 125kHz LoRa
-    %% modulation. The list of frequencies is followed by a single CFListType octet
-    %% for a total of 16 octets. The CFListType SHALL be equal to zero (0) to indicate
-    %% that the CFList contains a list of frequencies.
-    %%
-    %% The actual channel frequency in Hz is 100 x frequency whereby values representing
-    %% frequencies below 100 MHz are reserved for future use.
-    cflist_for_frequencies([8671000, 8673000, 8675000, 8677000, 8679000]);
-join_cf_list('AS923_1') ->
-    cflist_for_frequencies([9236000, 9238000, 9240000, 9242000, 9244000]);
-join_cf_list('AS923_2') ->
-    cflist_for_frequencies([9218000, 9220000, 9222000, 9224000, 9226000]);
-join_cf_list('AS923_3') ->
-    cflist_for_frequencies([9170000, 9172000, 9174000, 9176000, 9178000]);
-join_cf_list('AS923_4') ->
-    cflist_for_frequencies([9177000, 9179000, 9181000, 9183000, 9185000]);
-join_cf_list(_Region) ->
-    <<>>.
+% Join-Accept CFList Type 0
 
--spec cflist_for_frequencies(list(non_neg_integer())) -> binary().
-cflist_for_frequencies(Frequencies) ->
+% In this case the CFList is a list of five channel frequencies for the
+% channels three to seven whereby each frequency is encoded as a 24
+% bits unsigned integer (three octets). All these channels are usable
+% for DR0 to DR5 125 kHz LoRa modulation. The list of frequencies is
+% followed by a single CFListType octet for a total of 16 octets. The
+% CFListType SHALL be equal to zero (0) to indicate that the CFList
+% contains a list of frequencies.
+
+% The actual channel frequency in Hz is 100 x frequency whereby values
+% representing frequencies below 100 MHz are reserved for future use.
+% This allows setting the frequency of a channel anywhere between 100
+% MHz to 1.678 GHz in 100 Hz steps. Unused channels have a frequency
+% value of 0. The CFList is OPTIONAL, and its presence can be detected
+% by the length of the join-accept message. If present, the CFList
+% SHALL replace all the previous channels stored in the end-device
+% apart from the three default channels. The newly defined channels are
+% immediately enabled and usable by the end-device for communication.
+
+-spec cflist_type_0(list(non_neg_integer())) -> binary().
+cflist_type_0(Frequencies) ->
     Channels = <<
         <<X:24/integer-unsigned-little>>
      || X <- Frequencies
     >>,
     <<Channels/binary, 0:8/integer>>.
 
+% Both Fixed and Dynamic Channel Plan regions support CFList Type 1.
+
+% If the CFlist is not empty, then the CFListType field SHALL contain the
+% value one (0x01) to indicate the CFList contains a series of ChMask
+% fields. ChMask0 controls the first 16 channels, ChMask1 the second 16
+% channels, up to a maximum of 96 channels.   Within each ChMask field,
+% each bit corresponds to a single channel identified by the following
+% formula: ChMask-field-number * 16 + ChMask-bit-number = Channel-Id
+
+% End-devices SHALL silently ignore bits set for channels not defined for
+% the channel plan they are operating under.  End-devices SHALL silently
+% ignore bits set for channels which refer to frequencies not available
+% for use in the regulatory region the end-device is currently operating
+% in.  If no bits are set in the CFList ChMask fields, the end-device
+% SHALL operate on all default channels
+
+-spec cflist_type_1({integer(), integer()}) -> binary().
+cflist_type_1(SubBand) ->
+    %% https://lora-alliance.org/wp-content/uploads/2021/05/RP-2-1.0.3.pdf
+    %% Page 33
+    Chans = [SubBand],
+    ChMaskTable = [
+        {2, mask, build_chmask(Chans, {0, 15})},
+        {2, mask, build_chmask(Chans, {16, 31})},
+        {2, mask, build_chmask(Chans, {32, 47})},
+        {2, mask, build_chmask(Chans, {48, 63})},
+        {2, mask, build_chmask(Chans, {64, 79})},
+        {2, mask, build_chmask(Chans, {80, 95})},
+        {3, rfu, 0},
+        {1, cf_list_type, 1}
+    ],
+    cf_list_for_channel_mask_table(ChMaskTable).
+
 -spec cf_list_for_channel_mask_table([
     {ByteSize :: pos_integer(), Type :: atom(), Value :: non_neg_integer()}
 ]) -> binary().
 cf_list_for_channel_mask_table(ChMaskTable) ->
     <<<<Val:Size/little-unit:8>> || {Size, _, Val} <- ChMaskTable>>.
+
+-spec join_cf_list(atom()) -> binary().
+join_cf_list('US915') ->
+    cflist_type_1({8, 15});
+join_cf_list('AU915') ->
+    cflist_type_1({8, 15});
+join_cf_list('EU868') ->
+    cflist_type_0([8671000, 8673000, 8675000, 8677000, 8679000]);
+join_cf_list('EU433') ->
+    cflist_type_0([4331750, 4333750, 4335750, 0, 0]);
+join_cf_list('CN470') ->
+    cflist_type_0([4869000, 4871000, 4873000, 4875000, 4877000]);
+join_cf_list('AS923_1') ->
+    cflist_type_0([9236000, 9238000, 9240000, 9242000, 9244000]);
+join_cf_list('AS923_1B') ->
+    cflist_type_0([9220000, 9222000, 9234000, 9228000, 9230000]);
+join_cf_list('AS923_2') ->
+    cflist_type_0([9218000, 9220000, 9222000, 9224000, 9226000]);
+join_cf_list('AS923_3') ->
+    cflist_type_0([9170000, 9172000, 9174000, 9176000, 9178000]);
+join_cf_list('AS923_4') ->
+    cflist_type_0([9177000, 9179000, 9181000, 9183000, 9185000]);
+join_cf_list('KR920') ->
+    cflist_type_0([9227000, 9229000, 9231000, 9233000, 0]);
+join_cf_list('IN865') ->
+    cflist_type_0([0, 0, 0, 0, 0]);
+join_cf_list(_Region) ->
+    <<>>.
 
 %% ------------------------------------------------------------------
 %% @doc Top Level Region
@@ -290,9 +335,19 @@ join_cf_list_test_() ->
             join_cf_list('US915')
         ),
         ?_assertEqual(
+            %% Active Channels 8-15
+            <<0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1>>,
+            join_cf_list('AU915')
+        ),
+        ?_assertEqual(
             %% Freqs 923.6, 923.8, 924.0, 924.2, 924.4
             <<32, 238, 140, 240, 245, 140, 192, 253, 140, 144, 5, 141, 96, 13, 141, 0>>,
             join_cf_list('AS923_1')
+        ),
+        ?_assertEqual(
+            %% Freqs 923.6, 923.8, 924.0, 924.2, 924.4
+            <<160, 175, 140, 112, 183, 140, 80, 230, 140, 224, 206, 140, 176, 214, 140, 0>>,
+            join_cf_list('AS923_1B')
         ),
         ?_assertEqual(
             %% Freqs 921.8, 922.0, 922.2, 922.4, 922.6
@@ -313,6 +368,18 @@ join_cf_list_test_() ->
             %% Freqs 867.1, 867.3, 867.5, 867.7, 867.9
             <<24, 79, 132, 232, 86, 132, 184, 94, 132, 136, 102, 132, 88, 110, 132, 0>>,
             join_cf_list('EU868')
+        ),
+        ?_assertEqual(
+            <<136, 75, 74, 88, 83, 74, 40, 91, 74, 248, 98, 74, 200, 106, 74, 0>>,
+            join_cf_list('CN470')
+        ),
+        ?_assertEqual(
+            <<248, 202, 140, 200, 210, 140, 152, 218, 140, 104, 226, 140, 0, 0, 0, 0>>,
+            join_cf_list('KR920')
+        ),
+        ?_assertEqual(
+            <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>,
+            join_cf_list('IN865')
         )
     ].
 
