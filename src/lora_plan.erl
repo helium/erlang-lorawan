@@ -33,6 +33,7 @@
 region_to_plan(Region) ->
     case Region of
         'EU868' -> plan_eu868_A();
+        'EU433' -> plan_eu433_A();
         'US915' -> plan_us915_SB2();
         'AU915' -> plan_au915_SB2();
         'CN470' -> plan_cn470_A();
@@ -594,6 +595,47 @@ plan_eu868_A() ->
         rx2_freq = 869.525,
         beacon_freq = 869.525,
         pingslot_freq = 869.525
+    },
+    Plan.
+
+plan_eu433_A() ->
+    Plan = #channel_plan{
+        channel_plan_id = 1,
+        plan_name = 'EU433_A',
+        base_region = 'EU433',
+        dynamic_plan = true,
+        float_precision = 3,
+        min_freq = 433.175,
+        max_freq = 434.665,
+        u_channels = [433.175, 433.375, 433.575],
+        d_channels = [433.175, 433.375, 433.575],
+        channel_count = 3,
+        bank_offset = 0,
+        join_channels = {0, 2},
+        data_rates = [
+            'SF12BW125',
+            'SF11BW125',
+            'SF10BW125',
+            'SF9BW125',
+            'SF8BW125',
+            'SF7BW125',
+            'SF7BW250',
+            'FSK50'
+        ],
+        tx_power = [0, -2, -4, -6, -8, -10],
+        join_dr = {0, 5},
+        mandatory_dr = {0, 5},
+        optional_dr = {6, 7},
+        max_duty_cycle = 10,
+        uplink_dwell_time = 0,
+        downlink_dwell_time = 0,
+        tx_param_setup_allowed = false,
+        max_eirp_db = 12,
+        rx1_offset = {0, 5},
+        rx2_datarate = 0,
+        rx2_freq = 434.665,
+        beacon_freq = 434.665,
+        pingslot_freq = 434.665
     },
     Plan.
 

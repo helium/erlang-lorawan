@@ -85,6 +85,8 @@ join_cf_list('AU915') ->
     cflist_type_1({8, 15});
 join_cf_list('EU868') ->
     cflist_type_0([8671000, 8673000, 8675000, 8677000, 8679000]);
+join_cf_list('EU433') ->
+    cflist_type_0([4331750, 4333750, 4335750, 0, 0]);
 join_cf_list('CN470') ->
     cflist_type_0([4869000, 4871000, 4873000, 4875000, 4877000]);
 join_cf_list('AS923_1') ->
