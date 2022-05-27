@@ -1210,7 +1210,7 @@ valid_uplink_freq(Plan, Freq) ->
             true;
         _ ->
             Ch = lora_region:f2uch(Region, Freq),
-            _Freq2 = lora_region:uch2f(Region, Ch),
+            %% Freq2 = lora_region:uch2f(Region, Ch),
             % io:format("Freq=~w Ch=~w Freq2=~w ~n", [Freq, Ch, Freq2]),
             (Ch > 0)
     end.
