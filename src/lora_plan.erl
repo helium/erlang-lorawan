@@ -322,9 +322,8 @@ max_downlink_snr(Plan, DataRate, Offset) ->
     {SF, _} = datarate_to_tuple(DRAtom),
     max_snr(SF).
 
-%% from SX1272 DataSheet, Table 13
+%% sf to dB from SX1272 DataSheet, Table 13
 max_snr(SF) ->
-    %% dB
     -5 - 2.5 * (SF - 6).
 
 %% ------------------------------------------------------------------
@@ -679,7 +678,7 @@ plan_us915_SB2() ->
         ],
         %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
-        join_dr = {2, 5},
+        join_dr = {2, 4},
         mandatory_dr = {0, 4},
         optional_dr = {5, 6},
         max_duty_cycle = 10000,
@@ -1378,9 +1377,28 @@ validate_window(Plan, DataRateAtom) ->
     % ?assertEqual(JoinChannel, TxQ_3#txq.freq),
     ok.
 
+validate_snr(Plan, DRIndex) ->
+    Region = Plan#channel_plan.base_region,
+    MaxUplinkSnr01 = max_uplink_snr(Plan, DRIndex),
+    MaxUplinkSnr02 = lora_region:max_uplink_snr(Region, DRIndex),
+    ?assertEqual(MaxUplinkSnr02, MaxUplinkSnr01),
+    MaxDownlinkSnr01 = max_downlink_snr(Plan, DRIndex, 0),
+    MaxDownlinkSnr02 = lora_region:max_downlink_snr(Region, DRIndex, 0),
+    ?assertEqual(MaxDownlinkSnr02, MaxDownlinkSnr01).
+
+exercise_snr(Plan) when Plan#channel_plan.base_region == 'US915' ->
+    [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4]];
+exercise_snr(Plan) when Plan#channel_plan.base_region == 'AU915' ->
+    [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4]];
+exercise_snr(Plan) when Plan#channel_plan.base_region == 'CN470' ->
+    [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4, 5]];
+exercise_snr(Plan) ->
+    [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4, 5, 6]].
+
 exercise_plan(Plan) ->
     Region = Plan#channel_plan.base_region,
     io:format("Region=~w~n", [Region]),
+    exercise_snr(Plan),
     validate_window(Plan, 'SF7BW125'),
     validate_window(Plan, 'SF8BW125'),
     validate_window(Plan, 'SF9BW125'),
