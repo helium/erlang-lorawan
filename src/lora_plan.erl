@@ -149,6 +149,8 @@ datarate_to_tuple(DataRate) ->
 -spec up_to_down_datarate(#channel_plan{}, integer(), integer()) -> integer().
 up_to_down_datarate(Plan, Index, Offset) ->
     {MinOffset, MaxOffset} = Plan#channel_plan.rx1_offset,
+    % io:format("up_to_down_datarate - Index=~w Offset=~w MinOffset=~w MaxOffset=~w~n",
+    %    [Index, Offset, MinOffset, MaxOffset]),
     TheOffset =
         case Offset < MinOffset of
             true ->
@@ -164,9 +166,11 @@ up_to_down_datarate(Plan, Index, Offset) ->
     Region = Plan#channel_plan.base_region,
     OffsetList = dr_offset_list(Region, Index),
     DownIndex = lists:nth(TheOffset + 1, OffsetList),
+    % io:format("up_to_down_datarate - DownIndex=~w~n", [DownIndex]),
     DownIndex.
 
 dr_offset_list(Region, Index) when Region == 'US915' ->
+    % io:format("dr_offset_list - Region=~w Index=~w~n", [Region, Index]),
     case Index of
         0 -> [10, 9, 8, 8];
         1 -> [11, 10, 9, 8];
@@ -318,9 +322,8 @@ max_downlink_snr(Plan, DataRate, Offset) ->
     {SF, _} = datarate_to_tuple(DRAtom),
     max_snr(SF).
 
-%% from SX1272 DataSheet, Table 13
+%% sf to dB from SX1272 DataSheet, Table 13
 max_snr(SF) ->
-    %% dB
     -5 - 2.5 * (SF - 6).
 
 %% ------------------------------------------------------------------
@@ -386,6 +389,8 @@ rx1_window(Plan, DelaySeconds, Offset, RxQ) ->
     DataRateIdx = datarate_to_index(Plan, RxQ#rxq.datr),
     DownDRIdx = up_to_down_datarate(Plan, DataRateIdx, Offset),
     DownDRStr = datarate_to_binary(Plan, DownDRIdx),
+    % io:format("rx1_window - DownDRStr=~w~n", [DownDRStr]),
+    % io:format("rx1_window - DownDR=~w~n", [datarate_to_atom(Plan, DownDRStr)]),
     TxQ = new_txq(DownFreq, DownDRStr, RxQ#rxq.codr, RxQ#rxq.time),
     tx_window(?RX1_WINDOW, RxQ, TxQ, DelaySeconds).
 
@@ -669,11 +674,11 @@ plan_us915_SB2() ->
             'SF10BW500',
             'SF9BW500',
             'SF8BW500',
-            'SF8BW500'
+            'SF7BW500'
         ],
         %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
-        join_dr = {2, 5},
+        join_dr = {2, 4},
         mandatory_dr = {0, 4},
         optional_dr = {5, 6},
         max_duty_cycle = 10000,
@@ -718,7 +723,6 @@ plan_au915_SB2() ->
             'SF11BW500',
             'SF10BW500',
             'SF9BW500',
-            'SF8BW500',
             'SF8BW500',
             'SF7BW500'
         ],
@@ -1206,8 +1210,8 @@ valid_uplink_freq(Plan, Freq) ->
             true;
         _ ->
             Ch = lora_region:f2uch(Region, Freq),
-            Freq2 = lora_region:uch2f(Region, Ch),
-            io:format("Freq=~w Ch=~w Freq2=~w ~n", [Freq, Ch, Freq2]),
+            %% Freq2 = lora_region:uch2f(Region, Ch),
+            % io:format("Freq=~w Ch=~w Freq2=~w ~n", [Freq, Ch, Freq2]),
             (Ch > 0)
     end.
 
@@ -1258,7 +1262,7 @@ validate_downlink_size(Plan, DataRateAtom) ->
             DRAtom = datarate_to_atom(Plan, DRIdx),
             ?assertEqual(DRAtom, DataRateAtom),
             M2 = lora_region:max_payload_size(Region, DRIdx),
-            io:format("DRAtom=~w DR~w ~w~n", [DRAtom, DRIdx, M2]),
+            % io:format("DRAtom=~w DR~w ~w~n", [DRAtom, DRIdx, M2]),
             ?assertEqual(M2, M1)
     end.
 
@@ -1327,16 +1331,24 @@ validate_join1_window(Plan, RxQ) ->
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
+validate_window(Plan, 'SF11BW125') when Plan#channel_plan.base_region == 'US915' ->
+    ?assert(true);
+validate_window(Plan, 'SF11BW125') when Plan#channel_plan.base_region == 'AU915' ->
+    ?assert(true);
+validate_window(Plan, 'SF12BW125') when Plan#channel_plan.base_region == 'US915' ->
+    ?assert(true);
+validate_window(Plan, 'SF12BW125') when Plan#channel_plan.base_region == 'AU915' ->
+    ?assert(true);
 validate_window(Plan, DataRateAtom) ->
     Region = Plan#channel_plan.base_region,
-    % io:format("validate_window Region=~w~n", [Region]),
+    % io:format("validate_window Region=~w DataRate=~w~n", [Region, DataRateAtom]),
     DataRateStr = datarate_to_binary(Plan, DataRateAtom),
-    [JoinChannel | _] = Plan#channel_plan.u_channels,
-    % io:format("JoinChannel=~w~n", [JoinChannel]),
+    [_JoinChannel_1, JoinChannel_2 | _] = Plan#channel_plan.u_channels,
+    % io:format("JoinChannel=~w~n", [JoinChannel_2]),
 
     Now = os:timestamp(),
     RxQ = #rxq{
-        freq = JoinChannel,
+        freq = JoinChannel_2,
         datr = DataRateStr,
         codr = <<"4/5">>,
         time = calendar:now_to_datetime(Now),
@@ -1365,19 +1377,43 @@ validate_window(Plan, DataRateAtom) ->
     % ?assertEqual(JoinChannel, TxQ_3#txq.freq),
     ok.
 
+validate_snr(Plan, DRIndex) ->
+    Region = Plan#channel_plan.base_region,
+    MaxUplinkSnr01 = max_uplink_snr(Plan, DRIndex),
+    MaxUplinkSnr02 = lora_region:max_uplink_snr(Region, DRIndex),
+    ?assertEqual(MaxUplinkSnr02, MaxUplinkSnr01),
+    MaxDownlinkSnr01 = max_downlink_snr(Plan, DRIndex, 0),
+    MaxDownlinkSnr02 = lora_region:max_downlink_snr(Region, DRIndex, 0),
+    ?assertEqual(MaxDownlinkSnr02, MaxDownlinkSnr01).
+
+exercise_snr(Plan) when Plan#channel_plan.base_region == 'US915' ->
+    [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4]];
+exercise_snr(Plan) when Plan#channel_plan.base_region == 'AU915' ->
+    [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4]];
+exercise_snr(Plan) when Plan#channel_plan.base_region == 'CN470' ->
+    [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4, 5]];
+exercise_snr(Plan) ->
+    [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4, 5, 6]].
+
 exercise_plan(Plan) ->
     Region = Plan#channel_plan.base_region,
     io:format("Region=~w~n", [Region]),
+    exercise_snr(Plan),
+    validate_window(Plan, 'SF7BW125'),
+    validate_window(Plan, 'SF8BW125'),
+    validate_window(Plan, 'SF9BW125'),
     validate_window(Plan, 'SF10BW125'),
+    validate_window(Plan, 'SF11BW125'),
+    validate_window(Plan, 'SF12BW125'),
     validate_payload_size(Plan),
     validate_tx_power(Plan),
     validate_channels(Plan).
 
 plan_test() ->
-    exercise_plan(plan_eu868_A()),
-    exercise_plan(plan_as923_1A()),
     exercise_plan(plan_us915_SB2()),
     exercise_plan(plan_au915_SB2()),
+    exercise_plan(plan_eu868_A()),
+    exercise_plan(plan_as923_1A()),
     exercise_plan(plan_in865_A()),
     exercise_plan(plan_cn470_A()),
     exercise_plan(plan_kr920_A()),
