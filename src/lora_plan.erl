@@ -1287,6 +1287,17 @@ validate_txq(Plan, TxQ) ->
     %% _Tuple = lora_region:dr_to_tuple(Region, DRIdx),
     ?assertEqual(DRAtom, DRAtom2).
 
+print_txq(Plan, TxQ, Enable) ->
+    case Enable of
+        true ->
+            io:format("TxQ Frequency = ~w~n", [TxQ#txq.freq]),
+            io:format("TxQ Region = ~w~n", [Plan#channel_plan.base_region]),
+            io:format("TxQ DataRate = ~w~n", [datarate_to_atom(Plan, TxQ#txq.datr)]),
+            io:format("TxQ DRIndex = ~w~n", [datarate_to_index(Plan, TxQ#txq.datr)]);
+        false ->
+            ok
+    end.
+
 validate_rx2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
     ?assert(true);
 validate_rx2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
@@ -1340,6 +1351,7 @@ validate_window(Plan, 'SF12BW125') when Plan#channel_plan.base_region == 'US915'
 validate_window(Plan, 'SF12BW125') when Plan#channel_plan.base_region == 'AU915' ->
     ?assert(true);
 validate_window(Plan, DataRateAtom) ->
+    % ToDo - Add Channel parameter
     Region = Plan#channel_plan.base_region,
     % io:format("validate_window Region=~w DataRate=~w~n", [Region, DataRateAtom]),
     DataRateStr = datarate_to_binary(Plan, DataRateAtom),
@@ -1361,6 +1373,10 @@ validate_window(Plan, DataRateAtom) ->
     validate_join2_window(Plan, RxQ),
     validate_rx1_window(Plan, RxQ),
     validate_join1_window(Plan, RxQ),
+
+    TxQ_1 = rx1_window(Plan, 0, 0, RxQ),
+    % io:format("TxQ_1=~w~n", [TxQ_1]),
+    print_txq(Plan, TxQ_1, false),
 
     TxQ_2 = rx2_window(Plan, 0, RxQ),
     % io:format("TxQ_2=~w~n", [TxQ_2]),
@@ -1394,6 +1410,16 @@ exercise_snr(Plan) when Plan#channel_plan.base_region == 'CN470' ->
     [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4, 5]];
 exercise_snr(Plan) ->
     [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4, 5, 6]].
+
+au915_test() ->
+    Plan = plan_au915_SB2(),
+    % AU915 supports a 'fat' SF8BW500 DR on frequency 917.5
+    validate_window(Plan, 'SF8BW500').
+
+eu868_test() ->
+    Plan = plan_eu868_A(),
+    % EU868 supports a 'fat' BW250 data rate
+    validate_window(Plan, 'SF7BW250').
 
 exercise_plan(Plan) ->
     Region = Plan#channel_plan.base_region,
