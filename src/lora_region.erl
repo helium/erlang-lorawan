@@ -44,6 +44,7 @@
 -define(AS923_MAX_DOWNLINK_SIZE, 250).
 -define(AU915_MAX_DOWNLINK_SIZE, 250).
 -define(EU868_MAX_DOWNLINK_SIZE, 222).
+-define(EU433_MAX_DOWNLINK_SIZE, 222).
 
 -define(AS923_PAYLOAD_SIZE_MAP, #{
     0 => 59,
@@ -102,6 +103,18 @@
 }).
 
 -define(EU868_PAYLOAD_SIZE_MAP, #{
+    0 => 51,
+    1 => 51,
+    2 => 51,
+    3 => 115,
+    4 => 242,
+    5 => 242,
+    6 => 242,
+    7 => 242
+    %% 8..15 => undefined
+}).
+
+-define(EU433_PAYLOAD_SIZE_MAP, #{
     0 => 51,
     1 => 51,
     2 => 51,
@@ -236,6 +249,7 @@ max_payload_size(Region, DR) ->
         'CN470' -> maps:get(DR, ?CN470_PAYLOAD_SIZE_MAP, ?CN470_MAX_DOWNLINK_SIZE);
         'AU915' -> maps:get(DR, ?AU915_PAYLOAD_SIZE_MAP, ?AU915_MAX_DOWNLINK_SIZE);
         'EU868' -> maps:get(DR, ?EU868_PAYLOAD_SIZE_MAP, ?EU868_MAX_DOWNLINK_SIZE);
+        'EU433' -> maps:get(DR, ?EU433_PAYLOAD_SIZE_MAP, ?EU433_MAX_DOWNLINK_SIZE);
         _ -> maps:get(DR, ?US915_PAYLOAD_SIZE_MAP, ?US915_MAX_DOWNLINK_SIZE)
     end.
 
@@ -299,6 +313,14 @@ rx2_rf(Region, #rxq{codr = Codr, time = Time}) when Region == 'CN470' ->
 rx2_rf(Region, #rxq{codr = Codr, time = Time}) when Region == 'EU868' ->
     #txq{
         freq = 869.525,
+        datr = dr_to_datar(Region, window2_dr(Region)),
+        codr = Codr,
+        time = Time
+    };
+%% 869.525 MHz / DR0 (SF12, 125 kHz)
+rx2_rf(Region, #rxq{codr = Codr, time = Time}) when Region == 'EU433' ->
+    #txq{
+        freq = 434.665,
         datr = dr_to_datar(Region, window2_dr(Region)),
         codr = Codr,
         time = Time
@@ -876,6 +898,15 @@ uplink_power_table_('IN865') ->
         {8, 14},
         {9, 12},
         {10, 10}
+    ];
+uplink_power_table_('EU433') ->
+    [
+        {0, 12},
+        {1, 10},
+        {2, 8},
+        {3, 6},
+        {4, 4},
+        {5, 2}
     ];
 uplink_power_table_('EU868') ->
     [

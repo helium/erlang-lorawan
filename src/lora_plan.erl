@@ -754,7 +754,7 @@ plan_cn470_A() ->
         min_freq = 470.0,
         max_freq = 510.0,
         u_channels = [486.3, 486.5, 486.7, 486.9, 487.1, 487.3, 487.5, 487.7],
-        d_channels = [506.7, 506.9, 507.2, 507.4, 507.6, 507.8, 508.0, 508.2],
+        d_channels = [506.7, 506.9, 507.1, 507.3, 507.5, 507.7, 507.9, 508.1],
         channel_count = 8,
         bank_offset = 0,
         join_channels = {0, 2},
@@ -1202,6 +1202,13 @@ round_03_test() ->
     FList = [866.5500, 866.55001, 866.54999, 866.5500000000001, 866.5499999999999],
     [valid_round(866.5500, X, 4) || X <- FList].
 
+valid_uplink_freq(Plan, Freq) when Plan#channel_plan.base_region == 'EU433' ->
+    case Freq of
+        433.175 -> true;
+        433.375 -> true;
+        433.575 -> true;
+        _ -> false
+    end;
 valid_uplink_freq(Plan, Freq) ->
     Region = Plan#channel_plan.base_region,
     F0 = lora_region:uch2f(Region, 0),
@@ -1210,7 +1217,7 @@ valid_uplink_freq(Plan, Freq) ->
             true;
         _ ->
             Ch = lora_region:f2uch(Region, Freq),
-            %% Freq2 = lora_region:uch2f(Region, Ch),
+            % Freq2 = lora_region:uch2f(Region, Ch),
             % io:format("Freq=~w Ch=~w Freq2=~w ~n", [Freq, Ch, Freq2]),
             (Ch > 0)
     end.
@@ -1342,25 +1349,28 @@ validate_join1_window(Plan, RxQ) ->
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
-validate_window(Plan, 'SF11BW125') when Plan#channel_plan.base_region == 'US915' ->
+validate_window(Plan, 'SF11BW125', _Channel) when Plan#channel_plan.base_region == 'US915' ->
     ?assert(true);
-validate_window(Plan, 'SF11BW125') when Plan#channel_plan.base_region == 'AU915' ->
+validate_window(Plan, 'SF11BW125', _Channel) when Plan#channel_plan.base_region == 'AU915' ->
     ?assert(true);
-validate_window(Plan, 'SF12BW125') when Plan#channel_plan.base_region == 'US915' ->
+validate_window(Plan, 'SF12BW125', _Channel) when Plan#channel_plan.base_region == 'US915' ->
     ?assert(true);
-validate_window(Plan, 'SF12BW125') when Plan#channel_plan.base_region == 'AU915' ->
+validate_window(Plan, 'SF12BW125', _Channel) when Plan#channel_plan.base_region == 'AU915' ->
     ?assert(true);
-validate_window(Plan, DataRateAtom) ->
+validate_window(Plan, DataRateAtom, Channel) ->
     % ToDo - Add Channel parameter
     Region = Plan#channel_plan.base_region,
     % io:format("validate_window Region=~w DataRate=~w~n", [Region, DataRateAtom]),
     DataRateStr = datarate_to_binary(Plan, DataRateAtom),
-    [_JoinChannel_1, JoinChannel_2 | _] = Plan#channel_plan.u_channels,
+    [JoinChannel_0 | _] = Plan#channel_plan.u_channels,
+    J0 = channel_to_freq(Plan, 0),
+    ?assertEqual(JoinChannel_0, J0),
+    Frequency = channel_to_freq(Plan, Channel),
     % io:format("JoinChannel=~w~n", [JoinChannel_2]),
 
     Now = os:timestamp(),
     RxQ = #rxq{
-        freq = JoinChannel_2,
+        freq = Frequency,
         datr = DataRateStr,
         codr = <<"4/5">>,
         time = calendar:now_to_datetime(Now),
@@ -1414,23 +1424,35 @@ exercise_snr(Plan) ->
 au915_test() ->
     Plan = plan_au915_SB2(),
     % AU915 supports a 'fat' SF8BW500 DR on frequency 917.5
-    validate_window(Plan, 'SF8BW500').
+    validate_window(Plan, 'SF8BW500', 0).
 
 eu868_test() ->
     Plan = plan_eu868_A(),
     % EU868 supports a 'fat' BW250 data rate
-    validate_window(Plan, 'SF7BW250').
+    validate_window(Plan, 'SF7BW250', 0).
+
+exercise_window_channel(Plan, Atom) ->
+    Channels = lists:seq(0, Plan#channel_plan.channel_count - 1),
+    % io:format("Atom=~w Channels=~w~n", [Atom, Channels]),
+    [validate_window(Plan, Atom, X) || X <- Channels].
+
+exercise_window(Plan) ->
+    {DRMin, DRMax} = Plan#channel_plan.mandatory_dr,
+    Atoms = lists:seq(DRMin, DRMax),
+    [exercise_window_channel(Plan, Atom) || Atom <- Atoms].
 
 exercise_plan(Plan) ->
     Region = Plan#channel_plan.base_region,
     io:format("Region=~w~n", [Region]),
     exercise_snr(Plan),
-    validate_window(Plan, 'SF7BW125'),
-    validate_window(Plan, 'SF8BW125'),
-    validate_window(Plan, 'SF9BW125'),
-    validate_window(Plan, 'SF10BW125'),
-    validate_window(Plan, 'SF11BW125'),
-    validate_window(Plan, 'SF12BW125'),
+    exercise_window(Plan),
+    exercise_window_channel(Plan, 'SF7BW125'),
+    validate_window(Plan, 'SF7BW125', 0),
+    validate_window(Plan, 'SF8BW125', 0),
+    validate_window(Plan, 'SF9BW125', 0),
+    validate_window(Plan, 'SF10BW125', 0),
+    validate_window(Plan, 'SF11BW125', 0),
+    validate_window(Plan, 'SF12BW125', 0),
     validate_payload_size(Plan),
     validate_tx_power(Plan),
     validate_channels(Plan).
@@ -1443,6 +1465,7 @@ plan_test() ->
     exercise_plan(plan_in865_A()),
     exercise_plan(plan_cn470_A()),
     exercise_plan(plan_kr920_A()),
+    exercise_plan(plan_eu433_A()),
     % exercise_plan(plan_as923_2A()),
     % exercise_plan(plan_as923_3A()),
     % exercise_plan(plan_as923_4A()),
