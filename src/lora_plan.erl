@@ -546,6 +546,18 @@ index_of(Value, List, Default) ->
 round_frequency(Value, Precision) ->
     list_to_float(float_to_list(Value, [{decimals, Precision}, compact])).
 
+nearest(F, List) ->
+    Near = fun(A,  B) ->
+        AbsA = abs(A - F),
+        AbsB = abs(B - F),
+        R = AbsA < AbsB,
+        case R of
+            true -> A;
+            false -> B
+        end
+    end,
+    lists:foldl(Near, 1.0, List).
+
 %% ------------------------------------------------------------------
 %% Plan Record Functions
 %%
@@ -1140,7 +1152,7 @@ plan_in865_A() ->
 %% ------------------------------------------------------------------
 %% EUNIT Tests
 %% ------------------------------------------------------------------
--ifdef(TEST).
+%-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
 uplink_to_downlink_rounding_test() ->
@@ -1472,5 +1484,11 @@ plan_test() ->
     % exercise_plan(plan_as923_1A()),
     fin.
 
--endif.
+nearest_test() ->
+   R = nearest(923.81, [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6]),
+   io:format("R=~w~n", [R]),
+   R2 = nearest(923.9, [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6]),
+   io:format("R=~w~n", [R2]).
+
+%-endif.
 %% end of file
