@@ -476,8 +476,8 @@ rx2_tuple(Plan) ->
 
 -spec freq_to_channel(#channel_plan{}, number()) -> integer().
 freq_to_channel(Plan, Freq0) ->
-    Freq1 = round_frequency(Freq0, Plan#channel_plan.float_precision),
     List = (Plan#channel_plan.u_channels),
+    Freq1 = nearest(Freq0, List),
     Channel = index_of(Freq1, List, 0),
     Channel.
 
@@ -490,8 +490,8 @@ channel_to_freq(Plan, Ch) ->
 
 -spec up_to_down_freq(#channel_plan{}, number()) -> number().
 up_to_down_freq(Plan, Freq0) ->
-    Freq1 = round_frequency(Freq0, Plan#channel_plan.float_precision),
     UList = (Plan#channel_plan.u_channels),
+    Freq1 = nearest(Freq0, UList),
     % io:format("Freq=~w UList=~w~n", [Freq, UList]),
     UChannel = index_of(Freq1, UList, 0),
     DList = (Plan#channel_plan.d_channels),
@@ -542,12 +542,9 @@ index_of(Value, List, Default) ->
         false -> Default
     end.
 
--spec round_frequency(float() | number(), integer()) -> float().
-round_frequency(Value, Precision) ->
-    list_to_float(float_to_list(Value, [{decimals, Precision}, compact])).
-
+-spec nearest(float() | number(), [float()]) -> float().
 nearest(F, List) ->
-    Near = fun(A,  B) ->
+    Near = fun(A, B) ->
         AbsA = abs(A - F),
         AbsB = abs(B - F),
         R = AbsA < AbsB,
@@ -1152,7 +1149,7 @@ plan_in865_A() ->
 %% ------------------------------------------------------------------
 %% EUNIT Tests
 %% ------------------------------------------------------------------
-%-ifdef(TEST).
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
 uplink_to_downlink_rounding_test() ->
@@ -1186,33 +1183,50 @@ uplink_to_downlink_rounding_2_test() ->
     ok.
 
 up_down_test() ->
-    UpF = 923.91,
+    UpF = 903.79,
     DownF = up_to_down_freq(plan_us915_SB2(), UpF),
     ?assertEqual(923.3, DownF),
     UpF1 = 904.11,
     DownF1 = up_to_down_freq(plan_us915_SB2(), UpF1),
     ?assertEqual(923.9, DownF1).
 
-valid_round(F1, F2, Precision) ->
-    R2 = round_frequency(F2, Precision),
-    % io:format("F1=~w F2=~w R2=~w~n", [F1, F2, R2]),
-    ?assertEqual(F1, R2).
+% valid_round(F1, F2, Precision) ->
+%     R2 = round_frequency(F2, Precision),
+%     % io:format("F1=~w F2=~w R2=~w~n", [F1, F2, R2]),
+%     ?assertEqual(F1, R2).
+
+% -spec round_frequency(float() | number(), integer()) -> float().
+% round_frequency(Value, Precision) ->
+%     list_to_float(float_to_list(Value, [{decimals, Precision}, compact])).
+
+valid_frequency(Expect, Actual, List) ->
+    F = nearest(Actual, List),
+    ?assertEqual(Expect, F).
 
 round_00_test() ->
     FList = [923.2, 923.21, 923.24, 923.19, 923.151, 923.2000000001, 923.1999999999],
-    [valid_round(923.2, X, 1) || X <- FList].
+    Plan = plan_as923_1B(),
+    CList = Plan#channel_plan.u_channels,
+    [valid_frequency(923.2, X, CList) || X <- FList].
 
 round_01_test() ->
     FList = [923.0, 923.01, 923.04, 923.05, 923.049, 923.0000000001, 923.04999999999],
-    [valid_round(923.0, X, 1) || X <- FList].
+    Plan = plan_as923_1B(),
+    CList = Plan#channel_plan.u_channels,
+    [valid_frequency(923.0, X, CList) || X <- FList].
 
 round_02_test() ->
-    FList = [865.0625, 865.06251, 865.06249, 865.0625000000001, 865.0624999999999],
-    [valid_round(865.0625, X, 4) || X <- FList].
+    FList = [
+        865.0, 865.1, 865.2, 865.0625, 865.06251, 865.06249, 865.0625000000001, 865.0624999999999
+    ],
+    Plan = plan_in865_A(),
+    CList = Plan#channel_plan.u_channels,
+    [valid_frequency(865.0625, X, CList) || X <- FList].
 
 round_03_test() ->
     FList = [866.5500, 866.55001, 866.54999, 866.5500000000001, 866.5499999999999],
-    [valid_round(866.5500, X, 4) || X <- FList].
+    CList = [860.123, 866.5500, 870.123],
+    [valid_frequency(866.5500, X, CList) || X <- FList].
 
 valid_uplink_freq(Plan, Freq) when Plan#channel_plan.base_region == 'EU433' ->
     case Freq of
@@ -1485,10 +1499,10 @@ plan_test() ->
     fin.
 
 nearest_test() ->
-   R = nearest(923.81, [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6]),
-   io:format("R=~w~n", [R]),
-   R2 = nearest(923.9, [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6]),
-   io:format("R=~w~n", [R2]).
+    R = nearest(923.81, [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6]),
+    io:format("R=~w~n", [R]),
+    R2 = nearest(923.9, [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6]),
+    io:format("R=~w~n", [R2]).
 
-%-endif.
+-endif.
 %% end of file
