@@ -614,7 +614,7 @@ plan_eu868_A() ->
 
 plan_eu433_A() ->
     Plan = #channel_plan{
-        channel_plan_id = 1,
+        channel_plan_id = 4,
         plan_name = 'EU433_A',
         base_region = 'EU433',
         dynamic_plan = true,
@@ -1329,10 +1329,6 @@ print_txq(Plan, TxQ, Enable) ->
             ok
     end.
 
-validate_rx2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
-    ?assert(true);
-validate_rx2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
-    ?assert(true);
 validate_rx2_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = rx2_window(Plan, 0, RxQ),
@@ -1340,10 +1336,6 @@ validate_rx2_window(Plan, RxQ) ->
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
-validate_join2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
-    ?assert(true);
-validate_join2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
-    ?assert(true);
 validate_join2_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = join2_window(Plan, RxQ),
@@ -1351,10 +1343,6 @@ validate_join2_window(Plan, RxQ) ->
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
-validate_rx1_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
-    ?assert(true);
-validate_rx1_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
-    ?assert(true);
 validate_rx1_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = rx1_window(Plan, 0, 0, RxQ),
@@ -1362,10 +1350,6 @@ validate_rx1_window(Plan, RxQ) ->
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
-validate_join1_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
-    ?assert(true);
-validate_join1_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
-    ?assert(true);
 validate_join1_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = join1_window(Plan, 0, RxQ),
@@ -1386,6 +1370,10 @@ validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_regio
 validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_region == 'AS923_3' ->
     ?assert(true);
 validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_region == 'AS923_4' ->
+    ?assert(true);
+validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_region == 'IN865' ->
+    ?assert(true);
+validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_region == 'KR920' ->
     ?assert(true);
 validate_window(Plan, DataRateAtom, Channel) ->
     Region = Plan#channel_plan.base_region,
