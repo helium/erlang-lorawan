@@ -1316,8 +1316,6 @@ validate_txq(Plan, TxQ) ->
     DRAtom = lora_plan:datarate_to_atom(Plan, TxQ#txq.datr),
     DRIdx = lora_plan:datarate_to_index(Plan, DRAtom),
     DRAtom2 = lora_plan:datarate_to_atom(Plan, DRIdx),
-    %% DR = datar_to_dr(Plan, TxQ#txq.datr),
-    %% _Tuple = lora_region:dr_to_tuple(Region, DRIdx),
     ?assertEqual(DRAtom, DRAtom2).
 
 print_txq(Plan, TxQ, Enable) ->
@@ -1383,16 +1381,20 @@ validate_window(Plan, 'SF12BW125', _Channel) when Plan#channel_plan.base_region 
     ?assert(true);
 validate_window(Plan, 'SF12BW125', _Channel) when Plan#channel_plan.base_region == 'AU915' ->
     ?assert(true);
+validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_region == 'AS923_2' ->
+    ?assert(true);
+validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_region == 'AS923_3' ->
+    ?assert(true);
+validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_region == 'AS923_4' ->
+    ?assert(true);
 validate_window(Plan, DataRateAtom, Channel) ->
-    % ToDo - Add Channel parameter
     Region = Plan#channel_plan.base_region,
-    % io:format("validate_window Region=~w DataRate=~w~n", [Region, DataRateAtom]),
+    % io:format("validate_window Region=~w DataRate=~w Channel=~w~n", [Region, DataRateAtom, Channel]),
     DataRateStr = datarate_to_binary(Plan, DataRateAtom),
     [JoinChannel_0 | _] = Plan#channel_plan.u_channels,
     J0 = channel_to_freq(Plan, 0),
     ?assertEqual(JoinChannel_0, J0),
     Frequency = channel_to_freq(Plan, Channel),
-    % io:format("JoinChannel=~w~n", [JoinChannel_2]),
 
     Now = os:timestamp(),
     RxQ = #rxq{
@@ -1402,7 +1404,7 @@ validate_window(Plan, DataRateAtom, Channel) ->
         time = calendar:now_to_datetime(Now),
         tmms = 0,
         rssi = 42.2,
-        lsnr = 10.1
+        lsnr = max_uplink_snr(Plan, DataRateAtom)
     },
 
     validate_rx2_window(Plan, RxQ),
@@ -1411,22 +1413,14 @@ validate_window(Plan, DataRateAtom, Channel) ->
     validate_join1_window(Plan, RxQ),
 
     TxQ_1 = rx1_window(Plan, 0, 0, RxQ),
-    % io:format("TxQ_1=~w~n", [TxQ_1]),
     print_txq(Plan, TxQ_1, false),
 
     TxQ_2 = rx2_window(Plan, 0, RxQ),
-    % io:format("TxQ_2=~w~n", [TxQ_2]),
-    _DRIdx_2 = lora_region:datar_to_dr(Region, TxQ_2#txq.datr),
-    % io:format("DRIdx_2=~w~n", [DRIdx_2]),
-    % ?assertEqual(lora_region:datar_to_dr('US915', TxQ#txq.datr), 8),
-    % ?assertEqual(JoinChannel, TxQ_2#txq.freq),
+    print_txq(Plan, TxQ_2, false),
 
     TxQ_3 = join2_window(Plan, RxQ),
-    % io:format("TxQ_3=~w~n", [TxQ_3]),
+    print_txq(Plan, TxQ_3, false),
     _DRIdx_3 = lora_region:datar_to_dr(Region, TxQ_3#txq.datr),
-    % io:format("DRIdx_3=~w~n", [DRIdx_3]),
-    % ?assertEqual(lora_region:datar_to_dr('US915', TxQ#txq.datr), 8),
-    % ?assertEqual(JoinChannel, TxQ_3#txq.freq),
     ok.
 
 validate_snr(Plan, DRIndex) ->
@@ -1492,10 +1486,9 @@ plan_test() ->
     exercise_plan(plan_cn470_A()),
     exercise_plan(plan_kr920_A()),
     exercise_plan(plan_eu433_A()),
-    % exercise_plan(plan_as923_2A()),
-    % exercise_plan(plan_as923_3A()),
-    % exercise_plan(plan_as923_4A()),
-    % exercise_plan(plan_as923_1A()),
+    exercise_plan(plan_as923_2A()),
+    exercise_plan(plan_as923_3A()),
+    exercise_plan(plan_as923_4A()),
     fin.
 
 nearest_test() ->
