@@ -384,7 +384,8 @@ join2_window(Plan, RxQ) ->
 
 -spec rx1_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
 rx1_window(Plan, DelaySeconds, Offset, RxQ) ->
-    _Region = Plan#channel_plan.base_region,
+    % Region = Plan#channel_plan.base_region,
+    % io:format("rx1_window - Region=~w Freq=~w~n", [Region, RxQ#rxq.freq]),
     DownFreq = up_to_down_freq(Plan, RxQ#rxq.freq),
     DataRateIdx = datarate_to_index(Plan, RxQ#rxq.datr),
     DownDRIdx = up_to_down_datarate(Plan, DataRateIdx, Offset),
@@ -492,9 +493,10 @@ channel_to_freq(Plan, Ch) ->
 up_to_down_freq(Plan, Freq0) ->
     UList = (Plan#channel_plan.u_channels),
     Freq1 = nearest(Freq0, UList),
-    % io:format("Freq=~w UList=~w~n", [Freq, UList]),
-    UChannel = index_of(Freq1, UList, 0),
+    % io:format("Freq=~w UList=~w~n", [Freq1, UList]),
     DList = (Plan#channel_plan.d_channels),
+    DCount = erlang:length(DList),
+    UChannel = index_of(Freq1, UList, 0) rem DCount,
     DownFreq = lists:nth(UChannel + 1, DList),
     DownFreq.
 
@@ -665,10 +667,11 @@ plan_us915_SB2() ->
         min_freq = 902.0,
         max_freq = 928.0,
         %% US915's subbank two set of channels
-        u_channels = [903.9, 904.1, 904.3, 904.5, 904.7, 904.9, 905.1, 905.3],
+        %% Channel 65 (fat channel) is 912.6 Mhz
+        u_channels = [903.9, 904.1, 904.3, 904.5, 904.7, 904.9, 905.1, 905.3, 912.6],
         %% The eight US915 downlink channels are hard-coded in the spec
-        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
-        channel_count = 8,
+        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5, 926.9],
+        channel_count = 9,
         bank_offset = 8,
         join_channels = {0, 7},
         data_rates = [
@@ -716,10 +719,11 @@ plan_au915_SB2() ->
         min_freq = 915.0,
         max_freq = 928.0,
         %% AU915's subbank two set of channels
-        u_channels = [916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0, 918.2],
+        %% Channel 65 (fat channel) is 917.5 Mhz
+        u_channels = [916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0, 918.2, 917.5],
         %% The eight AU915 downlink channels are hard-coded in the spec
-        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
-        channel_count = 8,
+        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5, 923.9],
+        channel_count = 9,
         bank_offset = 8,
         join_channels = {0, 7},
         data_rates = [
