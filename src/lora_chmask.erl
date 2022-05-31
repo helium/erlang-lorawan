@@ -4,8 +4,11 @@
     cflist_type_0/1,
     cflist_type_1/1,
     make_link_adr_req/3,
+    build_link_adr_req/3,
     join_cf_list/1
 ]).
+
+-include("lora.hrl").
 
 %% -------------------------------------------------------------------
 %% CFList functions
@@ -220,6 +223,39 @@ build_chmask0({Min, Max}, {A, B}) ->
         N -> <<0:(Bits - N), Bin/bits>>
     end.
 
+build_link_adr_req(Plan, {TXPower0, DataRate}, FOptsOut) ->
+    Region = Plan#channel_plan.base_region,
+    DRIndex0 = lora_plan:datarate_to_index(Plan, DataRate),
+    {MinIndex, MaxIndex} = Plan#channel_plan.mask_dr,
+    InRange = ((DRIndex0 >= MinIndex) and (DRIndex0 =< MaxIndex)),
+    DRIndex1 =
+        case InRange of
+            true -> DRIndex0;
+            false -> 0
+        end,
+    TXPower1 =
+        case InRange of
+            true -> TXPower0;
+            false -> 0
+        end,
+    case Region of
+        'US915' ->
+            %% For US915 and AU915 currently only support subband 2
+            Chans = [{8, 15}],
+            [
+                {link_adr_req, DRIndex1, TXPower1, 0, 7, 0}
+                | append_mask(Region, 3, {TXPower1, DataRate, Chans}, FOptsOut)
+            ];
+        'AU915' ->
+            Chans = [{8, 15}],
+            [
+                {link_adr_req, DRIndex1, TXPower1, 0, 7, 0}
+                | append_mask(Region, 3, {TXPower1, DataRate, Chans}, FOptsOut)
+            ];
+        _ ->
+            append_mask(Region, 5, {TXPower1, DRIndex1, [{0, 7}]}, FOptsOut)
+    end.
+
 append_mask(_Region, Idx, _, FOptsOut) when Idx < 0 ->
     FOptsOut;
 append_mask(Region, Idx, {0, <<"NoChange">>, Chans}, FOptsOut) ->
@@ -318,6 +354,7 @@ bits_test_() ->
             ],
             make_link_adr_req('US915', {20, <<"SF12BW500">>, [{0, 7}]}, [])
         ),
+
         ?_assertEqual(
             [
                 {link_adr_req, US915Index, 20, 2, 7, 0},
@@ -326,6 +363,47 @@ bits_test_() ->
             make_link_adr_req('US915', {20, <<"SF12BW500">>, [{8, 15}, {65, 65}]}, [])
         )
     ].
+
+validate_req(Plan, TxPower, DataRate) ->
+    Region = Plan#channel_plan.base_region,
+    Chans =
+        case Region of
+            'US915' -> [{8, 15}];
+            'AU915' -> [{8, 15}];
+            _ -> [{0, 7}]
+        end,
+    M1 = make_link_adr_req(Region, {TxPower, DataRate, Chans}, []),
+    % io:format("M1=~w~n", [M1]),
+    B1 = build_link_adr_req(Plan, {TxPower, DataRate}, []),
+    % io:format("B1=~w ~n", [B1]),
+    ?_assertEqual(M1, B1).
+
+exercise_req({Region, TxPower, DataRate}) ->
+    Plan = lora_plan:region_to_plan(Region),
+    DRBinary = lora_plan:datarate_to_binary(Plan, DataRate),
+    % io:format("Region=~w TxPower=~w DRBinary=~w~n", [Region, TxPower, DRBinary]),
+    validate_req(Plan, TxPower, DRBinary).
+
+exercise_req_test_() ->
+    Regions = ['EU868', 'US915', 'AU915', 'CN470', 'AS923_1', 'KR920', 'IN865', 'EU433'],
+    Powers = [30, 20, 19, 16, 14, 12, 5, 2],
+    DataRates = [0, 1, 2, 3],
+    [exercise_req({Region, TX, DR}) || Region <- Regions, TX <- Powers, DR <- DataRates].
+
+link_adr_req_test() ->
+    PlanEU868 = lora_plan:region_to_plan('EU868'),
+    PlanUS915 = lora_plan:region_to_plan('US915'),
+    M1 = make_link_adr_req('EU868', {14, <<"SF12BW125">>, [{0, 7}]}, []),
+    % io:format("M1=~w~n", [M1]),
+    B1 = build_link_adr_req(PlanEU868, {14, <<"SF12BW125">>}, []),
+    % io:format("B1=~w ~n", [B1]),
+    ?assertEqual(M1, B1),
+    M2 = make_link_adr_req('US915', {20, <<"SF10BW125">>, [{8, 15}]}, []),
+    % io:format("M2=~w~n", [M2]),
+    B2 = build_link_adr_req(PlanUS915, {20, <<"SF10BW125">>}, []),
+    % io:format("B2=~w ~n", [B2]),
+    ?assertEqual(M2, B2),
+    validate_req(PlanUS915, 20, <<"SF10BW125">>).
 
 join_cf_list_test_() ->
     [
