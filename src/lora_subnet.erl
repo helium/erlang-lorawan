@@ -240,6 +240,28 @@ uint32(Num) ->
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
+helium_id_test() ->
+    %% Helium ID language constructs
+    ?assertEqual($H bsr 1, 36),
+    ?assertEqual(
+        {ok, 16#000024}, parse_netid(<<72, 0, 8, 8>>), "[36] == 0x24 == type 0"
+    ),
+    ?assertEqual(
+        {ok, 36}, parse_netid(<<72, 0, 8, 8>>)
+    ),
+    ?assertEqual(
+        {ok, 36}, parse_netid(16#48000808)
+    ),
+    ?assertEqual(
+        {ok, 36}, parse_netid(1207961608)
+    ),
+    <<_:25/integer-unsigned-little, DevAddrPrefix_0:7/integer>> = <<8, 8, 0, 72>>,
+    ?assertEqual(DevAddrPrefix_0, $H),
+    <<_DevAddr0:32/integer-unsigned>> = <<72, 0, 8, 8>>,
+    <<DevAddrPrefix_1:8, _/binary>> = <<72, 0, 8, 8>>,
+    ?assertEqual(DevAddrPrefix_1, $H),
+    ok.
+
 id_test() ->
     %% CP data
     ?assertEqual(
