@@ -257,9 +257,13 @@ helium_id_test() ->
     ),
     <<_:25/integer-unsigned-little, DevAddrPrefix_0:7/integer>> = <<8, 8, 0, 72>>,
     ?assertEqual(DevAddrPrefix_0, $H),
-    <<_DevAddr0:32/integer-unsigned>> = <<72, 0, 8, 8>>,
     <<DevAddrPrefix_1:8, _/binary>> = <<72, 0, 8, 8>>,
     ?assertEqual(DevAddrPrefix_1, $H),
+    <<I:32/integer-unsigned>> = <<72, 0, 8, 8>>,
+    ?assertEqual(I, 1207961608),
+    ?assertEqual(I, 16#48000808),
+    LittleEndian = <<I:4/little-signed-integer-unit:8>>,
+    ?assertEqual(<<8, 8, 0, 72>>, LittleEndian),
     ok.
 
 id_test() ->
