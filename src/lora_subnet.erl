@@ -11,6 +11,7 @@
     addr_bit_len/1,
     is_local_devaddr/2,
     devaddr_from_subnet/2,
+    devaddr_from_netid/2,
     subnet_from_devaddr/2,
     swap_four_bytes/1
 ]).
@@ -52,6 +53,17 @@ devaddr_from_subnet(SubnetAddr, NetIDList) ->
     NetID = subnet_addr_to_netid(SubnetAddr, NetIDList),
     {Lower, _Upper} = netid_addr_range(NetID, NetIDList),
     DevAddr = devaddr(NetID, SubnetAddr - Lower),
+    swap_four_bytes(DevAddr).
+
+%%------------------------------------------------------------------------------
+%% @doc Construct a DevAddr given a NetID and NwkAddr
+%% The DevAddr is an unsigned little endian.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec devaddr_from_netid(netid(), nwkaddr()) -> devaddr().
+devaddr_from_netid(NetID, NwkAddr) ->
+    DevAddr = devaddr(NetID, NwkAddr),
     swap_four_bytes(DevAddr).
 
 %%------------------------------------------------------------------------------
