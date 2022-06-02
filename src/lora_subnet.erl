@@ -10,7 +10,8 @@
     addr_bit_len/1,
     is_local_devaddr/2,
     devaddr_from_subnet/2,
-    subnet_from_devaddr/2
+    subnet_from_devaddr/2,
+    swap_four_bytes/1
 ]).
 
 -type netid() :: non_neg_integer().
@@ -32,7 +33,8 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec is_local_devaddr(devaddr(), [netid()]) -> boolean().
-is_local_devaddr(DevAddr, NetIDList) ->
+is_local_devaddr(DevAddr0, NetIDList) ->
+    DevAddr = swap_four_bytes(DevAddr0),
     NetID = the_netid(DevAddr),
     is_local_netid(NetID, NetIDList).
 
@@ -47,7 +49,7 @@ devaddr_from_subnet(SubnetAddr, NetIDList) ->
     NetID = subnet_addr_to_netid(SubnetAddr, NetIDList),
     {Lower, _Upper} = netid_addr_range(NetID, NetIDList),
     DevAddr = devaddr(NetID, SubnetAddr - Lower),
-    DevAddr.
+    swap_four_bytes(DevAddr).
 
 %%------------------------------------------------------------------------------
 %% @doc Translate from a LoRaWAN DevAddr to a Helium subnet address.
@@ -56,11 +58,36 @@ devaddr_from_subnet(SubnetAddr, NetIDList) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec subnet_from_devaddr(devaddr(), [netid()]) -> subnetaddr().
-subnet_from_devaddr(DevAddr, NetIDList) ->
+subnet_from_devaddr(DevAddr0, NetIDList) ->
+    DevAddr = swap_four_bytes(DevAddr0),
     NetID = the_netid(DevAddr),
     {Lower, _Upper} = netid_addr_range(NetID, NetIDList),
     SubnetAddr = Lower + nwk_addr(DevAddr),
     SubnetAddr.
+
+-spec parse_netid(number() | binary()) -> {ok, netid()} | {error, invalid_netid_type}.
+parse_netid(DevNum) when erlang:is_number(DevNum) ->
+    parse_netid(<<DevNum:32/integer-unsigned>>);
+parse_netid(DevAddr0) ->
+    try
+        DevAddr = swap_four_bytes(DevAddr0),
+        Type = netid_type(DevAddr),
+        ID = parse_id(DevAddr, Type + 1, id_len(Type)),
+        {ok, ID bor (Type bsl 21)}
+    catch
+        throw:invalid_netid_type:_ ->
+            {error, invalid_netid_type}
+    end.
+
+-spec swap_four_bytes(non_neg_integer() | binary()) -> non_neg_integer() | binary().
+swap_four_bytes(Value) when is_binary(Value) ->
+    <<I:32/integer-unsigned>> = Value,
+    Swapped = <<I:4/little-signed-integer-unit:8>>,
+    Swapped;
+swap_four_bytes(Value) when is_integer(Value) ->
+    Swapped = <<Value:4/little-signed-integer-unit:8>>,
+    <<I:32/integer-unsigned>> = Swapped,
+    I.
 
 %%%=============================================================================
 %%% Internal functions
@@ -163,19 +190,6 @@ the_netid(DevAddr) ->
     NetID = ID bor (Type bsl 21),
     NetID.
 
--spec parse_netid(number() | binary()) -> {ok, netid()} | {error, invalid_netid_type}.
-parse_netid(DevNum) when erlang:is_number(DevNum) ->
-    parse_netid(<<DevNum:32/integer-unsigned>>);
-parse_netid(DevAddr) ->
-    try
-        Type = netid_type(DevAddr),
-        ID = parse_id(DevAddr, Type + 1, id_len(Type)),
-        {ok, ID bor (Type bsl 21)}
-    catch
-        throw:invalid_netid_type:_ ->
-            {error, invalid_netid_type}
-    end.
-
 -spec addr_bit_len(number() | binary()) -> 7 | 10 | 13 | 15 | 17 | 20 | 24 | 25.
 addr_bit_len(DevNum) when erlang:is_number(DevNum) ->
     addr_bit_len(<<DevNum:32/integer-unsigned>>);
@@ -241,19 +255,30 @@ uint32(Num) ->
 -include_lib("eunit/include/eunit.hrl").
 
 helium_id_test() ->
+    %% The LoRaWAN protocol is little endian
+    %% devaddr values are little endian
+    %% netid values are big endian
+    A1 = swap_four_bytes(<<8, 7, 0, 72>>),
+    B1 = swap_four_bytes(A1),
+    ?assertEqual(B1, <<8, 7, 0, 72>>),
+    A2 = swap_four_bytes(16#08080048),
+    % io:format("A2 ~8.16.0B~n", [A2]),
+    % io:format("A2 ~w~n", [A2]),
+    B2 = swap_four_bytes(A2),
+    ?assertEqual(B2, 16#08080048),
     %% Helium ID language constructs
     ?assertEqual($H bsr 1, 36),
     ?assertEqual(
-        {ok, 16#000024}, parse_netid(<<72, 0, 8, 8>>), "[36] == 0x24 == type 0"
+        {ok, 16#000024}, parse_netid(<<8, 8, 0, 72>>), "[36] == 0x24 == type 0"
     ),
     ?assertEqual(
-        {ok, 36}, parse_netid(<<72, 0, 8, 8>>)
+        {ok, 36}, parse_netid(<<8, 8, 0, 72>>)
     ),
     ?assertEqual(
-        {ok, 36}, parse_netid(16#48000808)
+        {ok, 36}, parse_netid(16#08080048)
     ),
     ?assertEqual(
-        {ok, 36}, parse_netid(1207961608)
+        {ok, 36}, parse_netid(134742088)
     ),
     <<_:25/integer-unsigned-little, DevAddrPrefix_0:7/integer>> = <<8, 8, 0, 72>>,
     ?assertEqual(DevAddrPrefix_0, $H),
@@ -269,37 +294,37 @@ helium_id_test() ->
 id_test() ->
     %% CP data
     ?assertEqual(
-        {ok, 16#00002D}, parse_netid(<<91, 255, 255, 255>>), "[45] == 2D == 45 type 0"
+        {ok, 16#00002D}, parse_netid(<<255, 255, 255, 91>>), "[45] == 2D == 45 type 0"
     ),
     ?assertEqual(
-        {ok, 16#20002D}, parse_netid(<<173, 255, 255, 255>>), "[45] == 2D == 45 type 1"
+        {ok, 16#20002D}, parse_netid(<<255, 255, 255, 173>>), "[45] == 2D == 45 type 1"
     ),
     ?assertEqual(
-        {ok, 16#40016D}, parse_netid(<<214, 223, 255, 255>>), "[1,109] == 16D == 365 type 2"
+        {ok, 16#40016D}, parse_netid(<<255, 244, 223, 214>>), "[1,109] == 16D == 365 type 2"
     ),
     ?assertEqual(
         {ok, 16#6005B7},
-        parse_netid(<<235, 111, 255, 255>>),
+        parse_netid(<<255, 255, 111, 235>>),
         "[5,183] == 5B7 == 1463 type 3"
     ),
     ?assertEqual(
         {ok, 16#800B6D},
-        parse_netid(<<245, 182, 255, 255>>),
+        parse_netid(<<255, 255, 182, 245>>),
         "[11, 109] == B6D == 2925 type 4"
     ),
     ?assertEqual(
         {ok, 16#A016DB},
-        parse_netid(<<250, 219, 127, 255>>),
+        parse_netid(<<255, 127, 219, 250>>),
         "[22,219] == 16DB == 5851 type 5"
     ),
     ?assertEqual(
         {ok, 16#C05B6D},
-        parse_netid(<<253, 109, 183, 255>>),
+        parse_netid(<<255, 183, 109, 253>>),
         "[91, 109] == 5B6D == 23405 type 6"
     ),
     ?assertEqual(
         {ok, 16#E16DB6},
-        parse_netid(<<254, 182, 219, 127>>),
+        parse_netid(<<127, 219, 182, 254>>),
         "[1,109,182] == 16DB6 == 93622 type 7"
     ),
     ?assertEqual(
@@ -309,28 +334,48 @@ id_test() ->
     ),
 
     % Actility spreadsheet examples
-    ?assertEqual({ok, 0}, parse_netid(<<0:1, 0:1, 0:1, 0:1, 0:1, 0:1, 0:1, 0:25>>)),
-    ?assertEqual({ok, 1}, parse_netid(<<0:1, 0:1, 0:1, 0:1, 0:1, 0:1, 1:1, 0:25>>)),
-    ?assertEqual({ok, 2}, parse_netid(<<0:1, 0:1, 0:1, 0:1, 0:1, 1:1, 0:1, 0:25>>)),
-
+    ?assertEqual(
+        {ok, 0},
+        parse_netid(swap_four_bytes(<<0:1, 0:1, 0:1, 0:1, 0:1, 0:1, 0:1, 0:25>>))
+    ),
+    ?assertEqual(
+        {ok, 1},
+        parse_netid(swap_four_bytes(<<0:1, 0:1, 0:1, 0:1, 0:1, 0:1, 1:1, 0:25>>))
+    ),
+    ?assertEqual(
+        {ok, 2},
+        parse_netid(swap_four_bytes(<<0:1, 0:1, 0:1, 0:1, 0:1, 1:1, 0:1, 0:25>>))
+    ),
     %% Mis-parsed as netid 4 of type 3
     ?assertEqual(
-        {ok, 16#600004}, parse_netid(<<224, 9, 171, 205>>), "hex_to_binary(<<'E009ABCD'>>)"
+        {ok, 16#600004}, parse_netid(<<205, 171, 9, 224>>), "hex_to_binary(<<'E009ABCD'>>)"
     ),
     %% Valid DevAddr, NetID not assigned
     ?assertEqual(
         {ok, 16#20002D},
-        parse_netid(<<173, 255, 255, 255>>),
+        parse_netid(<<255, 255, 255, 173>>),
         "hex_to_binary(<<'ADFFFFFF'>>)"
     ),
     %% Less than 32 bit number
-    ?assertEqual({ok, 0}, parse_netid(46377)),
+    ?assertEqual({ok, 36}, parse_netid(16#48)),
 
     % Louis test data
-    ?assertEqual({ok, 16#600002}, parse_netid(<<224, 4, 0, 1>>)),
-    ?assertEqual({ok, 16#600002}, parse_netid(<<224, 5, 39, 132>>)),
-    ?assertEqual({ok, 16#000002}, parse_netid(<<4, 16, 190, 163>>)),
+    ?assertEqual({ok, 16#600002}, parse_netid(<<1, 0, 4, 224>>)),
+    ?assertEqual({ok, 16#600002}, parse_netid(<<132, 39, 5, 224>>)),
+    ?assertEqual({ok, 16#000002}, parse_netid(<<163, 190, 16, 4>>)),
     ok.
+
+parse_netid_be(DevAddr0) ->
+    DevAddr = swap_four_bytes(DevAddr0),
+    parse_netid(DevAddr).
+
+subnet_from_devaddr_be(DevAddr0, NetIDList) ->
+    DevAddr = swap_four_bytes(DevAddr0),
+    subnet_from_devaddr(DevAddr, NetIDList).
+
+devaddr_from_subnet_be(SubnetAddr, NetIDList) ->
+    DevAddr = devaddr_from_subnet(SubnetAddr, NetIDList),
+    swap_four_bytes(DevAddr).
 
 create_netid(NetClass, ID) ->
     NetIDBin = <<0:8/integer-unsigned, NetClass:3/integer-unsigned, ID:21/integer-unsigned>>,
@@ -356,13 +401,13 @@ insert_rand(Item, List) ->
     NewList.
 
 exercise_subnet(DevAddr, NetIDList) ->
-    SubnetAddr = subnet_from_devaddr(DevAddr, NetIDList),
-    DevAddr2 = devaddr_from_subnet(SubnetAddr, NetIDList),
+    SubnetAddr = subnet_from_devaddr_be(DevAddr, NetIDList),
+    DevAddr2 = devaddr_from_subnet_be(SubnetAddr, NetIDList),
     ?assertEqual(DevAddr, DevAddr2),
     ok.
 
 exercise_subnet(DevAddr) ->
-    {ok, NetID} = parse_netid(DevAddr),
+    {ok, NetID} = parse_netid_be(DevAddr),
     exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 0)),
     exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 1)),
     exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 2)),
@@ -370,7 +415,7 @@ exercise_subnet(DevAddr) ->
     ok.
 
 random_subnet(DevAddr) ->
-    {ok, NetID} = parse_netid(DevAddr),
+    {ok, NetID} = parse_netid_be(DevAddr),
     [exercise_subnet(DevAddr, insert_rand(NetID, mock_random_netids())) || _ <- lists:seq(1, 400)],
     ok.
 
@@ -378,7 +423,7 @@ exercise_devaddr(NetID, Addr, _IDLen, AddrLen) ->
     DevAddr = devaddr(NetID, Addr),
     NetIDType = netid_type(DevAddr),
     ?assert(NetIDType =< 7),
-    {ok, NetID0} = parse_netid(DevAddr),
+    {ok, NetID0} = parse_netid_be(DevAddr),
     ?assertEqual(NetID, NetID0),
     AddrBitLen = addr_bit_len(DevAddr),
     ?assertEqual(AddrLen, AddrBitLen),
@@ -482,20 +527,20 @@ netid_test() ->
     NetIDType2 = netid_type(DevAddr2),
     ?assertEqual(3, NetIDType2),
 
-    {ok, NetID_0} = parse_netid(DevAddr00),
+    {ok, NetID_0} = parse_netid_be(DevAddr00),
     ?assertEqual(NetID_0, LegacyNetID),
-    {ok, NetID_1} = parse_netid(16#FC00D410),
+    {ok, NetID_1} = parse_netid_be(16#FC00D410),
     ?assertEqual(NetID_1, 16#C00035),
-    {ok, NetID_1} = parse_netid(DevAddr01),
+    {ok, NetID_1} = parse_netid_be(DevAddr01),
     ?assertEqual(NetID_1, NetID01),
-    {ok, NetID_2} = parse_netid(DevAddr02),
+    {ok, NetID_2} = parse_netid_be(DevAddr02),
     ?assertEqual(NetID_2, NetID02),
 
-    {ok, NetID0} = parse_netid(DevAddrLegacy),
+    {ok, NetID0} = parse_netid_be(DevAddrLegacy),
     ?assertEqual(NetID0, LegacyNetID),
-    {ok, NetID1} = parse_netid(DevAddr1),
+    {ok, NetID1} = parse_netid_be(DevAddr1),
     ?assertEqual(NetID1, NetID01),
-    {ok, NetID2} = parse_netid(DevAddr2),
+    {ok, NetID2} = parse_netid_be(DevAddr2),
     ?assertEqual(NetID2, NetID02),
 
     Width_0 = addr_bit_len(DevAddr00),
@@ -525,36 +570,36 @@ netid_test() ->
     %% but if we compute the associated DevAddr for this subnet (for the Join request)
     %% we'll get a new DevAddr associated with a current and proper NetID.
     %% In other words, DevAddr00 is not equal to DevAddr000.
-    Subnet0 = subnet_from_devaddr(DevAddr00, NetIDList),
+    Subnet0 = subnet_from_devaddr_be(DevAddr00, NetIDList),
     io:format("Subnet0 ~8.16.0B~n", [Subnet0]),
     ?assertEqual(0, Subnet0),
-    DevAddr000 = devaddr_from_subnet(Subnet0, NetIDList),
+    DevAddr000 = devaddr_from_subnet_be(Subnet0, NetIDList),
     io:format("DevAddr00 ~8.16.0B~n", [DevAddr00]),
     io:format("DevAddr000 ~8.16.0B~n", [DevAddr000]),
     %% By design the reverse DevAddr will have a correct NetID
     ?assertNotEqual(DevAddr000, DevAddr00),
     ?assertEqual(16#FE000080, DevAddr000),
-    {ok, DevAddr000NetID} = parse_netid(DevAddr000),
+    {ok, DevAddr000NetID} = parse_netid_be(DevAddr000),
     ?assertEqual(NetID00, DevAddr000NetID),
     NwkAddr000 = nwk_addr(DevAddr000),
     ?assertEqual(NwkAddr0, NwkAddr000),
 
-    Subnet1 = subnet_from_devaddr(DevAddr01, NetIDList),
+    Subnet1 = subnet_from_devaddr_be(DevAddr01, NetIDList),
     io:format("Subnet1 ~8.16.0B~n", [Subnet1]),
     ?assertEqual((1 bsl 7) + 16, Subnet1),
-    DevAddr001 = devaddr_from_subnet(Subnet1, NetIDList),
+    DevAddr001 = devaddr_from_subnet_be(Subnet1, NetIDList),
     io:format("DevAddr01 ~8.16.0B~n", [DevAddr01]),
     io:format("DevAddr001 ~8.16.0B~n", [DevAddr001]),
     ?assertEqual(DevAddr001, DevAddr01),
 
-    Subnet1 = subnet_from_devaddr(DevAddr01, NetIDList),
+    Subnet1 = subnet_from_devaddr_be(DevAddr01, NetIDList),
     ?assertEqual((1 bsl 7) + 16, Subnet1),
-    DevAddr001 = devaddr_from_subnet(Subnet1, NetIDList),
+    DevAddr001 = devaddr_from_subnet_be(Subnet1, NetIDList),
     ?assertEqual(DevAddr001, DevAddr01),
 
-    Subnet2 = subnet_from_devaddr(DevAddr02, NetIDList),
+    Subnet2 = subnet_from_devaddr_be(DevAddr02, NetIDList),
     ?assertEqual((1 bsl 7) + (1 bsl 10) + 8, Subnet2),
-    DevAddr002 = devaddr_from_subnet(Subnet2, NetIDList),
+    DevAddr002 = devaddr_from_subnet_be(Subnet2, NetIDList),
     ?assertEqual(DevAddr002, DevAddr02),
 
     ok.
