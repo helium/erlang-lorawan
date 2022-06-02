@@ -7,6 +7,7 @@
 
 -export([
     parse_netid/1,
+    parse_netid/2,
     addr_bit_len/1,
     is_local_devaddr/2,
     devaddr_from_subnet/2,
@@ -28,6 +29,7 @@
 
 %%------------------------------------------------------------------------------
 %% @doc Does this LoRaWAN DevAddr belong to the Helium network?
+%% The DevAddr is an unsigned little endian.
 %% NetIDList contains Helium's ordered list of assigned NetIDs.
 %%
 %% @end
@@ -40,6 +42,7 @@ is_local_devaddr(DevAddr0, NetIDList) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Translate from a Helium subnet address to a LoRaWAN DevAddr.
+%% The DevAddr is an unsigned little endian.
 %% NetIDList contains Helium's ordered list of assigned NetIDs.
 %%
 %% @end
@@ -53,6 +56,7 @@ devaddr_from_subnet(SubnetAddr, NetIDList) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Translate from a LoRaWAN DevAddr to a Helium subnet address.
+%% The DevAddr is an unsigned little endian.
 %% NetIDList contains Helium's ordered list of assigned NetIDs.
 %%
 %% @end
@@ -65,7 +69,29 @@ subnet_from_devaddr(DevAddr0, NetIDList) ->
     SubnetAddr = Lower + nwk_addr(DevAddr),
     SubnetAddr.
 
--spec parse_netid(number() | binary()) -> {ok, netid()} | {error, invalid_netid_type}.
+%%------------------------------------------------------------------------------
+%% @doc Extract a big endian NetID from the LoRaWAN DevAddr.
+%% Specify whether the DevAddr is little or big endian.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec parse_netid(DevAddr, Endianness) ->
+    {ok, netid()} | {error, invalid_netid_type}
+when
+    DevAddr :: non_neg_integer() | binary(),
+    Endianness :: big | little.
+parse_netid(DevAddr, Endianness) ->
+    case Endianness of
+        big -> parse_netid(swap_four_bytes(DevAddr));
+        little -> parse_netid(DevAddr)
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Extract a big endian NetID from the little endian LoRaWAN DevAddr.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec parse_netid(non_neg_integer() | binary()) -> {ok, netid()} | {error, invalid_netid_type}.
 parse_netid(DevNum) when erlang:is_number(DevNum) ->
     parse_netid(<<DevNum:32/integer-unsigned>>);
 parse_netid(DevAddr0) ->
@@ -79,6 +105,11 @@ parse_netid(DevAddr0) ->
             {error, invalid_netid_type}
     end.
 
+%%------------------------------------------------------------------------------
+%% @doc Convert from big endian to little endian or vice versa.
+%%
+%% @end
+%%------------------------------------------------------------------------------
 -spec swap_four_bytes(non_neg_integer() | binary()) -> non_neg_integer() | binary().
 swap_four_bytes(Value) when is_binary(Value) ->
     <<I:32/integer-unsigned>> = Value,
@@ -269,26 +300,26 @@ helium_id_test() ->
     %% Helium ID language constructs
     ?assertEqual($H bsr 1, 36),
     ?assertEqual(
-        {ok, 16#000024}, parse_netid(<<8, 8, 0, 72>>), "[36] == 0x24 == type 0"
+        {ok, 16#000024}, parse_netid(<<8, 7, 0, 72>>), "[36] == 0x24 == type 0"
     ),
     ?assertEqual(
-        {ok, 36}, parse_netid(<<8, 8, 0, 72>>)
+        {ok, 36}, parse_netid(<<8, 7, 0, 72>>)
     ),
     ?assertEqual(
-        {ok, 36}, parse_netid(16#08080048)
+        {ok, 36}, parse_netid(16#08070048)
     ),
     ?assertEqual(
         {ok, 36}, parse_netid(134742088)
     ),
-    <<_:25/integer-unsigned-little, DevAddrPrefix_0:7/integer>> = <<8, 8, 0, 72>>,
+    <<_:25/integer-unsigned-little, DevAddrPrefix_0:7/integer>> = <<8, 7, 0, 72>>,
     ?assertEqual(DevAddrPrefix_0, $H),
-    <<DevAddrPrefix_1:8, _/binary>> = <<72, 0, 8, 8>>,
+    <<DevAddrPrefix_1:8, _/binary>> = <<72, 0, 7, 8>>,
     ?assertEqual(DevAddrPrefix_1, $H),
-    <<I:32/integer-unsigned>> = <<72, 0, 8, 8>>,
-    ?assertEqual(I, 1207961608),
-    ?assertEqual(I, 16#48000808),
+    <<I:32/integer-unsigned>> = <<72, 0, 7, 8>>,
+    ?assertEqual(I, 1207961352),
+    ?assertEqual(I, 16#48000708),
     LittleEndian = <<I:4/little-signed-integer-unit:8>>,
-    ?assertEqual(<<8, 8, 0, 72>>, LittleEndian),
+    ?assertEqual(<<8, 7, 0, 72>>, LittleEndian),
     ok.
 
 id_test() ->
