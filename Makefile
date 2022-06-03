@@ -12,9 +12,8 @@ clean:
 test: 
 	$(REBAR) fmt --verbose --check rebar.config
 	$(REBAR) fmt --verbose --check "{src,include,test}/**/*.{hrl,erl,app.src}"
-	$(REBAR) fmt --verbose --check "config/{test,sys}.{config,config.src}"
 	$(REBAR) xref
-	$(REBAR) eunit
+	$(REBAR) eunit -v
 	$(REBAR) ct
 	$(REBAR) dialyzer
 
