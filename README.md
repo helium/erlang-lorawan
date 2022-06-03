@@ -1,4 +1,4 @@
-# Erlang LoraWan
+# Erlang LoraWan [![Tests](https://github.com/helium/erlang-lorawan/actions/workflows/tests.yml/badge.svg)](https://github.com/helium/erlang-lorawan/actions/workflows/tests.yml)
 
 erlang-lorawan provides erlang modules to read and write LoRaWAN
 1.0 frames from and to a hex or base64 encoded array of bytes.
