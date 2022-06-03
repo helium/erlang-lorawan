@@ -20,8 +20,11 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
+      - name: mkdir
+        run: mkdir -p /opt/erlang-lorawan
       - name: checkout
         uses: actions/checkout@v2
+        working-directory: /opt/erlang-lorawan
       - name: build
         run: ./rebar3 compile
         working-directory: /opt/erlang-lorawan
