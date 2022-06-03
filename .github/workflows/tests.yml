@@ -42,8 +42,6 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}-xref
       cancel-in-progress: true
     steps:
-      - name: checkout
-        uses: actions/checkout@v2
       - name: download-artifact
         uses: actions/download-artifact@v2
         with:
@@ -63,8 +61,6 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}-eunit
       cancel-in-progress: true
     steps:
-      - name: checkout
-        uses: actions/checkout@v2
       - name: download-artifact
         uses: actions/download-artifact@v2
         with:
@@ -84,8 +80,6 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}-dialyzer
       cancel-in-progress: true
     steps:
-      - name: checkout
-        uses: actions/checkout@v2
       - name: download-artifact
         uses: actions/download-artifact@v2
         with:
@@ -105,8 +99,6 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}-ct
       cancel-in-progress: true
     steps:
-      - name: checkout
-        uses: actions/checkout@v2
       - name: download-artifact
         uses: actions/download-artifact@v2
         with:
