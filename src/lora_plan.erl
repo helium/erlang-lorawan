@@ -384,7 +384,8 @@ join2_window(Plan, RxQ) ->
 
 -spec rx1_window(#channel_plan{}, number(), number(), #rxq{}) -> #txq{}.
 rx1_window(Plan, DelaySeconds, Offset, RxQ) ->
-    _Region = Plan#channel_plan.base_region,
+    % Region = Plan#channel_plan.base_region,
+    % io:format("rx1_window - Region=~w Freq=~w~n", [Region, RxQ#rxq.freq]),
     DownFreq = up_to_down_freq(Plan, RxQ#rxq.freq),
     DataRateIdx = datarate_to_index(Plan, RxQ#rxq.datr),
     DownDRIdx = up_to_down_datarate(Plan, DataRateIdx, Offset),
@@ -476,8 +477,8 @@ rx2_tuple(Plan) ->
 
 -spec freq_to_channel(#channel_plan{}, number()) -> integer().
 freq_to_channel(Plan, Freq0) ->
-    Freq1 = round_frequency(Freq0, Plan#channel_plan.float_precision),
     List = (Plan#channel_plan.u_channels),
+    Freq1 = nearest(Freq0, List),
     Channel = index_of(Freq1, List, 0),
     Channel.
 
@@ -490,11 +491,12 @@ channel_to_freq(Plan, Ch) ->
 
 -spec up_to_down_freq(#channel_plan{}, number()) -> number().
 up_to_down_freq(Plan, Freq0) ->
-    Freq1 = round_frequency(Freq0, Plan#channel_plan.float_precision),
     UList = (Plan#channel_plan.u_channels),
-    % io:format("Freq=~w UList=~w~n", [Freq, UList]),
-    UChannel = index_of(Freq1, UList, 0),
+    Freq1 = nearest(Freq0, UList),
+    % io:format("Freq=~w UList=~w~n", [Freq1, UList]),
     DList = (Plan#channel_plan.d_channels),
+    DCount = erlang:length(DList),
+    UChannel = index_of(Freq1, UList, 0) rem DCount,
     DownFreq = lists:nth(UChannel + 1, DList),
     DownFreq.
 
@@ -542,9 +544,18 @@ index_of(Value, List, Default) ->
         false -> Default
     end.
 
--spec round_frequency(float() | number(), integer()) -> float().
-round_frequency(Value, Precision) ->
-    list_to_float(float_to_list(Value, [{decimals, Precision}, compact])).
+-spec nearest(float() | number(), [float()]) -> float().
+nearest(F, List) ->
+    Near = fun(A, B) ->
+        AbsA = abs(A - F),
+        AbsB = abs(B - F),
+        R = AbsA < AbsB,
+        case R of
+            true -> A;
+            false -> B
+        end
+    end,
+    lists:foldl(Near, 1.0, List).
 
 %% ------------------------------------------------------------------
 %% Plan Record Functions
@@ -587,6 +598,7 @@ plan_eu868_A() ->
         % ToDo: Current setting are wrong...
         tx_power = [0, -6, -9, -12, -15, -18],
         join_dr = {0, 5},
+        mask_dr = {0, 5},
         mandatory_dr = {0, 5},
         optional_dr = {6, 7},
         max_duty_cycle = 1,
@@ -605,7 +617,7 @@ plan_eu868_A() ->
 
 plan_eu433_A() ->
     Plan = #channel_plan{
-        channel_plan_id = 1,
+        channel_plan_id = 4,
         plan_name = 'EU433_A',
         base_region = 'EU433',
         dynamic_plan = true,
@@ -629,6 +641,7 @@ plan_eu433_A() ->
         ],
         tx_power = [0, -2, -4, -6, -8, -10],
         join_dr = {0, 5},
+        mask_dr = {0, 5},
         mandatory_dr = {0, 5},
         optional_dr = {6, 7},
         max_duty_cycle = 10,
@@ -654,10 +667,11 @@ plan_us915_SB2() ->
         min_freq = 902.0,
         max_freq = 928.0,
         %% US915's subbank two set of channels
-        u_channels = [903.9, 904.1, 904.3, 904.5, 904.7, 904.9, 905.1, 905.3],
+        %% Channel 65 (fat channel) is 912.6 Mhz
+        u_channels = [903.9, 904.1, 904.3, 904.5, 904.7, 904.9, 905.1, 905.3, 912.6],
         %% The eight US915 downlink channels are hard-coded in the spec
-        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
-        channel_count = 8,
+        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5, 926.9],
+        channel_count = 9,
         bank_offset = 8,
         join_channels = {0, 7},
         data_rates = [
@@ -679,6 +693,7 @@ plan_us915_SB2() ->
         %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
         join_dr = {2, 4},
+        mask_dr = {0, 3},
         mandatory_dr = {0, 4},
         optional_dr = {5, 6},
         max_duty_cycle = 10000,
@@ -704,10 +719,11 @@ plan_au915_SB2() ->
         min_freq = 915.0,
         max_freq = 928.0,
         %% AU915's subbank two set of channels
-        u_channels = [916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0, 918.2],
+        %% Channel 65 (fat channel) is 917.5 Mhz
+        u_channels = [916.8, 917.0, 917.2, 917.4, 917.6, 917.8, 918.0, 918.2, 917.5],
         %% The eight AU915 downlink channels are hard-coded in the spec
-        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
-        channel_count = 8,
+        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5, 923.9],
+        channel_count = 9,
         bank_offset = 8,
         join_channels = {0, 7},
         data_rates = [
@@ -729,6 +745,7 @@ plan_au915_SB2() ->
         %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
         join_dr = {2, 5},
+        mask_dr = {0, 5},
         mandatory_dr = {0, 6},
         optional_dr = {7, 7},
         max_duty_cycle = 1,
@@ -754,7 +771,7 @@ plan_cn470_A() ->
         min_freq = 470.0,
         max_freq = 510.0,
         u_channels = [486.3, 486.5, 486.7, 486.9, 487.1, 487.3, 487.5, 487.7],
-        d_channels = [506.7, 506.9, 507.2, 507.4, 507.6, 507.8, 508.0, 508.2],
+        d_channels = [506.7, 506.9, 507.1, 507.3, 507.5, 507.7, 507.9, 508.1],
         channel_count = 8,
         bank_offset = 0,
         join_channels = {0, 2},
@@ -768,6 +785,7 @@ plan_cn470_A() ->
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
         join_dr = {0, 5},
+        mask_dr = {0, 5},
         mandatory_dr = {0, 5},
         optional_dr = {7, 7},
         max_duty_cycle = 1,
@@ -813,6 +831,7 @@ plan_as923_A() ->
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
         join_dr = {2, 5},
+        mask_dr = {0, 5},
         mandatory_dr = {0, 5},
         optional_dr = {6, 7},
         max_duty_cycle = 1,
@@ -858,6 +877,7 @@ plan_as923_1A() ->
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
         join_dr = {2, 5},
+        mask_dr = {0, 5},
         mandatory_dr = {0, 5},
         optional_dr = {6, 7},
         max_duty_cycle = 1,
@@ -907,6 +927,7 @@ plan_as923_1B() ->
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
         join_dr = {2, 5},
+        mask_dr = {0, 5},
         mandatory_dr = {0, 5},
         optional_dr = {6, 7},
         max_duty_cycle = 1,
@@ -952,6 +973,7 @@ plan_as923_2A() ->
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
         join_dr = {2, 5},
+        mask_dr = {0, 5},
         mandatory_dr = {0, 5},
         optional_dr = {6, 7},
         max_duty_cycle = 1,
@@ -997,6 +1019,7 @@ plan_as923_3A() ->
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
         join_dr = {2, 5},
+        mask_dr = {0, 5},
         mandatory_dr = {0, 5},
         optional_dr = {6, 7},
         max_duty_cycle = 1,
@@ -1042,6 +1065,7 @@ plan_as923_4A() ->
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
         join_dr = {2, 5},
+        mask_dr = {0, 5},
         mandatory_dr = {0, 5},
         optional_dr = {6, 7},
         max_duty_cycle = 1,
@@ -1081,6 +1105,7 @@ plan_kr920_A() ->
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12],
         join_dr = {0, 5},
+        mask_dr = {0, 5},
         mandatory_dr = {0, 5},
         optional_dr = {0, 0},
         max_duty_cycle = 1,
@@ -1122,6 +1147,7 @@ plan_in865_A() ->
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
         join_dr = {0, 5},
+        mask_dr = {0, 5},
         mandatory_dr = {0, 5},
         optional_dr = {7, 7},
         max_duty_cycle = 1,
@@ -1174,34 +1200,58 @@ uplink_to_downlink_rounding_2_test() ->
     ok.
 
 up_down_test() ->
-    UpF = 923.91,
+    UpF = 903.79,
     DownF = up_to_down_freq(plan_us915_SB2(), UpF),
     ?assertEqual(923.3, DownF),
     UpF1 = 904.11,
     DownF1 = up_to_down_freq(plan_us915_SB2(), UpF1),
     ?assertEqual(923.9, DownF1).
 
-valid_round(F1, F2, Precision) ->
-    R2 = round_frequency(F2, Precision),
-    % io:format("F1=~w F2=~w R2=~w~n", [F1, F2, R2]),
-    ?assertEqual(F1, R2).
+% valid_round(F1, F2, Precision) ->
+%     R2 = round_frequency(F2, Precision),
+%     % io:format("F1=~w F2=~w R2=~w~n", [F1, F2, R2]),
+%     ?assertEqual(F1, R2).
+
+% -spec round_frequency(float() | number(), integer()) -> float().
+% round_frequency(Value, Precision) ->
+%     list_to_float(float_to_list(Value, [{decimals, Precision}, compact])).
+
+valid_frequency(Expect, Actual, List) ->
+    F = nearest(Actual, List),
+    ?assertEqual(Expect, F).
 
 round_00_test() ->
     FList = [923.2, 923.21, 923.24, 923.19, 923.151, 923.2000000001, 923.1999999999],
-    [valid_round(923.2, X, 1) || X <- FList].
+    Plan = plan_as923_1B(),
+    CList = Plan#channel_plan.u_channels,
+    [valid_frequency(923.2, X, CList) || X <- FList].
 
 round_01_test() ->
     FList = [923.0, 923.01, 923.04, 923.05, 923.049, 923.0000000001, 923.04999999999],
-    [valid_round(923.0, X, 1) || X <- FList].
+    Plan = plan_as923_1B(),
+    CList = Plan#channel_plan.u_channels,
+    [valid_frequency(923.0, X, CList) || X <- FList].
 
 round_02_test() ->
-    FList = [865.0625, 865.06251, 865.06249, 865.0625000000001, 865.0624999999999],
-    [valid_round(865.0625, X, 4) || X <- FList].
+    FList = [
+        865.0, 865.1, 865.2, 865.0625, 865.06251, 865.06249, 865.0625000000001, 865.0624999999999
+    ],
+    Plan = plan_in865_A(),
+    CList = Plan#channel_plan.u_channels,
+    [valid_frequency(865.0625, X, CList) || X <- FList].
 
 round_03_test() ->
     FList = [866.5500, 866.55001, 866.54999, 866.5500000000001, 866.5499999999999],
-    [valid_round(866.5500, X, 4) || X <- FList].
+    CList = [860.123, 866.5500, 870.123],
+    [valid_frequency(866.5500, X, CList) || X <- FList].
 
+valid_uplink_freq(Plan, Freq) when Plan#channel_plan.base_region == 'EU433' ->
+    case Freq of
+        433.175 -> true;
+        433.375 -> true;
+        433.575 -> true;
+        _ -> false
+    end;
 valid_uplink_freq(Plan, Freq) ->
     Region = Plan#channel_plan.base_region,
     F0 = lora_region:uch2f(Region, 0),
@@ -1210,7 +1260,7 @@ valid_uplink_freq(Plan, Freq) ->
             true;
         _ ->
             Ch = lora_region:f2uch(Region, Freq),
-            %% Freq2 = lora_region:uch2f(Region, Ch),
+            % Freq2 = lora_region:uch2f(Region, Ch),
             % io:format("Freq=~w Ch=~w Freq2=~w ~n", [Freq, Ch, Freq2]),
             (Ch > 0)
     end.
@@ -1283,14 +1333,19 @@ validate_txq(Plan, TxQ) ->
     DRAtom = lora_plan:datarate_to_atom(Plan, TxQ#txq.datr),
     DRIdx = lora_plan:datarate_to_index(Plan, DRAtom),
     DRAtom2 = lora_plan:datarate_to_atom(Plan, DRIdx),
-    %% DR = datar_to_dr(Plan, TxQ#txq.datr),
-    %% _Tuple = lora_region:dr_to_tuple(Region, DRIdx),
     ?assertEqual(DRAtom, DRAtom2).
 
-validate_rx2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
-    ?assert(true);
-validate_rx2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
-    ?assert(true);
+print_txq(Plan, TxQ, Enable) ->
+    case Enable of
+        true ->
+            io:format("TxQ Frequency = ~w~n", [TxQ#txq.freq]),
+            io:format("TxQ Region = ~w~n", [Plan#channel_plan.base_region]),
+            io:format("TxQ DataRate = ~w~n", [datarate_to_atom(Plan, TxQ#txq.datr)]),
+            io:format("TxQ DRIndex = ~w~n", [datarate_to_index(Plan, TxQ#txq.datr)]);
+        false ->
+            ok
+    end.
+
 validate_rx2_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = rx2_window(Plan, 0, RxQ),
@@ -1298,10 +1353,6 @@ validate_rx2_window(Plan, RxQ) ->
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
-validate_join2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
-    ?assert(true);
-validate_join2_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
-    ?assert(true);
 validate_join2_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = join2_window(Plan, RxQ),
@@ -1309,10 +1360,6 @@ validate_join2_window(Plan, RxQ) ->
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
-validate_rx1_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
-    ?assert(true);
-validate_rx1_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
-    ?assert(true);
 validate_rx1_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = rx1_window(Plan, 0, 0, RxQ),
@@ -1320,10 +1367,6 @@ validate_rx1_window(Plan, RxQ) ->
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
-validate_join1_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
-    ?assert(true);
-validate_join1_window(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
-    ?assert(true);
 validate_join1_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = join1_window(Plan, 0, RxQ),
@@ -1331,30 +1374,42 @@ validate_join1_window(Plan, RxQ) ->
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
-validate_window(Plan, 'SF11BW125') when Plan#channel_plan.base_region == 'US915' ->
+validate_window(Plan, 'SF11BW125', _Channel) when Plan#channel_plan.base_region == 'US915' ->
     ?assert(true);
-validate_window(Plan, 'SF11BW125') when Plan#channel_plan.base_region == 'AU915' ->
+validate_window(Plan, 'SF11BW125', _Channel) when Plan#channel_plan.base_region == 'AU915' ->
     ?assert(true);
-validate_window(Plan, 'SF12BW125') when Plan#channel_plan.base_region == 'US915' ->
+validate_window(Plan, 'SF12BW125', _Channel) when Plan#channel_plan.base_region == 'US915' ->
     ?assert(true);
-validate_window(Plan, 'SF12BW125') when Plan#channel_plan.base_region == 'AU915' ->
+validate_window(Plan, 'SF12BW125', _Channel) when Plan#channel_plan.base_region == 'AU915' ->
     ?assert(true);
-validate_window(Plan, DataRateAtom) ->
+validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_region == 'AS923_2' ->
+    ?assert(true);
+validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_region == 'AS923_3' ->
+    ?assert(true);
+validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_region == 'AS923_4' ->
+    ?assert(true);
+validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_region == 'IN865' ->
+    ?assert(true);
+validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_region == 'KR920' ->
+    ?assert(true);
+validate_window(Plan, DataRateAtom, Channel) ->
     Region = Plan#channel_plan.base_region,
-    % io:format("validate_window Region=~w DataRate=~w~n", [Region, DataRateAtom]),
+    % io:format("validate_window Region=~w DataRate=~w Channel=~w~n", [Region, DataRateAtom, Channel]),
     DataRateStr = datarate_to_binary(Plan, DataRateAtom),
-    [_JoinChannel_1, JoinChannel_2 | _] = Plan#channel_plan.u_channels,
-    % io:format("JoinChannel=~w~n", [JoinChannel_2]),
+    [JoinChannel_0 | _] = Plan#channel_plan.u_channels,
+    J0 = channel_to_freq(Plan, 0),
+    ?assertEqual(JoinChannel_0, J0),
+    Frequency = channel_to_freq(Plan, Channel),
 
     Now = os:timestamp(),
     RxQ = #rxq{
-        freq = JoinChannel_2,
+        freq = Frequency,
         datr = DataRateStr,
         codr = <<"4/5">>,
         time = calendar:now_to_datetime(Now),
         tmms = 0,
         rssi = 42.2,
-        lsnr = 10.1
+        lsnr = max_uplink_snr(Plan, DataRateAtom)
     },
 
     validate_rx2_window(Plan, RxQ),
@@ -1362,19 +1417,15 @@ validate_window(Plan, DataRateAtom) ->
     validate_rx1_window(Plan, RxQ),
     validate_join1_window(Plan, RxQ),
 
+    TxQ_1 = rx1_window(Plan, 0, 0, RxQ),
+    print_txq(Plan, TxQ_1, false),
+
     TxQ_2 = rx2_window(Plan, 0, RxQ),
-    % io:format("TxQ_2=~w~n", [TxQ_2]),
-    _DRIdx_2 = lora_region:datar_to_dr(Region, TxQ_2#txq.datr),
-    % io:format("DRIdx_2=~w~n", [DRIdx_2]),
-    % ?assertEqual(lora_region:datar_to_dr('US915', TxQ#txq.datr), 8),
-    % ?assertEqual(JoinChannel, TxQ_2#txq.freq),
+    print_txq(Plan, TxQ_2, false),
 
     TxQ_3 = join2_window(Plan, RxQ),
-    % io:format("TxQ_3=~w~n", [TxQ_3]),
+    print_txq(Plan, TxQ_3, false),
     _DRIdx_3 = lora_region:datar_to_dr(Region, TxQ_3#txq.datr),
-    % io:format("DRIdx_3=~w~n", [DRIdx_3]),
-    % ?assertEqual(lora_region:datar_to_dr('US915', TxQ#txq.datr), 8),
-    % ?assertEqual(JoinChannel, TxQ_3#txq.freq),
     ok.
 
 validate_snr(Plan, DRIndex) ->
@@ -1395,16 +1446,38 @@ exercise_snr(Plan) when Plan#channel_plan.base_region == 'CN470' ->
 exercise_snr(Plan) ->
     [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4, 5, 6]].
 
+au915_test() ->
+    Plan = plan_au915_SB2(),
+    % AU915 supports a 'fat' SF8BW500 DR on frequency 917.5
+    validate_window(Plan, 'SF8BW500', 0).
+
+eu868_test() ->
+    Plan = plan_eu868_A(),
+    % EU868 supports a 'fat' BW250 data rate
+    validate_window(Plan, 'SF7BW250', 0).
+
+exercise_window_channel(Plan, Atom) ->
+    Channels = lists:seq(0, Plan#channel_plan.channel_count - 1),
+    % io:format("Atom=~w Channels=~w~n", [Atom, Channels]),
+    [validate_window(Plan, Atom, X) || X <- Channels].
+
+exercise_window(Plan) ->
+    {DRMin, DRMax} = Plan#channel_plan.mandatory_dr,
+    Atoms = lists:seq(DRMin, DRMax),
+    [exercise_window_channel(Plan, Atom) || Atom <- Atoms].
+
 exercise_plan(Plan) ->
     Region = Plan#channel_plan.base_region,
     io:format("Region=~w~n", [Region]),
     exercise_snr(Plan),
-    validate_window(Plan, 'SF7BW125'),
-    validate_window(Plan, 'SF8BW125'),
-    validate_window(Plan, 'SF9BW125'),
-    validate_window(Plan, 'SF10BW125'),
-    validate_window(Plan, 'SF11BW125'),
-    validate_window(Plan, 'SF12BW125'),
+    exercise_window(Plan),
+    exercise_window_channel(Plan, 'SF7BW125'),
+    validate_window(Plan, 'SF7BW125', 0),
+    validate_window(Plan, 'SF8BW125', 0),
+    validate_window(Plan, 'SF9BW125', 0),
+    validate_window(Plan, 'SF10BW125', 0),
+    validate_window(Plan, 'SF11BW125', 0),
+    validate_window(Plan, 'SF12BW125', 0),
     validate_payload_size(Plan),
     validate_tx_power(Plan),
     validate_channels(Plan).
@@ -1417,11 +1490,17 @@ plan_test() ->
     exercise_plan(plan_in865_A()),
     exercise_plan(plan_cn470_A()),
     exercise_plan(plan_kr920_A()),
-    % exercise_plan(plan_as923_2A()),
-    % exercise_plan(plan_as923_3A()),
-    % exercise_plan(plan_as923_4A()),
-    % exercise_plan(plan_as923_1A()),
+    exercise_plan(plan_eu433_A()),
+    exercise_plan(plan_as923_2A()),
+    exercise_plan(plan_as923_3A()),
+    exercise_plan(plan_as923_4A()),
     fin.
+
+nearest_test() ->
+    R = nearest(923.81, [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6]),
+    io:format("R=~w~n", [R]),
+    R2 = nearest(923.9, [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6]),
+    io:format("R=~w~n", [R2]).
 
 -endif.
 %% end of file

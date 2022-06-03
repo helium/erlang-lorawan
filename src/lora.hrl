@@ -68,6 +68,7 @@
     data_rates :: [dr_atom()],
     tx_power :: [power_offset()],
     join_dr :: dr_range(),
+    mask_dr :: dr_range(),
     mandatory_dr :: dr_range(),
     optional_dr :: dr_range(),
     max_duty_cycle :: integer(),
