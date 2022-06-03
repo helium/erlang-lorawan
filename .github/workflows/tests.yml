@@ -20,25 +20,19 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
-      - name: mkdir
-        run: mkdir -p /opt/erlang-lorawan
       - name: checkout
         uses: actions/checkout@v2
-        working-directory: /opt/erlang-lorawan
       - name: build
         run: ./rebar3 compile
-        working-directory: /opt/erlang-lorawan
       - name: build test
         run: ./rebar3 as test compile
-        working-directory: /opt/erlang-lorawan
       - name: tar
         run: tar -cvzf build.tar.gz -C _build/ .
-        working-directory: /opt/erlang-lorawan
       - name: upload-artifact
         uses: actions/upload-artifact@v2
         with:
           name: build
-          path: /opt/erlang-lorawan/build.tar.gz
+          path: build.tar.gz
   xref:
     needs: build
     runs-on: ubuntu-latest
