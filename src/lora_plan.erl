@@ -14,7 +14,7 @@
     max_uplink_snr/2,
     freq_to_channel/2,
     channel_to_freq/2,
-    device_region/2,
+    device_region/3,
     tx_power/2,
     tx_power_list/1,
     tx_power_table/1,
@@ -493,13 +493,13 @@ rx2_tuple(Plan) ->
 
 %% Dual-Plan Code
 %% Start
--spec device_region(atom(), number()) -> atom().
-device_region(GatewayRegion, Freq) ->
+-spec device_region(atom(), number(), data_rate()) -> atom().
+device_region(GatewayRegion, Freq, _DataRate) ->
     case GatewayRegion of
         'AS923_1' ->
             IsAU915 = is_frequency_au915_sb5(Freq),
             case IsAU915 of
-                true -> 'AU915_SB2';
+                true -> 'AU915_SB5';
                 false -> GatewayRegion
             end;
         _ ->
