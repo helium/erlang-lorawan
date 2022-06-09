@@ -294,7 +294,7 @@ uint32(Num) ->
 %% ------------------------------------------------------------------
 %% EUNIT Tests
 %% ------------------------------------------------------------------
--ifdef(TEST).
+%-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
 helium_id_test() ->
@@ -443,24 +443,47 @@ insert_rand(Item, List) ->
     NewList = A ++ [Item] ++ B,
     NewList.
 
-exercise_subnet(DevAddr, NetIDList) ->
+valid_subnet(DevAddr, NetIDList) ->
     SubnetAddr = subnet_from_devaddr_be(DevAddr, NetIDList),
     DevAddr2 = devaddr_from_subnet_be(SubnetAddr, NetIDList),
-    ?assertEqual(DevAddr, DevAddr2),
-    ok.
+    ?assertEqual(DevAddr, DevAddr2).
 
-exercise_subnet(DevAddr) ->
+valid_subnet(DevAddr) ->
     {ok, NetID} = parse_netid_be(DevAddr),
-    exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 0)),
-    exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 1)),
-    exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 2)),
-    exercise_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 3)),
+    valid_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 0)),
+    valid_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 1)),
+    valid_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 2)),
+    valid_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 3)),
     ok.
 
 random_subnet(DevAddr) ->
     {ok, NetID} = parse_netid_be(DevAddr),
-    [exercise_subnet(DevAddr, insert_rand(NetID, mock_random_netids())) || _ <- lists:seq(1, 400)],
+    [valid_subnet(DevAddr, insert_rand(NetID, mock_random_netids())) || _ <- lists:seq(1, 400)],
     ok.
+
+valid_devaddr(DevAddr) ->
+    io:format("DevAddr ~8.16.0B~n", [DevAddr]),
+    {ok, NetID} = parse_netid_be(DevAddr),
+    io:format("NetID ~8.16.0B~n", [NetID]),
+    NetIDType = netid_type(DevAddr),
+    io:format("NetIDType ~8.16.0B~n", [NetIDType]),
+    ?assert(NetIDType =< 7),
+    NetClass = netid_class(NetID),
+    io:format("NetClass ~8.16.0B~n", [NetClass]),
+    AddrLen = addr_len(NetClass),
+    io:format("AddrLen ~8.16.0B~n", [AddrLen]),
+    IDLen = id_len(NetClass),
+    io:format("IDLen ~8.16.0B~n", [IDLen]),
+    ?assert(AddrLen + IDLen < 32),
+    NwkAddr = nwk_addr(DevAddr),
+    io:format("NwkAddr ~8.16.0B~n", [NwkAddr]),
+    ?assert(NwkAddr < (1 bsl AddrLen)),
+    valid_subnet(DevAddr),
+    ok.
+
+devaddr_test() ->
+    RandList = [rand:uniform(16#FFFFFFFF) || _X <- lists:seq(0, 20)],
+    [valid_devaddr(R) || R <- RandList].
 
 exercise_devaddr(NetID, Addr, _IDLen, AddrLen) ->
     DevAddr = devaddr(NetID, Addr),
@@ -472,7 +495,7 @@ exercise_devaddr(NetID, Addr, _IDLen, AddrLen) ->
     ?assertEqual(AddrLen, AddrBitLen),
     NwkAddr = nwk_addr(DevAddr),
     ?assertEqual(Addr, NwkAddr),
-    exercise_subnet(DevAddr),
+    valid_subnet(DevAddr),
     random_subnet(DevAddr),
     ok.
 
@@ -647,4 +670,4 @@ netid_test() ->
 
     ok.
 
--endif.
+%-endif.

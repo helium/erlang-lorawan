@@ -4,6 +4,7 @@
     datarate_to_index/2,
     datarate_to_binary/2,
     datarate_to_atom/2,
+    datarate_to_string/2,
     up_to_down_datarate/3,
     max_uplink_payload_size/2,
     max_downlink_payload_size/2,
@@ -13,6 +14,7 @@
     max_uplink_snr/2,
     freq_to_channel/2,
     channel_to_freq/2,
+    device_region/2,
     tx_power/2,
     tx_power_list/1,
     tx_power_table/1,
@@ -36,6 +38,7 @@ region_to_plan(Region) ->
         'EU433' -> plan_eu433_A();
         'US915' -> plan_us915_SB2();
         'AU915' -> plan_au915_SB2();
+        'AU915_SB5' -> plan_au915_SB5();
         'CN470' -> plan_cn470_A();
         'KR920' -> plan_kr920_A();
         'IN865' -> plan_in865_A();
@@ -63,6 +66,9 @@ datarate_to_atom(Plan, Index) when is_integer(Index) ->
     end;
 datarate_to_atom(_Plan, Atom) when is_atom(Atom) ->
     Atom;
+datarate_to_atom(Plan, String) when is_list(String) ->
+    Binary = erlang:list_to_binary(String),
+    datarate_to_atom(Plan, Binary);
 datarate_to_atom(_Plan, Binary) when is_binary(Binary) ->
     case Binary of
         <<"SF12BW125">> -> 'SF12BW125';
@@ -101,8 +107,11 @@ datarate_to_index(Plan, Atom) when is_atom(Atom) ->
     List = (Plan#channel_plan.data_rates),
     Index = index_of(Atom, List, 15),
     Index;
+datarate_to_index(Plan, String) when is_list(String) ->
+    Atom = erlang:list_to_atom(String),
+    datarate_to_index(Plan, Atom);
 datarate_to_index(Plan, Binary) when is_binary(Binary) ->
-    Atom = binary_to_atom(Binary),
+    Atom = erlang:binary_to_atom(Binary),
     datarate_to_index(Plan, Atom).
 
 -spec datarate_to_binary(#channel_plan{}, data_rate()) -> binary().
@@ -110,9 +119,16 @@ datarate_to_binary(Plan, Index) when is_integer(Index) ->
     Atom = datarate_to_atom(Plan, Index),
     datarate_to_binary(Plan, Atom);
 datarate_to_binary(_Plan, Atom) when is_atom(Atom) ->
-    atom_to_binary(Atom);
+    erlang:atom_to_binary(Atom);
+datarate_to_binary(_Plan, String) when is_list(String) ->
+    erlang:list_to_binary(String);
 datarate_to_binary(_Plan, Binary) when is_binary(Binary) ->
     Binary.
+
+-spec datarate_to_string(#channel_plan{}, data_rate()) -> string().
+datarate_to_string(Plan, List) ->
+    Atom = datarate_to_atom(Plan, List),
+    erlang:atom_to_list(Atom).
 
 -spec datarate_to_tuple(atom()) -> {integer(), integer()}.
 datarate_to_tuple(DataRate) ->
@@ -475,6 +491,32 @@ rx2_tuple(Plan) ->
 %% Frequency and Channel Functions
 %% ------------------------------------------------------------------
 
+%% Dual-Plan Code
+%% Start
+-spec device_region(atom(), number()) -> atom().
+device_region(GatewayRegion, Freq) ->
+    case GatewayRegion of
+        'AS923_1' ->
+            IsAU915 = is_frequency_au915_sb5(Freq),
+            case IsAU915 of
+                true -> 'AU915_SB2';
+                false -> GatewayRegion
+            end;
+        _ ->
+            GatewayRegion
+    end.
+
+is_frequency_au915_sb5(Freq0) ->
+    Freq1 = round_frequency(Freq0, 1),
+    List = [923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
+    Channel = index_of(Freq1, List, -1),
+    case Channel of
+        -1 -> false;
+        _ -> true
+    end.
+%% End
+%% Dual-Plan Code
+
 -spec freq_to_channel(#channel_plan{}, number()) -> integer().
 freq_to_channel(Plan, Freq0) ->
     List = (Plan#channel_plan.u_channels),
@@ -557,6 +599,10 @@ nearest(F, List) ->
     end,
     lists:foldl(Near, 1.0, List).
 
+-spec round_frequency(float() | number(), integer()) -> float().
+round_frequency(Value, Precision) ->
+    list_to_float(float_to_list(Value, [{decimals, Precision}, compact])).
+
 %% ------------------------------------------------------------------
 %% Plan Record Functions
 %%
@@ -605,7 +651,7 @@ plan_eu868_A() ->
         uplink_dwell_time = 0,
         downlink_dwell_time = 0,
         tx_param_setup_allowed = false,
-        max_eirp_db = 16,
+        max_eirp_db = 20,
         rx1_offset = {0, 5},
         rx2_datarate = 0,
         rx2_freq = 869.525,
@@ -723,6 +769,57 @@ plan_au915_SB2() ->
         %% The eight AU915 downlink channels are hard-coded in the spec
         d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5, 923.9],
         channel_count = 9,
+        bank_offset = 8,
+        join_channels = {0, 7},
+        data_rates = [
+            'SF12BW125',
+            'SF11BW125',
+            'SF10BW125',
+            'SF9BW125',
+            'SF8BW125',
+            'SF7BW125',
+            'SF8BW500',
+            'LRFHSS1BW1523',
+            'SF12BW500',
+            'SF11BW500',
+            'SF10BW500',
+            'SF9BW500',
+            'SF8BW500',
+            'SF7BW500'
+        ],
+        %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
+        tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
+        join_dr = {2, 5},
+        mask_dr = {0, 5},
+        mandatory_dr = {0, 6},
+        optional_dr = {7, 7},
+        max_duty_cycle = 1,
+        uplink_dwell_time = 400,
+        downlink_dwell_time = 400,
+        tx_param_setup_allowed = true,
+        max_eirp_db = 30,
+        rx1_offset = {0, 5},
+        rx2_datarate = 8,
+        rx2_freq = 923.3,
+        beacon_freq = 923.3,
+        pingslot_freq = 923.3
+    },
+    Plan.
+
+plan_au915_SB5() ->
+    Plan = #channel_plan{
+        channel_plan_id = 5,
+        plan_name = 'AU915_SB5',
+        base_region = 'AU915',
+        dynamic_plan = false,
+        float_precision = 1,
+        min_freq = 915.0,
+        max_freq = 928.0,
+        %% AU915's subbank five set of channels
+        %% Channel 65 (fat channel) is 917.5 Mhz
+        u_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
+        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5],
+        channel_count = 8,
         bank_offset = 8,
         join_channels = {0, 7},
         data_rates = [
@@ -1165,6 +1262,7 @@ plan_in865_A() ->
 %% ------------------------------------------------------------------
 %% EUNIT Tests
 %% ------------------------------------------------------------------
+%-define(TEST, 1).
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
@@ -1206,14 +1304,10 @@ up_down_test() ->
     DownF1 = up_to_down_freq(plan_us915_SB2(), UpF1),
     ?assertEqual(923.9, DownF1).
 
-% valid_round(F1, F2, Precision) ->
-%     R2 = round_frequency(F2, Precision),
-%     % io:format("F1=~w F2=~w R2=~w~n", [F1, F2, R2]),
-%     ?assertEqual(F1, R2).
-
-% -spec round_frequency(float() | number(), integer()) -> float().
-% round_frequency(Value, Precision) ->
-%     list_to_float(float_to_list(Value, [{decimals, Precision}, compact])).
+valid_round(F1, F2, Precision) ->
+    R2 = round_frequency(F2, Precision),
+    % io:format("F1=~w F2=~w R2=~w~n", [F1, F2, R2]),
+    ?assertEqual(F1, R2).
 
 valid_frequency(Expect, Actual, List) ->
     F = nearest(Actual, List),
@@ -1223,6 +1317,7 @@ round_00_test() ->
     FList = [923.2, 923.21, 923.24, 923.19, 923.151, 923.2000000001, 923.1999999999],
     Plan = plan_as923_1B(),
     CList = Plan#channel_plan.u_channels,
+    [valid_round(923.2, F, 1) || F <- FList],
     [valid_frequency(923.2, X, CList) || X <- FList].
 
 round_01_test() ->
@@ -1484,6 +1579,7 @@ exercise_plan(Plan) ->
 plan_test() ->
     exercise_plan(plan_us915_SB2()),
     exercise_plan(plan_au915_SB2()),
+    exercise_plan(plan_au915_SB5()),
     exercise_plan(plan_eu868_A()),
     exercise_plan(plan_as923_1A()),
     exercise_plan(plan_in865_A()),
@@ -1500,6 +1596,18 @@ nearest_test() ->
     io:format("R=~w~n", [R]),
     R2 = nearest(923.9, [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6]),
     io:format("R=~w~n", [R2]).
+
+datarate_test() ->
+    Plan = plan_us915_SB2(),
+    DataRateAtom = 'SF7BW125',
+    DataRateBinary = <<"SF7BW125">>,
+    DataRateString = "SF7BW125",
+    DataRateIndex = 3,
+    List = [DataRateAtom, DataRateBinary, DataRateString, DataRateIndex],
+    [?assertEqual(DataRateAtom, datarate_to_atom(Plan, X)) || X <- List],
+    [?assertEqual(DataRateBinary, datarate_to_binary(Plan, X)) || X <- List],
+    [?assertEqual(DataRateString, datarate_to_string(Plan, X)) || X <- List],
+    [?assertEqual(DataRateIndex, datarate_to_index(Plan, X)) || X <- List].
 
 -endif.
 %% end of file
