@@ -14,7 +14,7 @@
     max_uplink_snr/2,
     freq_to_channel/2,
     channel_to_freq/2,
-    device_region/3,
+    dualplan_region/3,
     tx_power/2,
     tx_power_list/1,
     tx_power_table/1,
@@ -516,8 +516,8 @@ rx2_tuple(Plan) ->
 
 %% Dual-Plan Code
 %% Start
--spec device_region(atom(), number(), data_rate()) -> atom().
-device_region(GatewayRegion, Freq, _DataRate) ->
+-spec dualplan_region(atom(), number(), data_rate()) -> atom().
+dualplan_region(GatewayRegion, Freq, _DataRate) ->
     DP_List = [922.0, 922.2, 922.4, 922.6, 922.8, 923.0],
     SB5_List = [923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
     case GatewayRegion of
@@ -1698,18 +1698,18 @@ dualplan_test() ->
     ?assertEqual(true, valid_region('AU915_DP')),
     ?assertEqual(true, valid_region('AS923_1B')),
     ?assertEqual(false, valid_region('ZZ915')),
-    ?assertEqual('US915', device_region('US915', 923.2, DR)),
-    ?assertEqual('AS923_1', device_region('AS923_1', 923.2, DR)),
-    ?assertEqual('AS923_1', device_region('AS923_1', 923.4, DR)),
-    ?assertEqual('AU915_SB5', device_region('AS923_1', 923.6, DR)),
-    ?assertEqual('AU915_SB5', device_region('AS923_1', 923.61, DR)),
-    ?assertEqual('AU915_SB5', device_region('AS923_1', 923.59, DR)),
-    ?assertEqual('AS923_1B', device_region('AS923_1B', 923.6, DR)),
-    ?assertEqual('AU915_DP', device_region('AS923_1B', 923.0, DR)),
-    ?assertEqual('AU915_DP', device_region('AS923_1B', 923.01, DR)),
-    ?assertEqual('AU915_DP', device_region('AS923_1B', 922.96, DR)),
-    ?assertEqual('AS923_1', device_region('AS923_1', 923.0, DR)),
-    ?assertEqual('AS923_1', device_region('AS923_1', 924.8, DR)).
+    ?assertEqual('US915', dualplan_region('US915', 923.2, DR)),
+    ?assertEqual('AS923_1', dualplan_region('AS923_1', 923.2, DR)),
+    ?assertEqual('AS923_1', dualplan_region('AS923_1', 923.4, DR)),
+    ?assertEqual('AU915_SB5', dualplan_region('AS923_1', 923.6, DR)),
+    ?assertEqual('AU915_SB5', dualplan_region('AS923_1', 923.61, DR)),
+    ?assertEqual('AU915_SB5', dualplan_region('AS923_1', 923.59, DR)),
+    ?assertEqual('AS923_1B', dualplan_region('AS923_1B', 923.6, DR)),
+    ?assertEqual('AU915_DP', dualplan_region('AS923_1B', 923.0, DR)),
+    ?assertEqual('AU915_DP', dualplan_region('AS923_1B', 923.01, DR)),
+    ?assertEqual('AU915_DP', dualplan_region('AS923_1B', 922.96, DR)),
+    ?assertEqual('AS923_1', dualplan_region('AS923_1', 923.0, DR)),
+    ?assertEqual('AS923_1', dualplan_region('AS923_1', 924.8, DR)).
 
 -endif.
 %% end of file
