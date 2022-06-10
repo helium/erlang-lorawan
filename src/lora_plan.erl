@@ -19,6 +19,7 @@
     tx_power_list/1,
     tx_power_table/1,
     max_tx_power/1,
+    max_tx_power/2,
     valid_region/1,
     region_to_plan/1,
     rx2_datarate/1,
@@ -580,6 +581,15 @@ up_to_down_freq(Plan, Freq0) ->
 max_tx_power(Plan) ->
     Plan#channel_plan.max_eirp_db.
 
+-spec max_tx_power(#channel_plan{}, number()) -> pos_integer().
+max_tx_power(Plan, Freq0) ->
+    Region = Plan#channel_plan.base_region,
+    Freq1 = round_frequency(Freq0, 3),
+    case {Region, Freq1} of
+        {'EU868', 869.525} -> 27;
+        _ -> Plan#channel_plan.max_eirp_db
+    end.
+
 -spec tx_power(#channel_plan{}, integer()) -> pos_integer().
 tx_power(Plan, Index) when Index < 16 ->
     List = (Plan#channel_plan.tx_power),
@@ -669,10 +679,7 @@ plan_eu868_A() ->
             'LRFHSS1BW336',
             'LRFHSS2BW336'
         ],
-        % tx_power = [0,-2,-4,-6,-8,-10,-12,-14],
-        % 16,14,12,10,8,6,4,2
-        % ToDo: Current setting are wrong...
-        tx_power = [0, -6, -9, -12, -15, -18],
+        tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
         join_dr = {0, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 5},
@@ -681,7 +688,7 @@ plan_eu868_A() ->
         uplink_dwell_time = 0,
         downlink_dwell_time = 0,
         tx_param_setup_allowed = false,
-        max_eirp_db = 20,
+        max_eirp_db = 16,
         rx1_offset = {0, 5},
         rx2_datarate = 0,
         rx2_freq = 869.525,
