@@ -101,7 +101,6 @@
     max_datarate/1,
     min_datarate/1,
     new/1,
-    old_new/1,
     new/2,
     track_adr_answer/2,
     track_offer/2,
@@ -113,6 +112,12 @@
     datarate_config/0,
     handle/0
 ]).
+
+-ifdef(EUNIT).
+-export([
+    old_new/1
+]).
+-endif.
 
 -type datarate_config() :: {lorawan_utils:spreading(), lorawan_utils:bandwidth()}
 %% A tuple of `{SpreadingFactor, Bandwidth}'.
@@ -281,6 +286,7 @@
 %% Public API
 %% ==================================================================
 
+-ifdef(EUNIT).
 %% ------------------------------------------------------------------
 %% @doc Returns a new ADR handle with sane defaults suitable for use
 %%      in the specified region.
@@ -324,6 +330,7 @@ old_new(Region) ->
         min_txpower_idx = MinTxPowerIdx,
         min_txpower_dbm = MinTxPowerDBm
     }.
+-endif.
 
 %-spec new(Region :: atom()) -> handle().
 new(Region) ->

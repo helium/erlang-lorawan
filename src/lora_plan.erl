@@ -28,12 +28,14 @@
     join2_window/2,
     rx1_window/4,
     rx2_window/3,
-    rx1_or_rx2_window/4,
+    rx1_or_rx2_window/4
+]).
 
+-ifdef(EUNIT).
+-export([
     up_to_down_freq/2,
     round_frequency/2,
     nearest/2,
-
     plan_eu868_A/0,
     plan_eu433_A/0,
     plan_us915_SB2/0,
@@ -50,6 +52,7 @@
     plan_as923_4A/0,
     plan_as923_1B/0
 ]).
+-endif.
 
 -include("lora.hrl").
 

@@ -7,6 +7,10 @@
 %%%-------------------------------------------------------------------
 -module(test_region).
 
+-export([]).
+
+-ifdef(EUNIT).
+
 %% Functions that map Region -> Top Level Region
 -export([
     join1_window/3,
@@ -1221,10 +1225,11 @@ ceiling(X) ->
         _ -> T
     end.
 
+-endif.
 %% ------------------------------------------------------------------
 %% EUNIT Tests
 %% ------------------------------------------------------------------
--ifdef(TEST).
+-ifdef(EUNIT).
 -include_lib("eunit/include/eunit.hrl").
 
 channel_plan(ID) ->
