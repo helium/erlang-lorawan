@@ -6,13 +6,15 @@
 -module(lora_core).
 
 -export([
-    %% public functions
     payload_mhdr/1,
     payload_to_frame/3,
     frame_to_payload/3,
     encode_fopts/1,
-    encode_fupopts/1,
-    %% internal functions
+    encode_fupopts/1
+]).
+
+-ifdef(EUNIT).
+-export([
     payload_join_request/1,
     payload_join_accept/1,
     payload_fctrl/1,
@@ -33,6 +35,7 @@
     payload_devaddr/1,
     payload_foptslen/1
 ]).
+-endif.
 
 -include("lora.hrl").
 
@@ -69,6 +72,7 @@ frame_to_payload(Frame, NwkSKey, AppSKey) ->
 %% Internal
 %%
 
+-ifdef(EUNIT).
 payload_join_request(PhyPayload) ->
     <<?JOIN_REQUEST:3, _MHDRRFU:3, _Major:2, AppEUI:8/binary, DevEUI:8/binary, DevNonce:2/binary,
         _MIC:4/binary>> = PhyPayload,
@@ -79,6 +83,7 @@ payload_join_accept(PhyPayload) ->
     <<JoinNonce:3/binary, NetID:3/binary, DevAddr:4/binary, DLSettings:1/binary, RXDelay:1/binary,
         CFList/binary>> = MacPayload,
     {JoinNonce, NetID, DevAddr, DLSettings, RXDelay, CFList}.
+-endif.
 
 payload_dirbit(PhyPayload) ->
     <<_Ignore:2/integer-unsigned, DirectionBit:1/integer-unsigned, _Ignore2:5/integer, _/binary>> =
@@ -122,10 +127,25 @@ payload_devaddr(PhyPayload) ->
     <<_MHDR:8, DevAddr:4/binary, _/binary>> = PhyPayload,
     DevAddr.
 
+-ifdef(EUNIT).
 payload_fctrl(PhyPayload) ->
     <<_MHDR:8/integer, _DevAddr:32/integer, FCtrl:8/little-integer-unsigned, _/binary>> =
         PhyPayload,
     FCtrl.
+
+payload_fhdr(PhyPayload) ->
+    FhdrLen = payload_fhdr_len(PhyPayload),
+    Part = {1, FhdrLen},
+    binary:part(PhyPayload, Part).
+-endif.
+
+payload_fopts(PhyPayload) ->
+    Len = payload_foptslen(PhyPayload),
+    %% Offset == MHDR + DevAddr + FCtrl + FCnt
+    Offset = 1 + 4 + 1 + 2,
+    Part = {Offset, Len},
+    FOpts = binary:part(PhyPayload, Part),
+    FOpts.
 
 payload_fctrl_bits(PhyPayload) ->
     <<_MHDR:8/integer, _DevAddr:32/integer, FCtrlBits:4/little-integer-unsigned,
@@ -137,22 +157,9 @@ payload_foptslen(PhyPayload) ->
         _/binary>> = PhyPayload,
     Foptslen.
 
-payload_fopts(PhyPayload) ->
-    Len = payload_foptslen(PhyPayload),
-    %% Offset == MHDR + DevAddr + FCtrl + FCnt
-    Offset = 1 + 4 + 1 + 2,
-    Part = {Offset, Len},
-    FOpts = binary:part(PhyPayload, Part),
-    FOpts.
-
 payload_fhdr_len(PhyPayload) ->
     FOptsLen = payload_foptslen(PhyPayload),
     7 + FOptsLen.
-
-payload_fhdr(PhyPayload) ->
-    FhdrLen = payload_fhdr_len(PhyPayload),
-    Part = {1, FhdrLen},
-    binary:part(PhyPayload, Part).
 
 payload_fport(PhyPayload) ->
     FHdrLen = payload_fhdr_len(PhyPayload),
@@ -409,6 +416,7 @@ b0(DirBit, DevAddr, FCnt, MsgLen) ->
     % io:format("b0 Len = ~w~n", [Len]),
     <<16#49, 0, 0, 0, 0, DirBit, DevAddr:4/binary, FCnt:32/little-unsigned-integer, 0, MsgLen>>.
 
+-ifdef(EUNIT).
 fopts_mac_cid(<<>>) ->
     0;
 fopts_mac_cid(FOpts) ->
@@ -479,6 +487,7 @@ parse_fdownopts(<<>>) ->
 parse_fdownopts(_Unknown) ->
     %% lager:warning("Unknown downlink command ~p", [lora_utils:binary_to_hex(Unknown)]),
     [].
+-endif.
 
 encode_fopts([{link_check_ans, Margin, GwCnt} | Rest]) ->
     <<16#02, Margin, GwCnt, (encode_fopts(Rest))/binary>>;
