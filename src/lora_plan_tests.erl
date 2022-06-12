@@ -109,20 +109,20 @@ valid_uplink_freq(Plan, Freq) when Plan#channel_plan.base_region == 'EU433' ->
     end;
 valid_uplink_freq(Plan, Freq) ->
     Region = Plan#channel_plan.base_region,
-    F0 = lora_region:uch2f(Region, 0),
+    F0 = test_region:uch2f(Region, 0),
     case Freq of
         F0 ->
             true;
         _ ->
-            Ch = lora_region:f2uch(Region, Freq),
-            % Freq2 = lora_region:uch2f(Region, Ch),
+            Ch = test_region:f2uch(Region, Freq),
+            % Freq2 = test_region:uch2f(Region, Ch),
             % io:format("Freq=~w Ch=~w Freq2=~w ~n", [Freq, Ch, Freq2]),
             (Ch > 0)
     end.
 
 seek_freq(Plan, Freq) ->
     Region = Plan#channel_plan.base_region,
-    lora_region:f2uch(Region, Freq).
+    test_region:f2uch(Region, Freq).
 
 validate_channel(Plan, Ch) ->
     % Region = Plan#channel_plan.base_region,
@@ -142,7 +142,7 @@ validate_channels(Plan) ->
 
 validate_tx_power(Plan) ->
     Region = Plan#channel_plan.base_region,
-    PowerTable = lora_region:uplink_power_table(Region),
+    PowerTable = test_region:uplink_power_table(Region),
     PT0 = [X || {_I, X} <- PowerTable],
     PT1 = lora_plan:tx_power_list(Plan),
     % io:format("Region=~w~n", [Region]),
@@ -166,7 +166,7 @@ validate_downlink_size(Plan, DataRateAtom) ->
         _ ->
             DRAtom = lora_plan:datarate_to_atom(Plan, DRIdx),
             ?assertEqual(DRAtom, DataRateAtom),
-            M2 = lora_region:max_payload_size(Region, DRIdx),
+            M2 = test_region:max_payload_size(Region, DRIdx),
             % io:format("DRAtom=~w DR~w ~w~n", [DRAtom, DRIdx, M2]),
             ?assertEqual(M2, M1)
     end.
@@ -204,28 +204,28 @@ print_txq(Plan, TxQ, Enable) ->
 validate_rx2_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = lora_plan:rx2_window(Plan, 0, RxQ),
-    TxQ_R = lora_region:rx2_window(Region, 0, RxQ),
+    TxQ_R = test_region:rx2_window(Region, 0, RxQ),
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
 validate_join2_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = lora_plan:join2_window(Plan, RxQ),
-    TxQ_R = lora_region:join2_window(Region, RxQ),
+    TxQ_R = test_region:join2_window(Region, RxQ),
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
 validate_rx1_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = lora_plan:rx1_window(Plan, 0, 0, RxQ),
-    TxQ_R = lora_region:rx1_window(Region, 0, 0, RxQ),
+    TxQ_R = test_region:rx1_window(Region, 0, 0, RxQ),
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
 validate_join1_window(Plan, RxQ) ->
     Region = Plan#channel_plan.base_region,
     TxQ_P = lora_plan:join1_window(Plan, 0, RxQ),
-    TxQ_R = lora_region:join1_window(Region, 0, RxQ),
+    TxQ_R = test_region:join1_window(Region, 0, RxQ),
     ?assertEqual(TxQ_R, TxQ_P),
     validate_txq(Plan, TxQ_P).
 
@@ -280,16 +280,16 @@ validate_window(Plan, DataRateAtom, Channel) ->
 
     TxQ_3 = lora_plan:join2_window(Plan, RxQ),
     print_txq(Plan, TxQ_3, false),
-    _DRIdx_3 = lora_region:datar_to_dr(Region, TxQ_3#txq.datr),
+    _DRIdx_3 = test_region:datar_to_dr(Region, TxQ_3#txq.datr),
     ok.
 
 validate_snr(Plan, DRIndex) ->
     Region = Plan#channel_plan.base_region,
     MaxUplinkSnr01 = lora_plan:max_uplink_snr(Plan, DRIndex),
-    MaxUplinkSnr02 = lora_region:max_uplink_snr(Region, DRIndex),
+    MaxUplinkSnr02 = test_region:max_uplink_snr(Region, DRIndex),
     ?assertEqual(MaxUplinkSnr02, MaxUplinkSnr01),
     MaxDownlinkSnr01 = lora_plan:max_downlink_snr(Plan, DRIndex, 0),
-    MaxDownlinkSnr02 = lora_region:max_downlink_snr(Region, DRIndex, 0),
+    MaxDownlinkSnr02 = test_region:max_downlink_snr(Region, DRIndex, 0),
     ?assertEqual(MaxDownlinkSnr02, MaxDownlinkSnr01).
 
 exercise_snr(Plan) when Plan#channel_plan.base_region == 'US915' ->

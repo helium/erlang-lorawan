@@ -300,11 +300,11 @@ old_new(Region) ->
         (_) ->
             false
     end,
-    Datarates = lists:filtermap(FilterMapFn, lora_region:datars(Region)),
+    Datarates = lists:filtermap(FilterMapFn, test_region:datars(Region)),
     %% min-max refer to #device.min_datarate docs
     [{MinDataRate, {MaxSpreading, _}} | _] = Datarates,
     {MaxDataRate, {MinSpreading, _}} = lists:last(Datarates),
-    TxPowers = lora_region:uplink_power_table(Region),
+    TxPowers = test_region:uplink_power_table(Region),
     [{MaxTxPowerIdx, MaxTxPowerDBm} | _] = TxPowers,
     {MinTxPowerIdx, MinTxPowerDBm} = lists:last(TxPowers),
     #device{
