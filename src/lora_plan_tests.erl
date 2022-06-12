@@ -249,7 +249,8 @@ validate_window(Plan, _DataRateAtom, _Channel) when Plan#channel_plan.base_regio
     ?assert(true);
 validate_window(Plan, DataRateAtom, Channel) ->
     Region = Plan#channel_plan.base_region,
-    % io:format("validate_window Region=~w DataRate=~w Channel=~w~n", [Region, DataRateAtom, Channel]),
+    % io:format("validate_window Region=~w DataRate=~w Channel=~w~n",
+    % [Region, DataRateAtom, Channel]),
     DataRateStr = lora_plan:datarate_to_binary(Plan, DataRateAtom),
     [JoinChannel_0 | _] = Plan#channel_plan.u_channels,
     J0 = lora_plan:channel_to_freq(Plan, 0),
