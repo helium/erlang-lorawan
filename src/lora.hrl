@@ -32,23 +32,6 @@
 -type power_offset() :: integer().
 -type data_rate() :: atom() | binary() | integer().
 
--record(datarate_plan, {
-    drlist :: [{number(), atom(), atom()}]
-}).
-
-% -record(data_rate, {
-%     id :: 1..8,
-%     name :: atom(),
-%     max_size :: integer(),
-%     no_repeater_size :: integer(),
-%     bit_rate :: integer()
-% }).
-
--record(tx_power, {
-    id :: 1..8,
-    eirp :: integer()
-}).
-
 -record(channel_plan, {
     %% ID from the Region spec
     channel_plan_id :: 1..13,
@@ -81,22 +64,6 @@
     rx2_freq :: float(),
     beacon_freq :: number(),
     pingslot_freq :: number()
-}).
-
--record(stat, {
-    time,
-    lati,
-    long,
-    alti,
-    rxnb,
-    rxok,
-    rxfw,
-    ackr,
-    dwnb,
-    txnb,
-    % TTN extensions
-    mail,
-    desc
 }).
 
 % end of file

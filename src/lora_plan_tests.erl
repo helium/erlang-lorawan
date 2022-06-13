@@ -2,8 +2,8 @@
 %% ------------------------------------------------------------------
 %% EUNIT Tests
 %% ------------------------------------------------------------------
-%-define(TEST, 1).
--ifdef(TEST).
+%-define(EUNIT, 1).
+-ifdef(EUNIT).
 -include("lora.hrl").
 -include_lib("eunit/include/eunit.hrl").
 

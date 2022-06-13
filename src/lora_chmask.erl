@@ -291,7 +291,7 @@ append_mask(Region, Idx, {TXPower, DataRate, Chans}, FOptsOut) ->
 %% ------------------------------------------------------------------
 %% EUNIT Tests
 %% ------------------------------------------------------------------
--ifdef(TEST).
+-ifdef(EUNIT).
 -include_lib("eunit/include/eunit.hrl").
 
 expand_intervals([{A, B} | Rest]) ->
