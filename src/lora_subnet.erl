@@ -284,12 +284,10 @@ nwk_addr(DevAddr) ->
 
 -spec netid_addr_range(netid(), [netid()]) -> {non_neg_integer(), non_neg_integer()}.
 netid_addr_range(NetID, NetIDList0) ->
-    FoundNetID = lists:any(fun(X) -> X == NetID end, NetIDList0),
-    case FoundNetID of
-        false ->
+    case lists:takewhile(fun(X) -> X =/= NetID end, NetIDList0) of
+        [] ->
             {0, 0};
-        true ->
-            NetIDList = lists:takewhile(fun(X) -> X =/= NetID end, NetIDList0),
+        NetIDList ->
             Lower = lists:foldl(fun(X, Sum) -> netid_size(X) + Sum end, 0, NetIDList),
             Upper = Lower + netid_size(NetID),
             {Lower, Upper}
