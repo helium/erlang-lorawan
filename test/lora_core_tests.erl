@@ -1,11 +1,149 @@
 -module(lora_core_tests).
 %% ==================================================================
-%% Tests
+%% EUNIT Tests
 %% ==================================================================
 -ifdef(EUNIT).
 
 -include("lora.hrl").
 -include_lib("eunit/include/eunit.hrl").
+
+payload_util_test() ->
+    ValidHex00 = is_hex_string(<<"a0">>),
+    ?assertEqual(true, ValidHex00),
+    {Pay0, _Key0, _AppKey} = sample_downlink(),
+    ValidHex0 = is_hex_string(Pay0),
+    ?assertEqual(true, ValidHex0),
+    {Sample0, _, _} = sample_00(),
+    ValidHex1 = is_hex_string(Sample0),
+    ?assertEqual(false, ValidHex1),
+    Bin0 = string_to_binary(Pay0),
+    io:format("bin0 = ~w~n", [Bin0]),
+    Bin1 = string_to_binary(Sample0),
+    io:format("bin1 = ~w~n", [Bin1]),
+    {Pay2, _Key2, _AppKey2} = join_accept_sample_2(),
+    ValidHex2 = is_hex_string(Pay2),
+    ?assertEqual(true, ValidHex2),
+    Bin2 = string_to_binary(Pay2),
+    io:format("bin2 = ~w~n", [Bin2]),
+    fin.
+
+payload_decode_test() ->
+    {Pay0, _Key0, _AppKey} = sample_downlink(),
+    decode_payload(Pay0),
+    fin.
+
+payload_00_test() ->
+    decode_encode(fun sample_downlink/0),
+    fin.
+
+payload_01_test() ->
+    decode_encode(fun sample_uplink/0),
+    fin.
+
+payload_02_test() ->
+    decode_encode(fun sample_uplink_2/0),
+    fin.
+
+payload_03_test() ->
+    decode_encode(fun sample_join_request_01/0),
+    fin.
+
+payload_04_test() ->
+    decode_encode(fun join_accept_sample_2/0),
+    fin.
+
+payload_05_test() ->
+    decode_encode(fun sample_02/0),
+    fin.
+
+payload_06_test() ->
+    decode_encode(fun sample_03/0),
+    fin.
+
+% payload_07_test() ->
+%     decode_encode(fun sample_join_request_02/0),
+%     fin.
+
+payload_08_test() ->
+    decode_encode(fun bw_uplink_730/0),
+    decode_encode(fun bw_uplink_731/0),
+    decode_encode(fun bw_uplink_732/0),
+    decode_encode(fun bw_uplink_733/0),
+    decode_encode(fun bw_uplink_734/0),
+    decode_encode(fun bw_uplink_735/0),
+    decode_encode(fun bw_uplink_736/0),
+    decode_encode(fun bw_uplink_737/0),
+    fin.
+
+payload_09_test() ->
+    decode_encode(fun bw_downlink_735/0),
+    decode_encode(fun bw_downlink_736/0),
+    decode_encode(fun bw_downlink_737/0),
+    decode_encode(fun bw_downlink_738/0),
+    decode_encode(fun bw_downlink_739/0),
+    decode_encode(fun bw_downlink_740/0),
+    decode_encode(fun bw_downlink_741/0),
+    decode_encode(fun bw_downlink_742/0),
+    fin.
+
+payload_10_test() ->
+    decode_encode(fun bw_uplink_33/0),
+    decode_encode(fun bw_uplink_34/0),
+    decode_encode(fun bw_uplink_35/0),
+    decode_encode(fun bw_uplink_36/0),
+    decode_encode(fun bw_uplink_37/0),
+    decode_encode(fun bw_uplink_38/0),
+    decode_encode(fun bw_uplink_39/0),
+    decode_encode(fun bw_uplink_40/0),
+    decode_encode(fun bw_uplink_41/0),
+    fin.
+
+payload_11_test() ->
+    decode_encode(fun bw_downlink_36/0),
+    decode_encode(fun bw_downlink_37/0),
+    decode_encode(fun bw_downlink_38/0),
+    decode_encode(fun bw_downlink_39/0),
+    decode_encode(fun bw_downlink_40/0),
+    decode_encode(fun bw_downlink_41/0),
+    fin.
+
+payload_12_test() ->
+    process_payload_sequence(fun bw_uplink_sequence/0),
+    fin.
+
+payload_13_test() ->
+    process_payload_sequence(fun bw_downlink_sequence/0),
+    fin.
+
+payload_14_test() ->
+    process_payload_sequence(fun issue_633_sequence/0),
+    fin.
+
+payload_15_test() ->
+    {Pay0, _, _} = sample_00(),
+    {Pay1, _, _} = sample_01(),
+    {Pay2, _, _} = sample_join_request_01(),
+    {Pay3, _, _} = join_accept_sample(),
+    decode_payload(Pay0),
+    decode_payload(Pay1),
+    decode_payload(Pay2),
+    decode_payload(Pay3),
+    fin.
+
+exercise_test() ->
+    Frame0 = #frame{
+        mtype = ?CONFIRMED_UP,
+        rfu = 0,
+        major = 0,
+        devaddr = <<1, 2, 3, 4>>,
+        fctrlbits = 0,
+        fcnt = 1,
+        fopts = <<>>,
+        fport = 1,
+        data = <<1, 2, 3, 4>>
+    },
+    encode_decode(Frame0),
+    fin.
 
 %% https://lorawan-packet-decoder-0ta6puiniaut.runkit.sh/?
 sample_00() ->
@@ -619,31 +757,6 @@ bespoke_fopts_frame(Payload, BespokeFn) ->
     BespokeFn(FCnt, Direction, FCtrlBits, FOpts, Payload),
     ok.
 
-payload_util_test() ->
-    ValidHex00 = is_hex_string(<<"a0">>),
-    ?assertEqual(true, ValidHex00),
-    {Pay0, _Key0, _AppKey} = sample_downlink(),
-    ValidHex0 = is_hex_string(Pay0),
-    ?assertEqual(true, ValidHex0),
-    {Sample0, _, _} = sample_00(),
-    ValidHex1 = is_hex_string(Sample0),
-    ?assertEqual(false, ValidHex1),
-    Bin0 = string_to_binary(Pay0),
-    io:format("bin0 = ~w~n", [Bin0]),
-    Bin1 = string_to_binary(Sample0),
-    io:format("bin1 = ~w~n", [Bin1]),
-    {Pay2, _Key2, _AppKey2} = join_accept_sample_2(),
-    ValidHex2 = is_hex_string(Pay2),
-    ?assertEqual(true, ValidHex2),
-    Bin2 = string_to_binary(Pay2),
-    io:format("bin2 = ~w~n", [Bin2]),
-    fin.
-
-payload_decode_test() ->
-    {Pay0, _Key0, _AppKey} = sample_downlink(),
-    decode_payload(Pay0),
-    fin.
-
 decode_encode(Sample) ->
     {Pay0, Key0, AppKey0} = Sample(),
     % decode_payload(Pay0),
@@ -692,131 +805,5 @@ encode_decode(Frame0) ->
 process_payload_sequence(SeqFn) ->
     Sequence = SeqFn(),
     [bespoke_fopts(Payload, fun bespoke/5) || Payload <- Sequence].
-
-payload_all_test() ->
-    payload_util_test(),
-    payload_decode_test(),
-    decode_encode(fun sample_downlink/0),
-    decode_encode(fun sample_uplink/0),
-    decode_encode(fun sample_uplink_2/0),
-    decode_encode(fun sample_join_request_01/0),
-    decode_encode(fun join_accept_sample_2/0),
-    decode_encode(fun sample_02/0),
-    decode_encode(fun sample_03/0),
-    exercise_test(),
-    fin.
-
-payload_00_test() ->
-    decode_encode(fun sample_downlink/0),
-    fin.
-
-payload_01_test() ->
-    decode_encode(fun sample_uplink/0),
-    fin.
-
-payload_02_test() ->
-    decode_encode(fun sample_uplink_2/0),
-    fin.
-
-payload_03_test() ->
-    decode_encode(fun sample_join_request_01/0),
-    fin.
-
-payload_04_test() ->
-    decode_encode(fun join_accept_sample_2/0),
-    fin.
-
-payload_05_test() ->
-    decode_encode(fun sample_02/0),
-    fin.
-
-payload_06_test() ->
-    decode_encode(fun sample_03/0),
-    fin.
-
-% payload_07_test() ->
-%     decode_encode(fun sample_join_request_02/0),
-%     fin.
-
-payload_08_test() ->
-    decode_encode(fun bw_uplink_730/0),
-    decode_encode(fun bw_uplink_731/0),
-    decode_encode(fun bw_uplink_732/0),
-    decode_encode(fun bw_uplink_733/0),
-    decode_encode(fun bw_uplink_734/0),
-    decode_encode(fun bw_uplink_735/0),
-    decode_encode(fun bw_uplink_736/0),
-    decode_encode(fun bw_uplink_737/0),
-    fin.
-
-payload_09_test() ->
-    decode_encode(fun bw_downlink_735/0),
-    decode_encode(fun bw_downlink_736/0),
-    decode_encode(fun bw_downlink_737/0),
-    decode_encode(fun bw_downlink_738/0),
-    decode_encode(fun bw_downlink_739/0),
-    decode_encode(fun bw_downlink_740/0),
-    decode_encode(fun bw_downlink_741/0),
-    decode_encode(fun bw_downlink_742/0),
-    fin.
-
-payload_10_test() ->
-    decode_encode(fun bw_uplink_33/0),
-    decode_encode(fun bw_uplink_34/0),
-    decode_encode(fun bw_uplink_35/0),
-    decode_encode(fun bw_uplink_36/0),
-    decode_encode(fun bw_uplink_37/0),
-    decode_encode(fun bw_uplink_38/0),
-    decode_encode(fun bw_uplink_39/0),
-    decode_encode(fun bw_uplink_40/0),
-    decode_encode(fun bw_uplink_41/0),
-    fin.
-
-payload_11_test() ->
-    decode_encode(fun bw_downlink_36/0),
-    decode_encode(fun bw_downlink_37/0),
-    decode_encode(fun bw_downlink_38/0),
-    decode_encode(fun bw_downlink_39/0),
-    decode_encode(fun bw_downlink_40/0),
-    decode_encode(fun bw_downlink_41/0),
-    fin.
-
-payload_12_test() ->
-    process_payload_sequence(fun bw_uplink_sequence/0),
-    fin.
-
-payload_13_test() ->
-    process_payload_sequence(fun bw_downlink_sequence/0),
-    fin.
-
-payload_14_test() ->
-    process_payload_sequence(fun issue_633_sequence/0),
-    fin.
-
-exercise_test() ->
-    Frame0 = #frame{
-        mtype = ?CONFIRMED_UP,
-        rfu = 0,
-        major = 0,
-        devaddr = <<1, 2, 3, 4>>,
-        fctrlbits = 0,
-        fcnt = 1,
-        fopts = <<>>,
-        fport = 1,
-        data = <<1, 2, 3, 4>>
-    },
-    encode_decode(Frame0),
-    fin.
-
-payload_1_test() ->
-    {Pay0, _, _} = sample_00(),
-    {Pay1, _, _} = sample_01(),
-    {Pay2, _, _} = sample_join_request_01(),
-    {Pay3, _, _} = join_accept_sample(),
-    decode_payload(Pay0),
-    decode_payload(Pay1),
-    decode_payload(Pay2),
-    decode_payload(Pay3),
-    fin.
 
 -endif.
