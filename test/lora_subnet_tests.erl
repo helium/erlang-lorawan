@@ -8,6 +8,7 @@
 %% ------------------------------------------------------------------
 %% EUNIT Tests
 %% ------------------------------------------------------------------
+-define(EUNIT, 1).
 -ifdef(EUNIT).
 -include_lib("eunit/include/eunit.hrl").
 
@@ -134,8 +135,12 @@ id_test() ->
     ?assertEqual({ok, 16#000002}, lora_subnet:parse_netid(<<163, 190, 16, 4>>)),
     ok.
 
+random_unsigned() ->
+    <<A:32/unsigned-integer>> = crypto:strong_rand_bytes(4),
+    A.
+
 devaddr_test() ->
-    RandList = [rand:uniform(16#FFFFFFFF) || _X <- lists:seq(0, 20)],
+    RandList = [random_unsigned() || _X <- lists:seq(0, 20)],
     [valid_devaddr(R) || R <- RandList].
 
 devaddr_exercise_test() ->
