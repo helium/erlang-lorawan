@@ -6,14 +6,13 @@
 -module(lora_subnet).
 
 -export([
+    is_local_devaddr/2,
     parse_netid/1,
     parse_netid/2,
     addr_bit_len/1,
-    is_local_devaddr/2,
     devaddr_from_subnet/2,
     devaddr_from_netid/2,
-    subnet_from_devaddr/2,
-    swap_four_bytes/1
+    subnet_from_devaddr/2
 ]).
 
 -ifdef(EUNIT).
@@ -25,7 +24,8 @@
     netid_type/1,
     nwk_addr/1,
     devaddr/2,
-    netid_size/1
+    netid_size/1,
+    swap_four_bytes/1
 ]).
 -endif.
 
@@ -155,30 +155,24 @@ netid_class(NetID) ->
     NetClass.
 
 -spec addr_len(netclass()) -> 7 | 10 | 13 | 15 | 17 | 20 | 24 | 25.
-addr_len(NetClass) ->
-    case NetClass of
-        0 -> 25;
-        1 -> 24;
-        2 -> 20;
-        3 -> 17;
-        4 -> 15;
-        5 -> 13;
-        6 -> 10;
-        7 -> 7
-    end.
+addr_len(0) -> 25;
+addr_len(1) -> 24;
+addr_len(2) -> 20;
+addr_len(3) -> 17;
+addr_len(4) -> 15;
+addr_len(5) -> 13;
+addr_len(6) -> 10;
+addr_len(7) -> 7.
 
 -spec id_len(netclass()) -> 6 | 9 | 11 | 12 | 13 | 15 | 17.
-id_len(NetClass) ->
-    case NetClass of
-        0 -> 6;
-        1 -> 6;
-        2 -> 9;
-        3 -> 11;
-        4 -> 12;
-        5 -> 13;
-        6 -> 15;
-        7 -> 17
-    end.
+id_len(0) -> 6;
+id_len(1) -> 6;
+id_len(2) -> 9;
+id_len(3) -> 11;
+id_len(4) -> 12;
+id_len(5) -> 13;
+id_len(6) -> 15;
+id_len(7) -> 17.
 
 -spec is_local_netid(netid(), [netid()]) -> boolean().
 is_local_netid(NetID, NetIDList) ->
@@ -220,7 +214,7 @@ subnet_addr_within_range(Addr, NetID, NetIDList) ->
     (Addr >= Lower) and (Addr < Upper).
 
 -spec var_net_class(netclass()) -> non_neg_integer().
-var_net_class(NetClass) when NetClass =< 7 ->
+var_net_class(NetClass) ->
     IDLen = id_len(NetClass),
     case NetClass of
         0 -> 0;
