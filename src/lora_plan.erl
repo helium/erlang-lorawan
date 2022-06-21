@@ -155,10 +155,10 @@ datarate_to_index(Plan, Atom) when is_atom(Atom) ->
     Index = index_of(Atom, List, 15),
     Index;
 datarate_to_index(Plan, String) when is_list(String) ->
-    Atom = erlang:list_to_atom(String),
+    Atom = erlang:list_to_existing_atom(String),
     datarate_to_index(Plan, Atom);
 datarate_to_index(Plan, Binary) when is_binary(Binary) ->
-    Atom = erlang:binary_to_atom(Binary),
+    Atom = erlang:binary_to_existing_atom(Binary),
     datarate_to_index(Plan, Atom).
 
 -spec datarate_to_binary(#channel_plan{}, data_rate()) -> binary().
