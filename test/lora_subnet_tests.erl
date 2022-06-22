@@ -8,6 +8,7 @@
 %% ------------------------------------------------------------------
 %% EUNIT Tests
 %% ------------------------------------------------------------------
+%-define(EUNIT, 1).
 -ifdef(EUNIT).
 -include_lib("eunit/include/eunit.hrl").
 
@@ -134,112 +135,9 @@ id_test() ->
     ?assertEqual({ok, 16#000002}, lora_subnet:parse_netid(<<163, 190, 16, 4>>)),
     ok.
 
-parse_netid_be(DevAddr0) ->
-    DevAddr = lora_subnet:swap_four_bytes(DevAddr0),
-    lora_subnet:parse_netid(DevAddr).
-
-subnet_from_devaddr_be(DevAddr0, NetIDList) ->
-    DevAddr = lora_subnet:swap_four_bytes(DevAddr0),
-    lora_subnet:subnet_from_devaddr(DevAddr, NetIDList).
-
-devaddr_from_subnet_be(SubnetAddr, NetIDList) ->
-    DevAddr = lora_subnet:devaddr_from_subnet(SubnetAddr, NetIDList),
-    lora_subnet:swap_four_bytes(DevAddr).
-
-create_netid(NetClass, ID) ->
-    NetIDBin = <<0:8/integer-unsigned, NetClass:3/integer-unsigned, ID:21/integer-unsigned>>,
-    <<NetID:32/integer-unsigned>> = NetIDBin,
-    NetID.
-
-mock_random_netids() ->
-    Len = rand:uniform(10),
-    [create_netid(rand:uniform(7), rand:uniform(64)) || _ <- lists:seq(1, Len)].
-
-mock_netid_list() ->
-    [16#E00001, 16#C00035, 16#60002D].
-
-insert_item(Item, List, Pos) ->
-    {A, B} = lists:split(Pos, List),
-    NewList = A ++ [Item] ++ B,
-    NewList.
-
-insert_rand(Item, List) ->
-    Pos = rand:uniform(length(List)),
-    {A, B} = lists:split(Pos, List),
-    NewList = A ++ [Item] ++ B,
-    NewList.
-
-valid_subnet(DevAddr, NetIDList) ->
-    SubnetAddr = subnet_from_devaddr_be(DevAddr, NetIDList),
-    DevAddr2 = devaddr_from_subnet_be(SubnetAddr, NetIDList),
-    ?assertEqual(DevAddr, DevAddr2).
-
-valid_subnet(DevAddr) ->
-    {ok, NetID} = parse_netid_be(DevAddr),
-    valid_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 0)),
-    valid_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 1)),
-    valid_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 2)),
-    valid_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 3)),
-    ok.
-
-random_subnet(DevAddr) ->
-    {ok, NetID} = parse_netid_be(DevAddr),
-    [valid_subnet(DevAddr, insert_rand(NetID, mock_random_netids())) || _ <- lists:seq(1, 400)],
-    ok.
-
-valid_devaddr(DevAddr) ->
-    io:format("DevAddr ~8.16.0B~n", [DevAddr]),
-    {ok, NetID} = parse_netid_be(DevAddr),
-    io:format("NetID ~8.16.0B~n", [NetID]),
-    NetIDType = lora_subnet:netid_type(DevAddr),
-    io:format("NetIDType ~8.16.0B~n", [NetIDType]),
-    ?assert(NetIDType =< 7),
-    NetClass = lora_subnet:netid_class(NetID),
-    io:format("NetClass ~8.16.0B~n", [NetClass]),
-    AddrLen = lora_subnet:addr_len(NetClass),
-    io:format("AddrLen ~8.16.0B~n", [AddrLen]),
-    IDLen = lora_subnet:id_len(NetClass),
-    io:format("IDLen ~8.16.0B~n", [IDLen]),
-    ?assert(AddrLen + IDLen < 32),
-    NwkAddr = lora_subnet:nwk_addr(DevAddr),
-    io:format("NwkAddr ~8.16.0B~n", [NwkAddr]),
-    ?assert(NwkAddr < (1 bsl AddrLen)),
-    valid_subnet(DevAddr),
-    ok.
-
 devaddr_test() ->
-    RandList = [rand:uniform(16#FFFFFFFF) || _X <- lists:seq(0, 20)],
+    RandList = [random_unsigned() || _X <- lists:seq(0, 1000)],
     [valid_devaddr(R) || R <- RandList].
-
-exercise_devaddr(NetID, Addr, _IDLen, AddrLen) ->
-    DevAddr = lora_subnet:devaddr(NetID, Addr),
-    NetIDType = lora_subnet:netid_type(DevAddr),
-    ?assert(NetIDType =< 7),
-    {ok, NetID0} = parse_netid_be(DevAddr),
-    ?assertEqual(NetID, NetID0),
-    AddrBitLen = lora_subnet:addr_bit_len(DevAddr),
-    ?assertEqual(AddrLen, AddrBitLen),
-    NwkAddr = lora_subnet:nwk_addr(DevAddr),
-    ?assertEqual(Addr, NwkAddr),
-    valid_subnet(DevAddr),
-    random_subnet(DevAddr),
-    ok.
-
-exercise_netid(NetClass, ID, IDLen, AddrLen) ->
-    NetIDBin = <<0:8/integer-unsigned, NetClass:3/integer-unsigned, ID:21/integer-unsigned>>,
-    <<NetID:32/integer-unsigned>> = NetIDBin,
-    NetAddrLen = lora_subnet:addr_len(NetClass),
-    ?assert(NetAddrLen == AddrLen),
-    MaxNetSize = lora_subnet:netid_size(NetID),
-    exercise_devaddr(NetID, 0, IDLen, AddrLen),
-    exercise_devaddr(NetID, 1, IDLen, AddrLen),
-    exercise_devaddr(NetID, 8, IDLen, AddrLen),
-    exercise_devaddr(NetID, 16, IDLen, AddrLen),
-    exercise_devaddr(NetID, 32, IDLen, AddrLen),
-    exercise_devaddr(NetID, 33, IDLen, AddrLen),
-    exercise_devaddr(NetID, 64, IDLen, AddrLen),
-    exercise_devaddr(NetID, MaxNetSize - 1, IDLen, AddrLen),
-    ok.
 
 devaddr_exercise_test() ->
     exercise_netid(7, 2, 17, 7),
@@ -394,6 +292,125 @@ netid_test() ->
     DevAddr002 = devaddr_from_subnet_be(Subnet2, NetIDList),
     ?assertEqual(DevAddr002, DevAddr02),
 
+    ok.
+
+%%
+%% Test Helper Functions
+%%
+
+random_unsigned() ->
+    <<A:32/unsigned-integer>> = crypto:strong_rand_bytes(4),
+    A.
+
+parse_netid_be(DevAddr0) ->
+    DevAddr = lora_subnet:swap_four_bytes(DevAddr0),
+    lora_subnet:parse_netid(DevAddr).
+
+subnet_from_devaddr_be(DevAddr0, NetIDList) ->
+    DevAddr = lora_subnet:swap_four_bytes(DevAddr0),
+    lora_subnet:subnet_from_devaddr(DevAddr, NetIDList).
+
+devaddr_from_subnet_be(SubnetAddr, NetIDList) ->
+    DevAddr = lora_subnet:devaddr_from_subnet(SubnetAddr, NetIDList),
+    lora_subnet:swap_four_bytes(DevAddr).
+
+create_netid(NetClass, ID) ->
+    NetIDBin = <<0:8/integer-unsigned, NetClass:3/integer-unsigned, ID:21/integer-unsigned>>,
+    <<NetID:32/integer-unsigned>> = NetIDBin,
+    NetID.
+
+mock_random_netids() ->
+    Len = rand:uniform(10),
+    [create_netid(rand:uniform(7), rand:uniform(64)) || _ <- lists:seq(1, Len)].
+
+mock_netid_list() ->
+    [16#E00001, 16#C00035, 16#60002D].
+
+insert_item(Item, List, Pos) ->
+    {A, B} = lists:split(Pos, List),
+    NewList = A ++ [Item] ++ B,
+    NewList.
+
+insert_rand(Item, List) ->
+    Pos = rand:uniform(length(List)),
+    {A, B} = lists:split(Pos, List),
+    NewList = A ++ [Item] ++ B,
+    NewList.
+
+valid_subnet(DevAddr, NetIDList) ->
+    SubnetAddr = subnet_from_devaddr_be(DevAddr, NetIDList),
+    DevAddr2 = devaddr_from_subnet_be(SubnetAddr, NetIDList),
+    ?assertEqual(DevAddr, DevAddr2).
+
+valid_subnet(DevAddr) ->
+    {ok, NetID} = parse_netid_be(DevAddr),
+    valid_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 0)),
+    valid_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 1)),
+    valid_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 2)),
+    valid_subnet(DevAddr, insert_item(NetID, mock_netid_list(), 3)),
+    ok.
+
+random_subnet(DevAddr) ->
+    {ok, NetID} = parse_netid_be(DevAddr),
+    [valid_subnet(DevAddr, insert_rand(NetID, mock_random_netids())) || _ <- lists:seq(1, 400)],
+    ok.
+
+valid_devaddr(DevAddr) ->
+    % io:format("DevAddr ~8.16.0B~n", [DevAddr]),
+    DevAddrLE = lora_subnet:swap_four_bytes(DevAddr),
+    LowMask = DevAddrLE band 16#FF,
+    case LowMask of
+        16#FF ->
+            % io:format("LowMask ~w~n", [DevAddr]),
+            ok;
+        _ ->
+            {ok, NetID} = parse_netid_be(DevAddr),
+            % io:format("NetID ~8.16.0B~n", [NetID]),
+            NetIDType = lora_subnet:netid_type(DevAddr),
+            % io:format("NetIDType ~8.16.0B~n", [NetIDType]),
+            ?assert(NetIDType =< 7),
+            NetClass = lora_subnet:netid_class(NetID),
+            % io:format("NetClass ~8.16.0B~n", [NetClass]),
+            AddrLen = lora_subnet:addr_len(NetClass),
+            % io:format("AddrLen ~8.16.0B~n", [AddrLen]),
+            IDLen = lora_subnet:id_len(NetClass),
+            % io:format("IDLen ~8.16.0B~n", [IDLen]),
+            ?assert(AddrLen + IDLen < 32),
+            NwkAddr = lora_subnet:nwk_addr(DevAddr),
+            % io:format("NwkAddr ~8.16.0B~n", [NwkAddr]),
+            ?assert(NwkAddr < (1 bsl AddrLen)),
+            valid_subnet(DevAddr),
+            ok
+    end.
+
+exercise_devaddr(NetID, Addr, _IDLen, AddrLen) ->
+    DevAddr = lora_subnet:devaddr(NetID, Addr),
+    NetIDType = lora_subnet:netid_type(DevAddr),
+    ?assert(NetIDType =< 7),
+    {ok, NetID0} = parse_netid_be(DevAddr),
+    ?assertEqual(NetID, NetID0),
+    AddrBitLen = lora_subnet:addr_bit_len(DevAddr),
+    ?assertEqual(AddrLen, AddrBitLen),
+    NwkAddr = lora_subnet:nwk_addr(DevAddr),
+    ?assertEqual(Addr, NwkAddr),
+    valid_subnet(DevAddr),
+    random_subnet(DevAddr),
+    ok.
+
+exercise_netid(NetClass, ID, IDLen, AddrLen) ->
+    NetIDBin = <<0:8/integer-unsigned, NetClass:3/integer-unsigned, ID:21/integer-unsigned>>,
+    <<NetID:32/integer-unsigned>> = NetIDBin,
+    NetAddrLen = lora_subnet:addr_len(NetClass),
+    ?assert(NetAddrLen == AddrLen),
+    MaxNetSize = lora_subnet:netid_size(NetID),
+    exercise_devaddr(NetID, 0, IDLen, AddrLen),
+    exercise_devaddr(NetID, 1, IDLen, AddrLen),
+    exercise_devaddr(NetID, 8, IDLen, AddrLen),
+    exercise_devaddr(NetID, 16, IDLen, AddrLen),
+    exercise_devaddr(NetID, 32, IDLen, AddrLen),
+    exercise_devaddr(NetID, 33, IDLen, AddrLen),
+    exercise_devaddr(NetID, 64, IDLen, AddrLen),
+    exercise_devaddr(NetID, MaxNetSize - 1, IDLen, AddrLen),
     ok.
 
 -endif.

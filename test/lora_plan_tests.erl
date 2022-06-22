@@ -65,15 +65,6 @@ up_down_test() ->
     DownF1 = lora_plan:up_to_down_freq(lora_plan:plan_us915_SB2(), UpF1),
     ?assertEqual(923.9, DownF1).
 
-valid_round(F1, F2, Precision) ->
-    R2 = lora_plan:round_frequency(F2, Precision),
-    % io:format("F1=~w F2=~w R2=~w~n", [F1, F2, R2]),
-    ?assertEqual(F1, R2).
-
-valid_frequency(Expect, Actual, List) ->
-    F = lora_plan:nearest(Actual, List),
-    ?assertEqual(Expect, F).
-
 round_00_test() ->
     FList = [923.2, 923.21, 923.24, 923.19, 923.151, 923.2000000001, 923.1999999999],
     Plan = lora_plan:plan_as923_1B(),
@@ -99,6 +90,83 @@ round_03_test() ->
     FList = [866.5500, 866.55001, 866.54999, 866.5500000000001, 866.5499999999999],
     CList = [860.123, 866.5500, 870.123],
     [valid_frequency(866.5500, X, CList) || X <- FList].
+
+plan_test() ->
+    exercise_plan(lora_plan:plan_us915_SB2()),
+    exercise_plan(lora_plan:plan_au915_SB2()),
+    exercise_plan(lora_plan:plan_au915_SB5()),
+    exercise_plan(lora_plan:plan_eu868_A()),
+    exercise_plan(lora_plan:plan_as923_1A()),
+    exercise_plan(lora_plan:plan_in865_A()),
+    exercise_plan(lora_plan:plan_cn470_A()),
+    exercise_plan(lora_plan:plan_kr920_A()),
+    exercise_plan(lora_plan:plan_eu433_A()),
+    exercise_plan(lora_plan:plan_as923_2A()),
+    exercise_plan(lora_plan:plan_as923_3A()),
+    exercise_plan(lora_plan:plan_as923_4A()),
+    fin.
+
+au915_test() ->
+    Plan = lora_plan:plan_au915_SB2(),
+    % AU915 supports a 'fat' SF8BW500 DR on frequency 917.5
+    validate_window(Plan, 'SF8BW500', 0).
+
+eu868_test() ->
+    Plan = lora_plan:plan_eu868_A(),
+    % EU868 supports a 'fat' BW250 data rate
+    validate_window(Plan, 'SF7BW250', 0).
+
+nearest_test() ->
+    R = lora_plan:nearest(923.81, [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6]),
+    io:format("R=~w~n", [R]),
+    R2 = lora_plan:nearest(923.9, [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6]),
+    io:format("R=~w~n", [R2]).
+
+datarate_test() ->
+    Plan = lora_plan:plan_us915_SB2(),
+    DataRateAtom = 'SF7BW125',
+    DataRateBinary = <<"SF7BW125">>,
+    DataRateString = "SF7BW125",
+    DataRateIndex = 3,
+    List = [DataRateAtom, DataRateBinary, DataRateString, DataRateIndex],
+    [?assertEqual(DataRateAtom, lora_plan:datarate_to_atom(Plan, X)) || X <- List],
+    [?assertEqual(DataRateBinary, lora_plan:datarate_to_binary(Plan, X)) || X <- List],
+    [?assertEqual(DataRateString, lora_plan:datarate_to_string(Plan, X)) || X <- List],
+    [?assertEqual(DataRateIndex, lora_plan:datarate_to_index(Plan, X)) || X <- List].
+
+dualplan_test() ->
+    DR = 'SF7BW125',
+    ?assertEqual(true, lora_plan:valid_region('US915')),
+    ?assertEqual(true, lora_plan:valid_region('AS923_1')),
+    ?assertEqual(true, lora_plan:valid_region('AU915_SB5')),
+    ?assertEqual(true, lora_plan:valid_region('AU915_DP')),
+    ?assertEqual(true, lora_plan:valid_region('AS923_1B')),
+    ?assertEqual(false, lora_plan:valid_region('ZZ915')),
+    ?assertEqual('US915', lora_plan:dualplan_region('US915', 923.2, DR)),
+    ?assertEqual('AS923_1', lora_plan:dualplan_region('AS923_1', 923.2, DR)),
+    ?assertEqual('AS923_1', lora_plan:dualplan_region('AS923_1', 923.4, DR)),
+    ?assertEqual('AU915_SB5', lora_plan:dualplan_region('AS923_1', 923.6, DR)),
+    ?assertEqual('AU915_SB5', lora_plan:dualplan_region('AS923_1', 923.61, DR)),
+    ?assertEqual('AU915_SB5', lora_plan:dualplan_region('AS923_1', 923.59, DR)),
+    ?assertEqual('AS923_1B', lora_plan:dualplan_region('AS923_1B', 923.6, DR)),
+    ?assertEqual('AU915_DP', lora_plan:dualplan_region('AS923_1B', 923.0, DR)),
+    ?assertEqual('AU915_DP', lora_plan:dualplan_region('AS923_1B', 923.01, DR)),
+    ?assertEqual('AU915_DP', lora_plan:dualplan_region('AS923_1B', 922.96, DR)),
+    ?assertEqual('AS923_1', lora_plan:dualplan_region('AS923_1', 923.0, DR)),
+    ?assertEqual('AS923_1', lora_plan:dualplan_region('AS923_1', 924.8, DR)).
+
+%%
+%% Test Helper Functions
+%%
+
+valid_round(F1, F2, Precision) ->
+    R2 = lora_plan:round_frequency(F2, Precision),
+    % io:format("F1=~w F2=~w R2=~w~n", [F1, F2, R2]),
+    ?assertEqual(F1, R2).
+
+valid_frequency(Expect, Actual, List) ->
+    F = lora_plan:nearest(Actual, List),
+    ?assertEqual(Expect, F).
 
 valid_uplink_freq(Plan, Freq) when Plan#channel_plan.base_region == 'EU433' ->
     case Freq of
@@ -302,16 +370,6 @@ exercise_snr(Plan) when Plan#channel_plan.base_region == 'CN470' ->
 exercise_snr(Plan) ->
     [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4, 5, 6]].
 
-au915_test() ->
-    Plan = lora_plan:plan_au915_SB2(),
-    % AU915 supports a 'fat' SF8BW500 DR on frequency 917.5
-    validate_window(Plan, 'SF8BW500', 0).
-
-eu868_test() ->
-    Plan = lora_plan:plan_eu868_A(),
-    % EU868 supports a 'fat' BW250 data rate
-    validate_window(Plan, 'SF7BW250', 0).
-
 exercise_window_channel(Plan, Atom) ->
     Channels = lists:seq(0, Plan#channel_plan.channel_count - 1),
     % io:format("Atom=~w Channels=~w~n", [Atom, Channels]),
@@ -337,60 +395,6 @@ exercise_plan(Plan) ->
     validate_payload_size(Plan),
     validate_tx_power(Plan),
     validate_channels(Plan).
-
-plan_test() ->
-    exercise_plan(lora_plan:plan_us915_SB2()),
-    exercise_plan(lora_plan:plan_au915_SB2()),
-    exercise_plan(lora_plan:plan_au915_SB5()),
-    exercise_plan(lora_plan:plan_eu868_A()),
-    exercise_plan(lora_plan:plan_as923_1A()),
-    exercise_plan(lora_plan:plan_in865_A()),
-    exercise_plan(lora_plan:plan_cn470_A()),
-    exercise_plan(lora_plan:plan_kr920_A()),
-    exercise_plan(lora_plan:plan_eu433_A()),
-    exercise_plan(lora_plan:plan_as923_2A()),
-    exercise_plan(lora_plan:plan_as923_3A()),
-    exercise_plan(lora_plan:plan_as923_4A()),
-    fin.
-
-nearest_test() ->
-    R = lora_plan:nearest(923.81, [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6]),
-    io:format("R=~w~n", [R]),
-    R2 = lora_plan:nearest(923.9, [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6]),
-    io:format("R=~w~n", [R2]).
-
-datarate_test() ->
-    Plan = lora_plan:plan_us915_SB2(),
-    DataRateAtom = 'SF7BW125',
-    DataRateBinary = <<"SF7BW125">>,
-    DataRateString = "SF7BW125",
-    DataRateIndex = 3,
-    List = [DataRateAtom, DataRateBinary, DataRateString, DataRateIndex],
-    [?assertEqual(DataRateAtom, lora_plan:datarate_to_atom(Plan, X)) || X <- List],
-    [?assertEqual(DataRateBinary, lora_plan:datarate_to_binary(Plan, X)) || X <- List],
-    [?assertEqual(DataRateString, lora_plan:datarate_to_string(Plan, X)) || X <- List],
-    [?assertEqual(DataRateIndex, lora_plan:datarate_to_index(Plan, X)) || X <- List].
-
-dualplan_test() ->
-    DR = 'SF7BW125',
-    ?assertEqual(true, lora_plan:valid_region('US915')),
-    ?assertEqual(true, lora_plan:valid_region('AS923_1')),
-    ?assertEqual(true, lora_plan:valid_region('AU915_SB5')),
-    ?assertEqual(true, lora_plan:valid_region('AU915_DP')),
-    ?assertEqual(true, lora_plan:valid_region('AS923_1B')),
-    ?assertEqual(false, lora_plan:valid_region('ZZ915')),
-    ?assertEqual('US915', lora_plan:dualplan_region('US915', 923.2, DR)),
-    ?assertEqual('AS923_1', lora_plan:dualplan_region('AS923_1', 923.2, DR)),
-    ?assertEqual('AS923_1', lora_plan:dualplan_region('AS923_1', 923.4, DR)),
-    ?assertEqual('AU915_SB5', lora_plan:dualplan_region('AS923_1', 923.6, DR)),
-    ?assertEqual('AU915_SB5', lora_plan:dualplan_region('AS923_1', 923.61, DR)),
-    ?assertEqual('AU915_SB5', lora_plan:dualplan_region('AS923_1', 923.59, DR)),
-    ?assertEqual('AS923_1B', lora_plan:dualplan_region('AS923_1B', 923.6, DR)),
-    ?assertEqual('AU915_DP', lora_plan:dualplan_region('AS923_1B', 923.0, DR)),
-    ?assertEqual('AU915_DP', lora_plan:dualplan_region('AS923_1B', 923.01, DR)),
-    ?assertEqual('AU915_DP', lora_plan:dualplan_region('AS923_1B', 922.96, DR)),
-    ?assertEqual('AS923_1', lora_plan:dualplan_region('AS923_1', 923.0, DR)),
-    ?assertEqual('AS923_1', lora_plan:dualplan_region('AS923_1', 924.8, DR)).
 
 -endif.
 
