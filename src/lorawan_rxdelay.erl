@@ -117,7 +117,7 @@ adjust(DeviceState0, UplinkFOpts, FOpts0) ->
                 Map = #{rx_delay_actual => Requested, rx_delay_state => ?RX_DELAY_ESTABLISHED},
                 {Requested, maps:merge(DeviceState0, Map), FOpts0};
             {unknown_state, _} ->
-                lager:error("rx_delay state=unknown device-id=~p", [router_device:id(Device)]),
+                lager:error("rx_delay state=unknown device-id=~p", [router_device:id(DeviceState0)]),
                 {Actual, DeviceState0, FOpts0}
         end,
     {RxDelay, DeviceState1, FOpts1}.
