@@ -12,11 +12,18 @@
 -export([precise_universal_time/0, time_to_gps/0, time_to_gps/1, time_to_unix/0, time_to_unix/1]).
 -export([ms_diff/2, datetime_to_timestamp/1, apply_offset/2]).
 
--export([extract_frame_port_payload/1, cipher/5, mtype/1, padded/2, parse_datarate/1]).
+-export([
+    extract_frame_port_payload/1,
+    cipher/5,
+    mtype/1,
+    dir_string/1,
+    padded/2,
+    parse_datarate/1
+]).
 
 -export_type([spreading/0, bandwidth/0]).
 
--include("lorawan.hrl").
+-include("lora.hrl").
 
 -define(MEGA, 1000000).
 
@@ -55,12 +62,14 @@ cipher(Bin, Key, Dir, DevAddr, FCnt) ->
     cipher(Bin, Key, Dir, DevAddr, FCnt, 1, <<>>).
 
 cipher(<<Block:16/binary, Rest/binary>>, Key, Dir, DevAddr, FCnt, I, Acc) ->
-    Si = crypto:block_encrypt(aes_ecb, Key, ai(Dir, DevAddr, FCnt, I)),
+    %% Si = crypto:block_encrypt(aes_ecb, Key, ai(Dir, DevAddr, FCnt, I)),
+    Si = crypto:crypto_one_time(aes_128_cbc, Key, <<0:128>>, ai(Dir, DevAddr, FCnt, I), true),
     cipher(Rest, Key, Dir, DevAddr, FCnt, I + 1, <<(binxor(Block, Si, <<>>))/binary, Acc/binary>>);
 cipher(<<>>, _Key, _Dir, _DevAddr, _FCnt, _I, Acc) ->
     Acc;
 cipher(<<LastBlock/binary>>, Key, Dir, DevAddr, FCnt, I, Acc) ->
-    Si = crypto:block_encrypt(aes_ecb, Key, ai(Dir, DevAddr, FCnt, I)),
+    %% Si = crypto:block_encrypt(aes_ecb, Key, ai(Dir, DevAddr, FCnt, I)),
+    Si = crypto:crypto_one_time(aes_128_cbc, Key, <<0:128>>, ai(Dir, DevAddr, FCnt, I), true),
     <<(binxor(LastBlock, binary:part(Si, 0, byte_size(LastBlock)), <<>>))/binary, Acc/binary>>.
 
 -spec ai(integer(), binary(), integer(), integer()) -> binary().
@@ -83,6 +92,10 @@ mtype(?CONFIRMED_DOWN) -> "Confirmed Downlink";
 mtype(?RFU) -> "RFU";
 mtype(?PRIORITY) -> "Proprietary".
 
+-spec dir_string(0..1) -> string().
+dir_string(0) -> "up";
+dir_string(1) -> "down".
+
 index_of(Item, List) -> index_of(Item, List, 1).
 
 index_of(_, [], _) -> undefined;
@@ -94,9 +107,9 @@ ms_diff({MSecs1, Secs1, USecs1}, {MSecs2, Secs2, USecs2}) when MSecs1 =< MSecs2 
         (USecs2 - USecs1) div 1000.
 
 precise_universal_time() ->
-    {Date, {Hours, Min, Secs}} = calendar:universal_time(),
-    {_, _, USecs} = erlang:timestamp(),
-    {Date, {Hours, Min, Secs + (USecs div 1000) / 1000}}.
+    TS = erlang:system_time(millisecond),
+    {Date, {Hours, Min, Secs}} = calendar:system_time_to_universal_time(TS, millisecond),
+    {Date, {Hours, Min, Secs + (TS rem 1000) / 1000}}.
 
 time_to_gps() ->
     time_to_gps(precise_universal_time()).
@@ -139,8 +152,27 @@ apply_offset({Date, {Hours, Min, Secs}}, {OHours, OMin, OSecs}) ->
     {Date2, {Hours2, Min2, Secs2}} = calendar:gregorian_seconds_to_datetime(TotalSecs),
     {Date2, {Hours2, Min2, Secs2 + (Secs - trunc(Secs))}}.
 
-inc(Num) -> Num + 1.
+%% inc(Num) -> Num + 1.
 
+%% Spreading Factor
+-type spreading() :: 7..12.
+
+%% Bandwidth in kHz.
+-type bandwidth() :: 125 | 500.
+
+%% @doc returns a tuple of {SpreadingFactor, Bandwidth} from strings like "SFdBWddd"
+%%
+%% Example: `{7, 125} = scratch:parse_datarate("SF7BW125")'
+-spec parse_datarate(string()) -> {spreading(), integer()}.
+parse_datarate(Datarate) ->
+    case Datarate of
+        [$S, $F, SF1, SF2, $B, $W, BW1, BW2, BW3] ->
+            {erlang:list_to_integer([SF1, SF2]), erlang:list_to_integer([BW1, BW2, BW3])};
+        [$S, $F, SF1, $B, $W, BW1, BW2, BW3] ->
+            {erlang:list_to_integer([SF1]), erlang:list_to_integer([BW1, BW2, BW3])}
+    end.
+
+-ifdef(EUNIT).
 -include_lib("eunit/include/eunit.hrl").
 
 time_test_() ->
@@ -167,22 +199,15 @@ time_test_() ->
         )
     ].
 
-%% Spreading Factor
--type spreading() :: 7..12.
+precise_time_test() ->
+    T0 = precise_universal_time(),
+    T1 = precise_universal_time_v1(),
+    ?assertEqual(T1, T0).
 
-%% Bandwidth in kHz.
--type bandwidth() :: 125 | 500.
+precise_universal_time_v1() ->
+    {Date, {Hours, Min, Secs}} = calendar:universal_time(),
+    {_, _, USecs} = erlang:timestamp(),
+    {Date, {Hours, Min, Secs + (USecs div 1000) / 1000}}.
 
-%% @doc returns a tuple of {SpreadingFactor, Bandwidth} from strings like "SFdBWddd"
-%%
-%% Example: `{7, 125} = scratch:parse_datarate("SF7BW125")'
--spec parse_datarate(string()) -> {spreading(), integer()}.
-parse_datarate(Datarate) ->
-    case Datarate of
-        [$S, $F, SF1, SF2, $B, $W, BW1, BW2, BW3] ->
-            {erlang:list_to_integer([SF1, SF2]), erlang:list_to_integer([BW1, BW2, BW3])};
-        [$S, $F, SF1, $B, $W, BW1, BW2, BW3] ->
-            {erlang:list_to_integer([SF1]), erlang:list_to_integer([BW1, BW2, BW3])}
-    end.
-
+-endif.
 % end of file

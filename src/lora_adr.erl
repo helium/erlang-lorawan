@@ -18,14 +18,14 @@
 %%
 %% ```
 %% %% Create a new handle with the device's region. See new/2 for more control.
-%% State01 = lorawan_adr:new('US915'),
+%% State01 = lora_adr:new('US915'),
 %%
 %% %% First track all packet offers.
 %% OfferN = #adr_offer{
 %%     packet_hash = RxOfferHash
 %% },
 %%
-%% State09 = lorawan_adr:track_offer(State08, OfferN),
+%% State09 = lora_adr:track_offer(State08, OfferN),
 %%
 %% %% Assume these RxPkt[X] values all come from uplink packet and
 %% %% that we have already received several similar packets since State01.
@@ -38,7 +38,7 @@
 %%     packet_hash = RxPktHash
 %% },
 %%
-%% {State10, {NewDataRate, NewPower}} = lorawan_adr:track_packet(
+%% {State10, {NewDataRate, NewPower}} = lora_adr:track_packet(
 %%     State09,
 %%     Packet10
 %% ),
@@ -55,7 +55,7 @@
 %%     datarate_ack = true,
 %%     power_ack = true
 %% },
-%% State11 = lorawan_adr:track_adr_answer(State10, Answer0),
+%% State11 = lora_adr:track_adr_answer(State10, Answer0),
 %% '''
 %%
 %% ==== A rant about transmit power ====
@@ -112,6 +112,12 @@
     datarate_config/0,
     handle/0
 ]).
+
+-ifdef(EUNIT).
+-export([
+    old_new/1
+]).
+-endif.
 
 -type datarate_config() :: {lorawan_utils:spreading(), lorawan_utils:bandwidth()}
 %% A tuple of `{SpreadingFactor, Bandwidth}'.
@@ -226,7 +232,7 @@
     %% is essentially an index into a table. It is probably safe to
     %% remove this and assume 0, but let's track it for completeness
     %% sake for the time being.
-    min_datarate :: pos_integer(),
+    min_datarate :: integer(),
     %% Spreading factor for corresponding `min_datarate'.
     %%
     %% Q: Why would a `max_spreading' correspond to `min_datarate'?
@@ -280,6 +286,7 @@
 %% Public API
 %% ==================================================================
 
+-ifdef(EUNIT).
 %% ------------------------------------------------------------------
 %% @doc Returns a new ADR handle with sane defaults suitable for use
 %%      in the specified region.
@@ -288,8 +295,8 @@
 %% behavior.
 %% @end
 %% ------------------------------------------------------------------
--spec new(Region :: atom()) -> handle().
-new(Region) ->
+-spec old_new(Region :: atom()) -> handle().
+old_new(Region) ->
     %% Filter gotthardp's table down to only 125kHz uplink DataRates.
     FilterMapFn = fun
         ({_, _, down}) ->
@@ -299,11 +306,11 @@ new(Region) ->
         (_) ->
             false
     end,
-    Datarates = lists:filtermap(FilterMapFn, lorawan_mac_region:datars(Region)),
+    Datarates = lists:filtermap(FilterMapFn, test_region:datars(Region)),
     %% min-max refer to #device.min_datarate docs
     [{MinDataRate, {MaxSpreading, _}} | _] = Datarates,
     {MaxDataRate, {MinSpreading, _}} = lists:last(Datarates),
-    TxPowers = lorawan_mac_region:uplink_power_table(Region),
+    TxPowers = test_region:uplink_power_table(Region),
     [{MaxTxPowerIdx, MaxTxPowerDBm} | _] = TxPowers,
     {MinTxPowerIdx, MinTxPowerDBm} = lists:last(TxPowers),
     #device{
@@ -323,6 +330,106 @@ new(Region) ->
         min_txpower_idx = MinTxPowerIdx,
         min_txpower_dbm = MinTxPowerDBm
     }.
+-endif.
+
+%-spec new(Region :: atom()) -> handle().
+new(Region) ->
+    %% Filter gotthardp's table down to only 125kHz uplink DataRates.
+    {MinSF, MaxSF} = adr_sf_range(Region),
+    {MinDataRate, MaxDataRate} = adr_datarate_range(Region),
+    Datarates = adr_datarates(Region),
+    Plan = lora_plan:region_to_plan(Region),
+    TxPowers = lora_plan:tx_power_table(Plan),
+    [{MaxTxPowerIdx, MaxTxPowerDBm} | _] = TxPowers,
+    {MinTxPowerIdx, MinTxPowerDBm} = lists:last(TxPowers),
+    #device{
+        region = Region,
+        offer_history = [],
+        packet_history = [],
+        pending_adjustments = [],
+        accepted_adjustments = [],
+        datarates = Datarates,
+        txpowers = TxPowers,
+        min_datarate = MinDataRate,
+        max_spreading = MaxSF,
+        max_datarate = MaxDataRate,
+        min_spreading = MinSF,
+        max_txpower_idx = MaxTxPowerIdx,
+        max_txpower_dbm = MaxTxPowerDBm,
+        min_txpower_idx = MinTxPowerIdx,
+        min_txpower_dbm = MinTxPowerDBm
+    }.
+
+adr_datarates(Region) ->
+    case Region of
+        'US915' ->
+            [{0, {10, 125}}, {1, {9, 125}}, {2, {8, 125}}, {3, {7, 125}}];
+        'EU868' ->
+            [
+                {0, {12, 125}},
+                {1, {11, 125}},
+                {2, {10, 125}},
+                {3, {9, 125}},
+                {4, {8, 125}},
+                {5, {7, 125}}
+            ];
+        'AU915' ->
+            [
+                {0, {12, 125}},
+                {1, {11, 125}},
+                {2, {10, 125}},
+                {3, {9, 125}},
+                {4, {8, 125}},
+                {5, {7, 125}}
+            ];
+        'CN470' ->
+            [
+                {0, {12, 125}},
+                {1, {11, 125}},
+                {2, {10, 125}},
+                {3, {9, 125}},
+                {4, {8, 125}},
+                {5, {7, 125}}
+            ];
+        'AS923' ->
+            [
+                {0, {12, 125}},
+                {1, {11, 125}},
+                {2, {10, 125}},
+                {3, {9, 125}},
+                {4, {8, 125}},
+                {5, {7, 125}}
+            ];
+        _ ->
+            [
+                {0, {12, 125}},
+                {1, {11, 125}},
+                {2, {10, 125}},
+                {3, {9, 125}},
+                {4, {8, 125}},
+                {5, {7, 125}}
+            ]
+    end.
+
+adr_sf_range(Region) ->
+    case Region of
+        'US915' -> {7, 10};
+        'EU868' -> {7, 12};
+        'AU915' -> {7, 12};
+        'CN470' -> {7, 12};
+        'AS923' -> {7, 12};
+        _ -> {7, 12}
+    end.
+
+adr_datarate_range(Region) ->
+    case Region of
+        'US915' -> {0, 3};
+        'EU868' -> {0, 5};
+        'AU915' -> {0, 5};
+        'CN470' -> {0, 5};
+        'AS923' -> {0, 5};
+        _ -> {0, 5}
+    end.
 
 %% ------------------------------------------------------------------
 %% @doc Returns a new ADR handle for the specified region.
@@ -556,13 +663,15 @@ track_packet(
         [] -> ok;
         _ -> lager:info("device turned off ADR, clearing history")
     end,
-    {Device#device{
+    {
+        Device#device{
             packet_history = [],
             offer_history = [],
             pending_adjustments = [],
             accepted_adjustments = []
         },
-        hold}.
+        hold
+    }.
 
 %% ------------------------------------------------------------------
 %% @doc Returns this device's minimum (slowest) DataRate index[1].
@@ -883,6 +992,20 @@ count_and_prune_offers_for_hash(
 
 -include_lib("eunit/include/eunit.hrl").
 
+plans() ->
+    ['IN865', 'KR920', 'US915', 'EU868', 'AU915', 'CN470', 'AS923'].
+
+validate_new(Region) ->
+    io:format("Region = ~w~n", [Region]),
+    State0 = new(Region),
+    io:format("State0 = ~w~n", [State0]),
+    State1 = old_new(Region),
+    io:format("State1 = ~w~n", [State1]),
+    ?assertEqual(State0, State1).
+
+plans_test() ->
+    [validate_new(X) || X <- plans()].
+
 device_history(#device{packet_history = History}) ->
     History.
 
@@ -893,7 +1016,7 @@ device_offers_len(Device) ->
     length(Device#device.offer_history).
 
 spread_and_bandwidth(State, DataRate) ->
-    {DataRate, {Spread, Bandwidth}} = lorawan_adr:datarate_entry(
+    {DataRate, {Spread, Bandwidth}} = lora_adr:datarate_entry(
         State,
         DataRate
     ),
@@ -974,15 +1097,16 @@ gen_startend_range(Start, Step, End) ->
     Length = round((End - Start) / Step),
     [Start + (Step * X) || X <- lists:seq(0, Length)].
 
-adr_harness_test_() ->
-    DataRate0 = 0,
+adr_harness_test() ->
+    _DataRate0 = 0,
     State0 = new('US915'),
-    [
-        ?_test(begin
-            valid_exercise(State0, DataRate0, 22, 7.0, X, 3, 1)
-        end)
-        || X <- gen_startend_range(-120.0, 0.1, 0.0)
-    ].
+    State0.
+% [
+%     ?_test(begin
+%         valid_exercise(State0, DataRate0, 22, 7.0, X, 3, 1)
+%     end)
+%  || X <- gen_startend_range(-120.0, 0.1, 0.0)
+% ].
 
 adr_exercise_test_() ->
     %% DataRate 0 in US915 regional parameters.
@@ -1064,85 +1188,85 @@ adr_exercise_test_() ->
             ?_test(begin
                 valid_exercise(StateX, 0, 22, -20.0, -120.0, 0, 0)
             end)
-            || StateX <- [new('US915'), new('EU868'), new('CN470'), new('AS923'), new('AU915')]
+         || StateX <- [new('US915'), new('EU868'), new('CN470'), new('AS923'), new('AU915')]
         ],
         [
             ?_test(begin
                 valid_exercise(State0, 0, X, -20.0, -120.0, 0, 0)
             end)
-            || X <- lists:seq(1, 200)
+         || X <- lists:seq(1, 200)
         ],
         [
             ?_test(begin
                 valid_exercise(State0, DataRate0, 22, X, -120.0, 0, 0)
             end)
-            || X <- gen_startend_range(-20.0, 0.1, -2.5)
+         || X <- gen_startend_range(-20.0, 0.1, -2.5)
         ],
         [
             ?_test(begin
                 valid_exercise(State0, DataRate0, 22, X, -120.0, 1, 0)
             end)
-            || X <- gen_startend_range(-1.0, 0.1, 0.9)
+         || X <- gen_startend_range(-1.0, 0.1, 0.9)
         ],
         [
             ?_test(begin
                 valid_exercise(State0, DataRate0, 22, X, -120.0, 2, 0)
             end)
-            || X <- gen_startend_range(1.0, 0.1, 3.9)
+         || X <- gen_startend_range(1.0, 0.1, 3.9)
         ],
         [
             ?_test(begin
                 valid_exercise(State0, DataRate0, 22, X, -120.0, 3, 0)
             end)
-            || X <- gen_startend_range(4.0, 0.1, 6.9)
+         || X <- gen_startend_range(4.0, 0.1, 6.9)
         ],
         [
             ?_test(begin
                 valid_exercise(State0, DataRate0, 22, X, -120.0, 3, 1)
             end)
-            || X <- gen_startend_range(7.0, 0.1, 9.9)
+         || X <- gen_startend_range(7.0, 0.1, 9.9)
         ],
         [
             ?_test(begin
                 valid_exercise(State0, DataRate0, 22, X, -120.0, 3, 3)
             end)
-            || X <- gen_startend_range(10.0, 0.1, 12.9)
+         || X <- gen_startend_range(10.0, 0.1, 12.9)
         ],
         [
             ?_test(begin
                 valid_exercise(State0, DataRate0, 22, X, -120.0, 3, 4)
             end)
-            || X <- gen_startend_range(13.0, 0.1, 15.9)
+         || X <- gen_startend_range(13.0, 0.1, 15.9)
         ],
         [
             ?_test(begin
                 valid_exercise(State0, DataRate0, 22, X, -120.0, 3, 6)
             end)
-            || X <- gen_startend_range(16.0, 0.1, 18.9)
+         || X <- gen_startend_range(16.0, 0.1, 18.9)
         ],
         [
             ?_test(begin
                 valid_exercise(State0, DataRate0, 22, X, -120.0, 3, 7)
             end)
-            || X <- gen_startend_range(19.0, 0.1, 21.9)
+         || X <- gen_startend_range(19.0, 0.1, 21.9)
         ],
         [
             ?_test(begin
                 valid_exercise(State0, DataRate0, 22, X, -120.0, 3, 9)
             end)
-            || X <- gen_startend_range(22.0, 0.1, 24.9)
+         || X <- gen_startend_range(22.0, 0.1, 24.9)
         ],
         [
             ?_test(begin
                 valid_exercise(State0, DataRate0, 22, 6.9, X, 3, 0)
             end)
-            || X <- gen_startend_range(-120.0, 0.1, 0.0)
+         || X <- gen_startend_range(-120.0, 0.1, 0.0)
         ],
         [
             ?_test(begin
                 valid_exercise(State0, DataRate0, 22, 7.0, X, 3, 1)
             end)
-            || X <- gen_startend_range(-120.0, 0.1, 0.0)
+         || X <- gen_startend_range(-120.0, 0.1, 0.0)
         ]
     ],
 
@@ -1230,12 +1354,12 @@ adr_happy_path(State0, DRConfig) ->
         fun
             (N, {ADRn, _Action}) ->
                 %% ?assertEqual(hold, Action),
-                lorawan_adr:track_packet(ADRn, Packet0#adr_packet{
+                lora_adr:track_packet(ADRn, Packet0#adr_packet{
                     packet_hash = <<N>>
                 });
             (N, State2) ->
                 io:format("State0 ~w~n", [N]),
-                lorawan_adr:track_packet(State2, Packet0#adr_packet{
+                lora_adr:track_packet(State2, Packet0#adr_packet{
                     packet_hash = <<N>>
                 })
         end,
@@ -1263,35 +1387,35 @@ valid_happy_path(State0, DRConfig) ->
 adr_happy_path_test_() ->
     [
         ?_test(begin
-            valid_happy_path(lorawan_adr:new('US915'), {10, 125})
+            valid_happy_path(lora_adr:new('US915'), {10, 125})
         end),
         ?_test(begin
-            valid_happy_path(lorawan_adr:new('US915'), {9, 125})
+            valid_happy_path(lora_adr:new('US915'), {9, 125})
         end),
         ?_test(begin
-            valid_happy_path(lorawan_adr:new('US915'), {8, 125})
+            valid_happy_path(lora_adr:new('US915'), {8, 125})
         end),
         ?_test(begin
-            valid_happy_path(lorawan_adr:new('US915'), {7, 125})
+            valid_happy_path(lora_adr:new('US915'), {7, 125})
         end),
 
         ?_test(begin
-            valid_happy_path(lorawan_adr:new('EU868'), {12, 125})
+            valid_happy_path(lora_adr:new('EU868'), {12, 125})
         end),
         ?_test(begin
-            valid_happy_path(lorawan_adr:new('EU868'), {11, 125})
+            valid_happy_path(lora_adr:new('EU868'), {11, 125})
         end),
         ?_test(begin
-            valid_happy_path(lorawan_adr:new('EU868'), {10, 125})
+            valid_happy_path(lora_adr:new('EU868'), {10, 125})
         end),
         ?_test(begin
-            valid_happy_path(lorawan_adr:new('EU868'), {9, 125})
+            valid_happy_path(lora_adr:new('EU868'), {9, 125})
         end),
         ?_test(begin
-            valid_happy_path(lorawan_adr:new('EU868'), {8, 125})
+            valid_happy_path(lora_adr:new('EU868'), {8, 125})
         end),
         ?_test(begin
-            valid_happy_path(lorawan_adr:new('EU868'), {7, 125})
+            valid_happy_path(lora_adr:new('EU868'), {7, 125})
         end)
     ].
 
@@ -1304,10 +1428,10 @@ adr_ack_req_test() ->
         datarate_config = {7, 125},
         packet_hash = <<0>>
     },
-    State0 = lorawan_adr:new('US915'),
+    State0 = lora_adr:new('US915'),
     %% We must always respond with new uplink parameters when a device
     %% requests ADR acknowledgement, even on first packet.
-    {State1, {_AdjustedDataRate, _AdjustedPowerIdx}} = lorawan_adr:track_packet(
+    {State1, {_AdjustedDataRate, _AdjustedPowerIdx}} = lora_adr:track_packet(
         State0,
         Packet0
     ),
@@ -1336,18 +1460,18 @@ adr_does_adr_test() ->
         fun
             (N, {ADRn, Action}) ->
                 ?assertEqual(hold, Action),
-                lorawan_adr:track_packet(ADRn, Packet0#adr_packet{
+                lora_adr:track_packet(ADRn, Packet0#adr_packet{
                     packet_hash = <<N>>
                 });
             (N, State0) ->
-                lorawan_adr:track_packet(State0, Packet0#adr_packet{
+                lora_adr:track_packet(State0, Packet0#adr_packet{
                     packet_hash = <<N>>
                 })
         end,
-        lorawan_adr:new('US915'),
+        lora_adr:new('US915'),
         lists:seq(1, ?DEFAULT_ADR_HISTORY_LEN)
     ),
-    {AdjustedDataRate, {AdjustedSpreading, AdjustedBandwidth}} = lorawan_adr:datarate_entry(
+    {AdjustedDataRate, {AdjustedSpreading, AdjustedBandwidth}} = lora_adr:datarate_entry(
         State1,
         AdjustedDataRate
     ),
@@ -1365,7 +1489,7 @@ adr_does_adr_test() ->
         datarate_ack = true,
         power_ack = true
     },
-    State2 = lorawan_adr:track_adr_answer(State1, Answer0),
+    State2 = lora_adr:track_adr_answer(State1, Answer0),
     ?assertEqual([], State2#device.pending_adjustments),
 
     Answer1 = #adr_answer{
@@ -1373,39 +1497,39 @@ adr_does_adr_test() ->
         datarate_ack = true,
         power_ack = true
     },
-    State3 = lorawan_adr:track_adr_answer(State1, Answer1),
+    State3 = lora_adr:track_adr_answer(State1, Answer1),
     ?assertEqual([], State3#device.pending_adjustments),
 
-    State4 = lorawan_adr:track_adr_answer(State2, Answer1),
+    State4 = lora_adr:track_adr_answer(State2, Answer1),
     ?assertEqual([], State4#device.pending_adjustments),
 
     fin.
 
 adr_new_test() ->
-    State0 = lorawan_adr:new('US915'),
+    State0 = lora_adr:new('US915'),
 
     %% See regional parameters document for the reference values
     %% asserted against below.
 
-    MinDataRate = lorawan_adr:min_datarate(State0),
-    MinDataRateEntryFromIndex = lorawan_adr:datarate_entry(State0, MinDataRate),
+    MinDataRate = lora_adr:min_datarate(State0),
+    MinDataRateEntryFromIndex = lora_adr:datarate_entry(State0, MinDataRate),
     ?assertEqual({0, {10, 125}}, MinDataRateEntryFromIndex),
-    MinDataRateEntryFromConfig = lorawan_adr:datarate_entry(State0, {10, 125}),
+    MinDataRateEntryFromConfig = lora_adr:datarate_entry(State0, {10, 125}),
     ?assertEqual({0, {10, 125}}, MinDataRateEntryFromConfig),
 
-    MaxDataRate = lorawan_adr:max_datarate(State0),
-    MaxDataRateEntryFromIndex = lorawan_adr:datarate_entry(State0, MaxDataRate),
+    MaxDataRate = lora_adr:max_datarate(State0),
+    MaxDataRateEntryFromIndex = lora_adr:datarate_entry(State0, MaxDataRate),
     ?assertEqual({3, {7, 125}}, MaxDataRateEntryFromIndex),
-    MaxDataRateEntryFromConfig = lorawan_adr:datarate_entry(State0, {7, 125}),
+    MaxDataRateEntryFromConfig = lora_adr:datarate_entry(State0, {7, 125}),
     ?assertEqual({3, {7, 125}}, MaxDataRateEntryFromConfig),
 
-    InvalidDataRateConfig = lorawan_adr:datarate_entry(State0, MaxDataRate + 1),
+    InvalidDataRateConfig = lora_adr:datarate_entry(State0, MaxDataRate + 1),
     ?assertEqual(undefined, InvalidDataRateConfig),
 
     fin.
 
 adr_resists_denial_of_service_test() ->
-    State0 = lorawan_adr:new('US915'),
+    State0 = lora_adr:new('US915'),
     Answer0 = #adr_answer{
         channel_mask_ack = true,
         datarate_ack = true,
@@ -1414,7 +1538,7 @@ adr_resists_denial_of_service_test() ->
     %% This brand new state doesn't have any pending ADR
     %% requests. It should gracefully handle receiving a bogus ADR
     %% answer without crashing.
-    State1 = lorawan_adr:track_adr_answer(State0, Answer0),
+    State1 = lora_adr:track_adr_answer(State0, Answer0),
     ?assertEqual([], State1#device.accepted_adjustments),
 
     fin.
