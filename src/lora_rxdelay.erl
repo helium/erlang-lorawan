@@ -9,7 +9,7 @@
 %% - 6.2.6 Join-Accept frame, which includes RXDelay
 %% @end
 %%%-------------------------------------------------------------------
--module(lorawan_rxdelay).
+-module(lora_rxdelay).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
