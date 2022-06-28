@@ -123,7 +123,7 @@ adjust(DeviceState0, UplinkFOpts, FOpts0) ->
         end,
     {RxDelay, DeviceState1, FOpts1}.
 
--ifdef(TEST).
+-ifdef(EUNIT).
 -include_lib("eunit/include/eunit.hrl").
 
 %% TODO For example Common Tests using rx_delay, see test/router_SUITE.erl
