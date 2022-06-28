@@ -77,13 +77,13 @@ maybe_update(ApiSettings, DeviceState) ->
             DeviceState#{rx_delay_state => ?RX_DELAY_CHANGE}
     end.
 
--spec adjust_on_join(Device :: router_device:device()) -> DeviceState :: map().
-adjust_on_join(Device) ->
+-spec adjust_on_join(DeviceState0 :: map()) -> State :: map().
+adjust_on_join(DeviceState0) ->
     %% LoRaWAN Join-Accept implies `rx_timing_setup_ans` because
     %% `RXDelay` was in the Join-Accept.  A subsequent uplink implies
     %% that the device acknowledged the Join-Accept and thus, RXDelay.
-    {_, DeviceState, _} = adjust(Device, [rx_timing_setup_ans], []),
-    DeviceState.
+    {_, State, _} = adjust(DeviceState0, [rx_timing_setup_ans], []),
+    State.
 
 -spec adjust(DeviceState0 :: map(), UplinkFOpts :: list(), FOpts0 :: list()) ->
     {RxDelay :: non_neg_integer(), DeviceState1 :: map(), FOpts1 :: list()}.
@@ -117,7 +117,8 @@ adjust(DeviceState0, UplinkFOpts, FOpts0) ->
                 Map = #{rx_delay_actual => Requested, rx_delay_state => ?RX_DELAY_ESTABLISHED},
                 {Requested, maps:merge(DeviceState0, Map), FOpts0};
             {unknown_state, _} ->
-                lager:error("rx_delay state=unknown device-id=~p", [router_device:id(DeviceState0)]),
+                %% TODO extract a meaningful id from device for logging
+                lager:error("rx_delay state=unknown device-id=~p", [DeviceState0]),
                 {Actual, DeviceState0, FOpts0}
         end,
     {RxDelay, DeviceState1, FOpts1}.
@@ -142,7 +143,7 @@ rx_delay_state_test() ->
     %% Bootstrapping state
     ?assertEqual(
         #{rx_delay_state => ?RX_DELAY_ESTABLISHED},
-       bootstrap(DeviceState)
+        bootstrap(DeviceState)
     ),
     ApiSettings = maps:merge(DeviceState, #{rx_delay => 5}),
     ?assertEqual(
@@ -156,17 +157,17 @@ rx_delay_state_test() ->
         #{rx_delay_state => ?RX_DELAY_ESTABLISHED, rx_delay => 0},
         bootstrap(ApiSettings0)
     ),
-    Device0 = router_device:metadata(
+    DeviceState0 = maps:merge(
         #{rx_delay_state => ?RX_DELAY_ESTABLISHED, rx_delay => 0},
-        Device
+        DeviceState
     ),
     ?assertEqual(
         #{rx_delay_state => ?RX_DELAY_ESTABLISHED, rx_delay => 0},
-        adjust_on_join(Device0)
+        adjust_on_join(DeviceState0)
     ),
     ?assertEqual(
-        #{rx_delay_state => ?RX_DELAY_ESTABLISHED},
-        maybe_update(ApiSettings0, Device)
+        #{rx_delay_state => ?RX_DELAY_ESTABLISHED, rx_delay => 0},
+        maybe_update(ApiSettings0, DeviceState0)
     ),
 
     %% No net change when using non-default value for RxDelay.
@@ -177,19 +178,19 @@ rx_delay_state_test() ->
     ApiSettings1 = maps:merge(DeviceState, #{rx_delay => 1}),
     ?assertEqual(
         #{rx_delay_state => ?RX_DELAY_ESTABLISHED, rx_delay_actual => 1},
-        maybe_update(ApiSettings1, Device1)
+        maybe_update(ApiSettings1, DeviceState1)
     ),
 
     %% Exercise default case to recover state
-    ?assertEqual({0, #{}, []}, adjust(Device, [], [])),
+    ?assertEqual({0, #{}, []}, adjust(DeviceState, [], [])),
     ?assertEqual(
         {1, #{rx_delay_state => ?RX_DELAY_ESTABLISHED, rx_delay_actual => 1}, []},
-        adjust(Device1, [], [])
+        adjust(DeviceState1, [], [])
     ),
     %% No net change from a redundant ACK from device:
     ?assertEqual(
         {1, #{rx_delay_state => ?RX_DELAY_ESTABLISHED, rx_delay_actual => 1}, []},
-        adjust(Device1, [rx_timing_setup_ans], [])
+        adjust(DeviceState1, [rx_timing_setup_ans], [])
     ),
 
     %% Change delay value
@@ -200,7 +201,7 @@ rx_delay_state_test() ->
         maybe_update(ApiSettings2, DeviceState1)
     ),
 
-    Device2 = maps:merge(
+    DeviceState2 = maps:merge(
         DeviceState,
         #{
             rx_delay_state => ?RX_DELAY_CHANGE,
@@ -208,24 +209,24 @@ rx_delay_state_test() ->
             rx_delay => 3
         }
     ),
-    DeviceState2 = #{
+    Metadata2 = #{
         rx_delay_state => ?RX_DELAY_REQUESTED,
         rx_delay_actual => 2,
         rx_delay => 3
     },
     ?assertEqual(
-        {2, DeviceState2, [{rx_timing_setup_req, 3}]},
-        adjust(Device2, [], [])
+        {2, Metadata2, [{rx_timing_setup_req, 3}]},
+        adjust(DeviceState2, [], [])
     ),
-    DeviceState3 = maps:merge(DeviceState, DeviceState2),
-    State3 = #{
+    DeviceState3 = maps:merge(Metadata2, DeviceState),
+    Metadata3 = #{
         rx_delay_state => ?RX_DELAY_ESTABLISHED,
         rx_delay_actual => 3,
         rx_delay => 3
     },
     ?assertEqual(
-        {3, DeviceState3, []},
-        adjust(Device3, [rx_timing_setup_ans], [])
+        {3, Metadata3, []},
+        adjust(DeviceState3, [rx_timing_setup_ans], [])
     ),
     ok.
 
