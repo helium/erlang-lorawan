@@ -211,26 +211,36 @@ datarate_to_tuple(DataRate) ->
 
 -spec up_to_down_datarate(#channel_plan{}, integer(), integer()) -> integer().
 up_to_down_datarate(Plan, Index, Offset) ->
-    {MinOffset, MaxOffset} = Plan#channel_plan.rx1_offset,
-    % io:format("up_to_down_datarate - Index=~w Offset=~w MinOffset=~w MaxOffset=~w~n",
-    %    [Index, Offset, MinOffset, MaxOffset]),
-    TheOffset =
-        case Offset < MinOffset of
-            true ->
-                MinOffset;
-            false ->
-                case Offset > MaxOffset of
-                    true ->
-                        MaxOffset;
-                    false ->
-                        Offset
-                end
-        end,
     Region = Plan#channel_plan.base_region,
-    OffsetList = dr_offset_list(Region, Index),
-    DownIndex = lists:nth(TheOffset + 1, OffsetList),
-    % io:format("up_to_down_datarate - DownIndex=~w~n", [DownIndex]),
-    DownIndex.
+    try
+        {MinOffset, MaxOffset} = Plan#channel_plan.rx1_offset,
+        % io:format("up_to_down_datarate - Index=~w Offset=~w MinOffset=~w MaxOffset=~w~n",
+        %    [Index, Offset, MinOffset, MaxOffset]),
+        TheOffset =
+            case Offset < MinOffset of
+                true ->
+                    MinOffset;
+                false ->
+                    case Offset > MaxOffset of
+                        true ->
+                            MaxOffset;
+                        false ->
+                            Offset
+                    end
+            end,
+        OffsetList = dr_offset_list(Region, Index),
+        DownIndex = lists:nth(TheOffset + 1, OffsetList),
+        % io:format("up_to_down_datarate - DownIndex=~w~n", [DownIndex]),
+        DownIndex
+    catch
+        _ ->
+            lager:error(
+                "lora_plan=up_to_down_datarate bad index value region=~p index=~p offset=~p~n", [
+                    Region, Index, Offset
+                ]
+            ),
+            Index
+    end.
 
 dr_offset_list(Region, Index) when Region == 'US915' ->
     % io:format("dr_offset_list - Region=~w Index=~w~n", [Region, Index]),
