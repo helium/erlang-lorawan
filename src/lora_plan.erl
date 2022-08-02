@@ -233,9 +233,9 @@ up_to_down_datarate(Plan, Index, Offset) ->
         % io:format("up_to_down_datarate - DownIndex=~w~n", [DownIndex]),
         DownIndex
     catch
-        _ ->
+        _Class:_Reason:_Stacktrace ->
             lager:error(
-                "lora_plan=up_to_down_datarate bad index value region=~p index=~p offset=~p~n", [
+                "lora_plan=up_to_down_datarate bad index value Region=~p Index=~p Offset=~p~n", [
                     Region, Index, Offset
                 ]
             ),
