@@ -367,6 +367,10 @@ exercise_snr(Plan) when Plan#channel_plan.base_region == 'AU915' ->
     [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4]];
 exercise_snr(Plan) when Plan#channel_plan.base_region == 'CN470' ->
     [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4, 5]];
+exercise_snr(Plan) when Plan#channel_plan.base_region == 'IN865' ->
+    [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4, 5]];
+exercise_snr(Plan) when Plan#channel_plan.base_region == 'KR920' ->
+    [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4, 5]];
 exercise_snr(Plan) ->
     [validate_snr(Plan, X) || X <- [0, 1, 2, 3, 4, 5, 6]].
 

@@ -233,13 +233,16 @@ up_to_down_datarate(Plan, Index, Offset) ->
         % io:format("up_to_down_datarate - DownIndex=~w~n", [DownIndex]),
         DownIndex
     catch
+        % Datarate Index is unknown or RFU
+        % Respond with RX2 default datarate
         _Class:_Reason:_Stacktrace ->
             lager:error(
-                "lora_plan=up_to_down_datarate bad index value Region=~p Index=~p Offset=~p~n", [
+                "lora_plan=up_to_down_datarate unknown datarate index Region=~p Index=~p Offset=~p~n",
+                [
                     Region, Index, Offset
                 ]
             ),
-            Index
+            Plan#channel_plan.rx2_datarate
     end.
 
 dr_offset_list(Region, Index) when Region == 'US915' ->
@@ -249,7 +252,9 @@ dr_offset_list(Region, Index) when Region == 'US915' ->
         1 -> [11, 10, 9, 8];
         2 -> [12, 11, 10, 9];
         3 -> [13, 12, 11, 10];
-        4 -> [13, 13, 12, 11]
+        4 -> [13, 13, 12, 11];
+        5 -> [10, 9, 8, 8];
+        6 -> [11, 10, 9, 8]
     end;
 dr_offset_list(Region, Index) when Region == 'AU915' ->
     case Index of
@@ -259,7 +264,8 @@ dr_offset_list(Region, Index) when Region == 'AU915' ->
         3 -> [11, 10, 9, 8, 8, 8];
         4 -> [12, 11, 10, 9, 8, 8];
         5 -> [13, 12, 11, 10, 9, 8];
-        6 -> [13, 13, 12, 11, 10, 9]
+        6 -> [13, 13, 12, 11, 10, 9];
+        7 -> [9, 8, 8, 8, 8, 8]
     end;
 dr_offset_list(Region, Index) when Region == 'CN470' ->
     case Index of
@@ -269,6 +275,47 @@ dr_offset_list(Region, Index) when Region == 'CN470' ->
         3 -> [3, 2, 1, 0, 0, 0];
         4 -> [4, 3, 2, 1, 0, 0];
         5 -> [5, 4, 3, 2, 1, 0]
+    end;
+dr_offset_list(Region, Index) when Region == 'KR920' ->
+    case Index of
+        0 -> [0, 0, 0, 0, 0, 0];
+        1 -> [1, 0, 0, 0, 0, 0];
+        2 -> [2, 1, 0, 0, 0, 0];
+        3 -> [3, 2, 1, 0, 0, 0];
+        4 -> [4, 3, 2, 1, 0, 0];
+        5 -> [5, 4, 3, 2, 1, 0]
+    end;
+dr_offset_list(Region, Index) when Region == 'EU433' ->
+    case Index of
+        0 -> [0, 0, 0, 0, 0, 0];
+        1 -> [1, 0, 0, 0, 0, 0];
+        2 -> [2, 1, 0, 0, 0, 0];
+        3 -> [3, 2, 1, 0, 0, 0];
+        4 -> [4, 3, 2, 1, 0, 0];
+        5 -> [5, 4, 3, 2, 1, 0];
+        6 -> [6, 5, 4, 3, 2, 1];
+        7 -> [7, 6, 5, 4, 3, 2]
+    end;
+dr_offset_list(Region, Index) when Region == 'EU868' ->
+    case Index of
+        0 -> [0, 0, 0, 0, 0, 0, 1, 2];
+        1 -> [1, 0, 0, 0, 0, 0, 2, 3];
+        2 -> [2, 1, 0, 0, 0, 0, 3, 4];
+        3 -> [3, 2, 1, 0, 0, 0, 4, 5];
+        4 -> [4, 3, 2, 1, 0, 0, 5, 6];
+        5 -> [5, 4, 3, 2, 1, 0, 6, 7];
+        6 -> [6, 5, 4, 3, 2, 1, 7, 7];
+        7 -> [7, 6, 5, 4, 3, 2, 7, 7]
+    end;
+dr_offset_list(Region, Index) when Region == 'IN865' ->
+    case Index of
+        0 -> [0, 0, 0, 0, 0, 0, 1, 2];
+        1 -> [1, 0, 0, 0, 0, 0, 2, 3];
+        2 -> [2, 1, 0, 0, 0, 0, 3, 4];
+        3 -> [3, 2, 1, 0, 0, 0, 4, 5];
+        4 -> [4, 3, 2, 1, 0, 0, 5, 5];
+        5 -> [5, 4, 3, 2, 1, 0, 5, 7];
+        7 -> [7, 6, 5, 4, 3, 2, 7, 7]
     end;
 dr_offset_list(_Region, Index) ->
     case Index of
