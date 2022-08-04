@@ -101,6 +101,11 @@ valid_region(Region) ->
 %% DataRate Functions
 %% ------------------------------------------------------------------
 
+% Note - APIs are constructed so that in general datarate index, atom and binary
+% can all be considered synonmyous.  For this reason symbol names are often simplified
+% to just daterate, but the underlying type may be an atom, integer or binary depending
+% on what is most convenient.  The LoRaWAN spec similarly treats the term this way.
+
 -spec datarate_to_atom(#channel_plan{}, data_rate()) -> atom().
 datarate_to_atom(Plan, Index) when is_integer(Index) ->
     List = (Plan#channel_plan.data_rates),
