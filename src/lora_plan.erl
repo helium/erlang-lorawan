@@ -39,6 +39,7 @@
     plan_eu868_A/0,
     plan_eu433_A/0,
     plan_us915_SB2/0,
+    plan_au915_SB1/0,
     plan_au915_SB2/0,
     plan_au915_DP/0,
     plan_au915_SB5/0,
@@ -62,8 +63,10 @@ region_to_plan(Region) ->
         'EU868' -> plan_eu868_A();
         'EU433' -> plan_eu433_A();
         'US915' -> plan_us915_SB2();
-        'AU915' -> plan_au915_SB2();
+        'AU915' -> plan_au915_SB1();
         'AU915_DP' -> plan_au915_DP();
+        'AU915_SB1' -> plan_au915_SB1();
+        'AU915_SB2' -> plan_au915_SB2();
         'AU915_SB5' -> plan_au915_SB5();
         'CN470' -> plan_cn470_A();
         'KR920' -> plan_kr920_A();
@@ -869,6 +872,58 @@ plan_us915_SB2() ->
         tx_param_setup_allowed = false,
         max_eirp_db = 30,
         rx1_offset = {0, 3},
+        rx2_datarate = 8,
+        rx2_freq = 923.3,
+        beacon_freq = 923.3,
+        pingslot_freq = 923.3
+    },
+    Plan.
+
+plan_au915_SB1() ->
+    Plan = #channel_plan{
+        channel_plan_id = 5,
+        plan_name = 'AU915_SB1',
+        base_region = 'AU915',
+        dynamic_plan = false,
+        float_precision = 1,
+        min_freq = 915.0,
+        max_freq = 928.0,
+        %% AU915's subbank one set of channels
+        %% Channel 64 (fat channel) is 915.9 Mhz
+        u_channels = [915.2, 915.4, 915.6, 915.8, 916.0, 916.2, 916.4, 916.6, 915.9],
+        %% The eight AU915 downlink channels are hard-coded in the spec
+        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5, 923.3],
+        channel_count = 9,
+        bank_offset = 8,
+        join_channels = {0, 7},
+        data_rates = [
+            'SF12BW125',
+            'SF11BW125',
+            'SF10BW125',
+            'SF9BW125',
+            'SF8BW125',
+            'SF7BW125',
+            'SF8BW500',
+            'LRFHSS1BW1523',
+            'SF12BW500',
+            'SF11BW500',
+            'SF10BW500',
+            'SF9BW500',
+            'SF8BW500',
+            'SF7BW500'
+        ],
+        %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
+        tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
+        join_dr = {2, 5},
+        mask_dr = {0, 5},
+        mandatory_dr = {0, 6},
+        optional_dr = {7, 7},
+        max_duty_cycle = 1,
+        uplink_dwell_time = 400,
+        downlink_dwell_time = 400,
+        tx_param_setup_allowed = true,
+        max_eirp_db = 30,
+        rx1_offset = {0, 5},
         rx2_datarate = 8,
         rx2_freq = 923.3,
         beacon_freq = 923.3,
