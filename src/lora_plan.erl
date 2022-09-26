@@ -834,10 +834,10 @@ plan_us915_SB2() ->
         min_freq = 902.0,
         max_freq = 928.0,
         %% US915's subbank two set of channels
-        %% Channel 65 (fat channel) is 912.6 Mhz
-        u_channels = [903.9, 904.1, 904.3, 904.5, 904.7, 904.9, 905.1, 905.3, 912.6],
+        %% Channel 65 (fat channel) is 904.6 Mhz
+        u_channels = [903.9, 904.1, 904.3, 904.5, 904.7, 904.9, 905.1, 905.3, 904.6],
         %% The eight US915 downlink channels are hard-coded in the spec
-        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5, 926.9],
+        d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5, 923.9],
         channel_count = 9,
         bank_offset = 8,
         join_channels = {0, 7},
