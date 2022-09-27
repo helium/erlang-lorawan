@@ -30,7 +30,7 @@
 -type dr_id() :: integer().
 -type dr_atom() :: atom().
 -type power_offset() :: integer().
--type data_rate() :: atom() | binary() | integer().
+-type data_rate() :: atom() | binary() | string() | integer().
 
 -record(channel_plan, {
     %% ID from the Region spec
