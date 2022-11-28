@@ -261,7 +261,7 @@ dr_offset_list(Region, Index) when Region == 'US915' ->
         5 -> [10, 9, 8, 8];
         6 -> [11, 10, 9, 8]
     end;
-dr_offset_list(Region, Index) when Region == 'AU915' ->
+dr_offset_list(Region, Index) when Region == 'AU915'; Region == 'AU915_SB5'; Region == 'AU915_DP' ->
     case Index of
         0 -> [8, 8, 8, 8, 8, 8];
         1 -> [9, 8, 8, 8, 8, 8];

@@ -134,7 +134,7 @@ make_link_adr_req(Region, Tuple, FOptsOut) ->
 %% link_adr_req command
 
 make_link_adr_req_(Region, {0, <<"NoChange">>, Chans}, FOptsOut) when
-    Region == 'US915'; Region == 'AU915'
+    Region == 'US915'; Region == 'AU915'; Region == 'AU915_SB5'; Region == 'AU915_DP'
 ->
     case all_bit({0, 63}, Chans) of
         true ->
@@ -149,7 +149,7 @@ make_link_adr_req_(Region, {0, <<"NoChange">>, Chans}, FOptsOut) when
             ]
     end;
 make_link_adr_req_(Region, {TXPower, DataRate, Chans}, FOptsOut) when
-    Region == 'US915'; Region == 'AU915'
+    Region == 'US915'; Region == 'AU915'; Region == 'AU915_SB5'; Region == 'AU915_DP'
 ->
     Plan = lora_plan:region_to_plan(Region),
     DRIndex = lora_plan:datarate_to_index(Plan, DataRate),
@@ -252,6 +252,18 @@ build_link_adr_req(Plan, {TXPower0, DataRate}, FOptsOut) ->
             ];
         'AU915' ->
             Chans = [{8, 15}],
+            [
+                {link_adr_req, DRIndex1, TXPower1, 0, 7, 0}
+                | append_mask(Region, 3, {TXPower1, DataRate, Chans}, FOptsOut)
+            ];
+        'AU915_SB5' ->
+            Chans = [{40, 47}],
+            [
+                {link_adr_req, DRIndex1, TXPower1, 0, 7, 0}
+                | append_mask(Region, 3, {TXPower1, DataRate, Chans}, FOptsOut)
+            ];
+        'AU915_DP' ->
+            Chans = [{34, 41}],
             [
                 {link_adr_req, DRIndex1, TXPower1, 0, 7, 0}
                 | append_mask(Region, 3, {TXPower1, DataRate, Chans}, FOptsOut)
@@ -374,6 +386,8 @@ validate_req(Plan, TxPower, DataRate) ->
         case Region of
             'US915' -> [{8, 15}];
             'AU915' -> [{8, 15}];
+            'AU915_SB5' -> [{40, 47}];
+            'AU915_DP' -> [{34, 41}];
             _ -> [{0, 7}]
         end,
     M1 = make_link_adr_req(Region, {TxPower, DataRate, Chans}, []),
