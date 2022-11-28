@@ -403,7 +403,7 @@ exercise_req({Region, TxPower, DataRate}) ->
     validate_req(Plan, TxPower, DRBinary).
 
 exercise_req_test_() ->
-    Regions = ['EU868', 'US915', 'AU915', 'CN470', 'AS923_1', 'KR920', 'IN865', 'EU433'],
+    Regions = ['EU868', 'US915', 'AU915', 'AU915_SB5', 'CN470', 'AS923_1', 'AS923_1B', 'KR920', 'IN865', 'EU433'],
     Powers = [30, 20, 19, 16, 14, 12, 5, 2],
     DataRates = [0, 1, 2, 3],
     [exercise_req({Region, TX, DR}) || Region <- Regions, TX <- Powers, DR <- DataRates].
@@ -434,6 +434,11 @@ join_cf_list_test_() ->
             %% Active Channels 8-15
             <<0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1>>,
             join_cf_list('AU915')
+        ),
+        ?_assertEqual(
+            %% Active Channels 40-47
+            <<0, 0, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1>>,
+            join_cf_list('AU915_SB5')
         ),
         ?_assertEqual(
             %% Freqs 923.6, 923.8, 924.0, 924.2, 924.4
