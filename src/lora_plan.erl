@@ -64,6 +64,7 @@ region_to_plan(Region) ->
         'US915' -> plan_us915_SB2();
         'AU915' -> plan_au915_SB2();
         'AU915_DP' -> plan_au915_DP();
+        'AU915_SB2' -> plan_au915_SB2();
         'AU915_SB5' -> plan_au915_SB5();
         'CN470' -> plan_cn470_A();
         'KR920' -> plan_kr920_A();
@@ -84,6 +85,7 @@ valid_region(Region) ->
         'US915' -> true;
         'AU915' -> true;
         'AU915_DP' -> true;
+        'AU915_SB2' -> true;
         'AU915_SB5' -> true;
         'CN470' -> true;
         'KR920' -> true;
