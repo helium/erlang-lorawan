@@ -228,7 +228,7 @@ build_chmask0({Min, Max}, {A, B}) ->
     end.
 
 build_link_adr_req(Plan, {TXPower0, DataRate}, FOptsOut) ->
-    Region = Plan#channel_plan.base_region,
+    Region = Plan#channel_plan.plan_name,
     DRIndex0 = lora_plan:datarate_to_index(Plan, DataRate),
     {MinIndex, MaxIndex} = Plan#channel_plan.mask_dr,
     InRange = ((DRIndex0 >= MinIndex) and (DRIndex0 =< MaxIndex)),
@@ -369,7 +369,7 @@ bits_test_() ->
     ].
 
 validate_req(Plan, TxPower, DataRate) ->
-    Region = Plan#channel_plan.base_region,
+    Region = Plan#channel_plan.plan_name,
     Chans =
         case Region of
             'US915' -> [{8, 15}];
