@@ -375,6 +375,14 @@ rx2_rf(Region, #rxq{codr = Codr, time = Time}) when Region == 'AU915_SB5' ->
         datr = dr_to_datar(Region, window2_dr(Region)),
         codr = Codr,
         time = Time
+    };
+%% 923.3. MHz / DR8 (SF12, 500 kHz)
+rx2_rf(Region, #rxq{codr = Codr, time = Time}) when Region == 'AU915_DP' ->
+    #txq{
+        freq = 923.3,
+        datr = dr_to_datar(Region, window2_dr(Region)),
+        codr = Codr,
+        time = Time
     }.
 
 -spec window2_dr(atom()) -> dr().
@@ -382,6 +390,7 @@ window2_dr('US915') -> 8;
 window2_dr('AU915') -> 8;
 window2_dr('AU915_SB2') -> 8;
 window2_dr('AU915_SB5') -> 8;
+window2_dr('AU915_DP') -> 8;
 window2_dr('AS923') -> 2;
 window2_dr('CN470') -> 0;
 window2_dr('EU868') -> 0;
