@@ -1227,7 +1227,7 @@ set_channels_(Region, {0, <<"NoChange">>, Chans}, FOptsOut) when
             ]
     end;
 set_channels_(Region, {TXPower, DataRate, Chans}, FOptsOut) when
-    Region == 'US915'; Region == 'AU915' Region == 'AU915_SB2'; Region == 'AU915_SB5'; Region == 'AU915_DP'
+    Region == 'US915'; Region == 'AU915'; Region == 'AU915_SB2'; Region == 'AU915_SB5'; Region == 'AU915_DP'
 ->
     case all_bit({0, 63}, Chans) of
         true ->
