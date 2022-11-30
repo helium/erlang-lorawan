@@ -1090,11 +1090,11 @@ freq('EU433') ->
 freq('AU915') ->
     #{min => 915, max => 928};
 freq('AU915_SB2') ->
-    #{min => 915, max =
+    #{min => 915, max => 928};
 freq('AU915_SB5') ->
-    #{min => 915, max =
+    #{min => 915, max => 928};
 freq('AU915_DP') ->
-    #{min => 915, max =
+    #{min => 915, max => 928};
 freq('CN470') ->
     #{min => 470, max => 510};
 freq('AS923') ->
