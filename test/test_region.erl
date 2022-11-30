@@ -1212,7 +1212,7 @@ cf_list_for_channel_mask_table(ChMaskTable) ->
 %% link_adr_req command
 
 set_channels_(Region, {0, <<"NoChange">>, Chans}, FOptsOut) when
-    Region == 'US915'; Region == 'AU915'; Region = 'AU915_SB2'; Region = 'AU915_SB5'; Region = 'AU915_DP'
+    Region == 'US915'; Region == 'AU915'; Region == 'AU915_SB2'; Region == 'AU915_SB5'; Region == 'AU915_DP'
 ->
     case all_bit({0, 63}, Chans) of
         true ->
