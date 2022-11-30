@@ -64,6 +64,7 @@ region_to_plan(Region) ->
         'US915' -> plan_us915_SB2();
         'AU915' -> plan_au915_SB2();
         'AU915_DP' -> plan_au915_DP();
+        'AU915_SB2' -> plan_au915_SB2();
         'AU915_SB5' -> plan_au915_SB5();
         'CN470' -> plan_cn470_A();
         'KR920' -> plan_kr920_A();
@@ -84,6 +85,7 @@ valid_region(Region) ->
         'US915' -> true;
         'AU915' -> true;
         'AU915_DP' -> true;
+        'AU915_SB2' -> true;
         'AU915_SB5' -> true;
         'CN470' -> true;
         'KR920' -> true;
@@ -739,7 +741,7 @@ round_frequency(Value, Precision) ->
 plan_eu868_A() ->
     Plan = #channel_plan{
         channel_plan_id = 1,
-        plan_name = 'EU868_A',
+        plan_name = 'EU868',
         base_region = 'EU868',
         dynamic_plan = true,
         float_precision = 1,
@@ -932,7 +934,7 @@ plan_au915_DP() ->
     Plan = #channel_plan{
         channel_plan_id = 5,
         plan_name = 'AU915_DP',
-        base_region = 'AU915',
+        base_region = 'AU915_DP',
         dynamic_plan = false,
         float_precision = 1,
         min_freq = 915.0,
@@ -983,7 +985,7 @@ plan_au915_SB5() ->
     Plan = #channel_plan{
         channel_plan_id = 5,
         plan_name = 'AU915_SB5',
-        base_region = 'AU915',
+        base_region = 'AU915_SB5',
         dynamic_plan = false,
         float_precision = 1,
         min_freq = 915.0,
@@ -1170,7 +1172,7 @@ plan_as923_1B() ->
     Plan = #channel_plan{
         channel_plan_id = 7,
         plan_name = 'AS923_1B',
-        base_region = 'AS923_1',
+        base_region = 'AS923_1B',
         dynamic_plan = true,
         float_precision = 1,
         min_freq = 919.0,

@@ -252,6 +252,9 @@ max_payload_size(Region, DR) ->
         'AS923' -> maps:get(DR, ?AS923_PAYLOAD_SIZE_MAP, ?AS923_MAX_DOWNLINK_SIZE);
         'CN470' -> maps:get(DR, ?CN470_PAYLOAD_SIZE_MAP, ?CN470_MAX_DOWNLINK_SIZE);
         'AU915' -> maps:get(DR, ?AU915_PAYLOAD_SIZE_MAP, ?AU915_MAX_DOWNLINK_SIZE);
+        'AU915_SB2' -> maps:get(DR, ?AU915_PAYLOAD_SIZE_MAP, ?AU915_MAX_DOWNLINK_SIZE);
+        'AU915_SB5' -> maps:get(DR, ?AU915_PAYLOAD_SIZE_MAP, ?AU915_MAX_DOWNLINK_SIZE);
+        'AU915_DP' -> maps:get(DR, ?AU915_PAYLOAD_SIZE_MAP, ?AU915_MAX_DOWNLINK_SIZE);
         'EU868' -> maps:get(DR, ?EU868_PAYLOAD_SIZE_MAP, ?EU868_MAX_DOWNLINK_SIZE);
         'EU433' -> maps:get(DR, ?EU433_PAYLOAD_SIZE_MAP, ?EU433_MAX_DOWNLINK_SIZE);
         _ -> maps:get(DR, ?US915_PAYLOAD_SIZE_MAP, ?US915_MAX_DOWNLINK_SIZE)
@@ -284,6 +287,18 @@ rx1_rf(Region, #rxq{freq = Freq} = RxQ, Offset) when Region == 'US915' ->
     DownFreq = dch2f(Region, RxCh rem 8),
     tx_offset(Region, RxQ, DownFreq, Offset);
 rx1_rf(Region, #rxq{freq = Freq} = RxQ, Offset) when Region == 'AU915' ->
+    RxCh = f2uch(Freq, {9152, 2}, {9159, 16}),
+    DownFreq = dch2f(Region, RxCh rem 8),
+    tx_offset(Region, RxQ, DownFreq, Offset);
+rx1_rf(Region, #rxq{freq = Freq} = RxQ, Offset) when Region == 'AU915_SB2' ->
+    RxCh = f2uch(Freq, {9152, 2}, {9159, 16}),
+    DownFreq = dch2f(Region, RxCh rem 8),
+    tx_offset(Region, RxQ, DownFreq, Offset);
+rx1_rf(Region, #rxq{freq = Freq} = RxQ, Offset) when Region == 'AU915_SB5' ->
+    RxCh = f2uch(Freq, {9152, 2}, {9159, 16}),
+    DownFreq = dch2f(Region, RxCh rem 8),
+    tx_offset(Region, RxQ, DownFreq, Offset);
+rx1_rf(Region, #rxq{freq = Freq} = RxQ, Offset) when Region == 'AU915_DP' ->
     RxCh = f2uch(Freq, {9152, 2}, {9159, 16}),
     DownFreq = dch2f(Region, RxCh rem 8),
     tx_offset(Region, RxQ, DownFreq, Offset);
@@ -344,11 +359,38 @@ rx2_rf(Region, #rxq{codr = Codr, time = Time}) when Region == 'AU915' ->
         datr = dr_to_datar(Region, window2_dr(Region)),
         codr = Codr,
         time = Time
+    };
+%% 923.3. MHz / DR8 (SF12, 500 kHz)
+rx2_rf(Region, #rxq{codr = Codr, time = Time}) when Region == 'AU915_SB2' ->
+    #txq{
+        freq = 923.3,
+        datr = dr_to_datar(Region, window2_dr(Region)),
+        codr = Codr,
+        time = Time
+    };
+%% 923.3. MHz / DR8 (SF12, 500 kHz)
+rx2_rf(Region, #rxq{codr = Codr, time = Time}) when Region == 'AU915_SB5' ->
+    #txq{
+        freq = 923.3,
+        datr = dr_to_datar(Region, window2_dr(Region)),
+        codr = Codr,
+        time = Time
+    };
+%% 923.3. MHz / DR8 (SF12, 500 kHz)
+rx2_rf(Region, #rxq{codr = Codr, time = Time}) when Region == 'AU915_DP' ->
+    #txq{
+        freq = 923.3,
+        datr = dr_to_datar(Region, window2_dr(Region)),
+        codr = Codr,
+        time = Time
     }.
 
 -spec window2_dr(atom()) -> dr().
 window2_dr('US915') -> 8;
 window2_dr('AU915') -> 8;
+window2_dr('AU915_SB2') -> 8;
+window2_dr('AU915_SB5') -> 8;
+window2_dr('AU915_DP') -> 8;
 window2_dr('AS923') -> 2;
 window2_dr('CN470') -> 0;
 window2_dr('EU868') -> 0;
@@ -388,6 +430,12 @@ freq_to_chan(Region, Freq) ->
 f2uch('US915', Freq) ->
     f2uch(Freq, {9023, 2}, {9030, 16});
 f2uch('AU915', Freq) ->
+    f2uch(Freq, {9152, 2}, {9159, 16});
+f2uch('AU915_SB2', Freq) ->
+    f2uch(Freq, {9152, 2}, {9159, 16});
+f2uch('AU915_SB5', Freq) ->
+    f2uch(Freq, {9152, 2}, {9159, 16});
+f2uch('AU915_DP', Freq) ->
     f2uch(Freq, {9152, 2}, {9159, 16});
 f2uch('CN470', Freq) ->
     f2uch(Freq, {4073, 2});
@@ -452,6 +500,9 @@ f2uch(Freq, _, {Start2, Inc2}) when round(10 * Freq - Start2) rem Inc2 == 0 ->
 %% ------------------------------------------------------------------
 -spec f2dch(Region :: atom(), Freq :: freq_float()) -> channel().
 f2dch('AU915', Freq) -> fi2ch(Freq, {9233, 6});
+f2dch('AU915_SB2', Freq) -> fi2ch(Freq, {9233, 6});
+f2dch('AU915_SB5', Freq) -> fi2ch(Freq, {9233, 6});
+f2dch('AU915_DP', Freq) -> fi2ch(Freq, {9233, 6});
 f2dch('US915', Freq) -> fi2ch(Freq, {9233, 6});
 f2dch(Region, Freq) -> f2uch(Region, Freq).
 
@@ -484,6 +535,27 @@ uch2f('US915', Ch) ->
             ch2fi(Ch - 64, {9030, 16})
     end;
 uch2f('AU915', Ch) ->
+    case Ch < 64 of
+        true ->
+            ch2fi(Ch, {9152, 2});
+        false ->
+            ch2fi(Ch - 64, {9159, 16})
+    end;
+uch2f('AU915_SB2', Ch) ->
+    case Ch < 64 of
+        true ->
+            ch2fi(Ch, {9152, 2});
+        false ->
+            ch2fi(Ch - 64, {9159, 16})
+    end;
+uch2f('AU915_SB5', Ch) ->
+    case Ch < 64 of
+        true ->
+            ch2fi(Ch, {9152, 2});
+        false ->
+            ch2fi(Ch - 64, {9159, 16})
+    end;
+uch2f('AU915_DP', Ch) ->
     case Ch < 64 of
         true ->
             ch2fi(Ch, {9152, 2});
@@ -550,6 +622,12 @@ uch2f('CN470', Ch) ->
 dch2f('US915', Ch) ->
     ch2fi(Ch, {9233, 6});
 dch2f('AU915', Ch) ->
+    ch2fi(Ch, {9233, 6});
+dch2f('AU915_SB2', Ch) ->
+    ch2fi(Ch, {9233, 6});
+dch2f('AU915_SB5', Ch) ->
+    ch2fi(Ch, {9233, 6});
+dch2f('AU915_DP', Ch) ->
     ch2fi(Ch, {9233, 6});
 dch2f('EU433', Ch) ->
     ch2fi(Ch, {4331, 2});
@@ -682,6 +760,36 @@ drs_to_down(Region, DR) when Region == 'AU915' ->
         5 -> [13, 12, 11, 10, 9, 8];
         6 -> [13, 13, 12, 11, 10, 9]
     end;
+drs_to_down(Region, DR) when Region == 'AU915_SB2' ->
+    case DR of
+        0 -> [8, 8, 8, 8, 8, 8];
+        1 -> [9, 8, 8, 8, 8, 8];
+        2 -> [10, 9, 8, 8, 8, 8];
+        3 -> [11, 10, 9, 8, 8, 8];
+        4 -> [12, 11, 10, 9, 8, 8];
+        5 -> [13, 12, 11, 10, 9, 8];
+        6 -> [13, 13, 12, 11, 10, 9]
+    end;
+drs_to_down(Region, DR) when Region == 'AU915_SB5' ->
+    case DR of
+        0 -> [8, 8, 8, 8, 8, 8];
+        1 -> [9, 8, 8, 8, 8, 8];
+        2 -> [10, 9, 8, 8, 8, 8];
+        3 -> [11, 10, 9, 8, 8, 8];
+        4 -> [12, 11, 10, 9, 8, 8];
+        5 -> [13, 12, 11, 10, 9, 8];
+        6 -> [13, 13, 12, 11, 10, 9]
+    end;
+drs_to_down(Region, DR) when Region == 'AU915_DP' ->
+    case DR of
+        0 -> [8, 8, 8, 8, 8, 8];
+        1 -> [9, 8, 8, 8, 8, 8];
+        2 -> [10, 9, 8, 8, 8, 8];
+        3 -> [11, 10, 9, 8, 8, 8];
+        4 -> [12, 11, 10, 9, 8, 8];
+        5 -> [13, 12, 11, 10, 9, 8];
+        6 -> [13, 13, 12, 11, 10, 9]
+    end;
 drs_to_down(Region, DR) when Region == 'CN470' ->
     case DR of
         0 -> [0, 0, 0, 0, 0, 0];
@@ -715,6 +823,39 @@ datars_(Region) when Region == 'US915' ->
         | us_down_datars()
     ];
 datars_(Region) when Region == 'AU915' ->
+    [
+        {0, {12, 125}, up},
+        {1, {11, 125}, up},
+        {2, {10, 125}, up},
+        {3, {9, 125}, up},
+        {4, {8, 125}, up},
+        {5, {7, 125}, up},
+        {6, {8, 500}, up}
+        | us_down_datars()
+    ];
+datars_(Region) when Region == 'AU915_SB2' ->
+    [
+        {0, {12, 125}, up},
+        {1, {11, 125}, up},
+        {2, {10, 125}, up},
+        {3, {9, 125}, up},
+        {4, {8, 125}, up},
+        {5, {7, 125}, up},
+        {6, {8, 500}, up}
+        | us_down_datars()
+    ];
+datars_(Region) when Region == 'AU915_SB5' ->
+    [
+        {0, {12, 125}, up},
+        {1, {11, 125}, up},
+        {2, {10, 125}, up},
+        {3, {9, 125}, up},
+        {4, {8, 125}, up},
+        {5, {7, 125}, up},
+        {6, {8, 500}, up}
+        | us_down_datars()
+    ];
+datars_(Region) when Region == 'AU915_DP' ->
     [
         {0, {12, 125}, up},
         {1, {11, 125}, up},
@@ -855,6 +996,12 @@ uplink_power_table_('US915') ->
     ];
 uplink_power_table_('AU915') ->
     uplink_power_table_('US915');
+uplink_power_table_('AU915_SB2') ->
+    uplink_power_table_('US915');
+uplink_power_table_('AU915_SB5') ->
+    uplink_power_table_('US915');
+uplink_power_table_('AU915_DP') ->
+    uplink_power_table_('US915');
 uplink_power_table_('CN470') ->
     %% NOTE: CN470's power levels are relative to the devices max power;
     %%       they are dB, not dBm.
@@ -951,6 +1098,12 @@ freq('EU433') ->
     #{min => 433.175, max => 434.665, default => [433.175, 433.375, 433.575]};
 freq('AU915') ->
     #{min => 915, max => 928};
+freq('AU915_SB2') ->
+    #{min => 915, max => 928};
+freq('AU915_SB5') ->
+    #{min => 915, max => 928};
+freq('AU915_DP') ->
+    #{min => 915, max => 928};
 freq('CN470') ->
     #{min => 470, max => 510};
 freq('AS923') ->
@@ -969,7 +1122,7 @@ freq('IN865') ->
     #{min => 865, max => 867, default => [865.0625, 865.4025, 865.985]}.
 
 net_freqs(#network{region = Region, init_chans = Chans}) when
-    Region == 'US915'; Region == 'AU915'; Region == 'CN470'
+    Region == 'US915'; Region == 'AU915'; Region == 'AU915_SB2'; Region == 'AU915_SB5'; Region == 'AU915_DP'; Region == 'CN470'
 ->
     %% convert enabled channels to frequencies
     lists:map(
@@ -1068,7 +1221,7 @@ cf_list_for_channel_mask_table(ChMaskTable) ->
 %% link_adr_req command
 
 set_channels_(Region, {0, <<"NoChange">>, Chans}, FOptsOut) when
-    Region == 'US915'; Region == 'AU915'
+    Region == 'US915'; Region == 'AU915'; Region == 'AU915_SB2'; Region == 'AU915_SB5'; Region == 'AU915_DP'
 ->
     case all_bit({0, 63}, Chans) of
         true ->
@@ -1083,7 +1236,7 @@ set_channels_(Region, {0, <<"NoChange">>, Chans}, FOptsOut) when
             ]
     end;
 set_channels_(Region, {TXPower, DataRate, Chans}, FOptsOut) when
-    Region == 'US915'; Region == 'AU915'
+    Region == 'US915'; Region == 'AU915'; Region == 'AU915_SB2'; Region == 'AU915_SB5'; Region == 'AU915_DP'
 ->
     case all_bit({0, 63}, Chans) of
         true ->

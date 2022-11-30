@@ -95,6 +95,7 @@ plan_test() ->
     exercise_plan(lora_plan:plan_us915_SB2()),
     exercise_plan(lora_plan:plan_au915_SB2()),
     exercise_plan(lora_plan:plan_au915_SB5()),
+    exercise_plan(lora_plan:plan_au915_DP()),
     exercise_plan(lora_plan:plan_eu868_A()),
     exercise_plan(lora_plan:plan_as923_1A()),
     exercise_plan(lora_plan:plan_in865_A()),
