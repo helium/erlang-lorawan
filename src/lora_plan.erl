@@ -882,7 +882,7 @@ plan_au915_SB2() ->
     Plan = #channel_plan{
         channel_plan_id = 5,
         plan_name = 'AU915_SB2',
-        base_region = 'AU915_SB2',
+        base_region = 'AU915',
         dynamic_plan = false,
         float_precision = 1,
         min_freq = 915.0,
