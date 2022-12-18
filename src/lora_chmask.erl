@@ -403,7 +403,18 @@ exercise_req({Region, TxPower, DataRate}) ->
     validate_req(Plan, TxPower, DRBinary).
 
 exercise_req_test_() ->
-    Regions = ['EU868', 'US915', 'AU915', 'AU915_SB5', 'CN470', 'AS923_1', 'AS923_1B', 'KR920', 'IN865', 'EU433'],
+    Regions = [
+        'EU868',
+        'US915',
+        'AU915',
+        'AU915_SB5',
+        'CN470',
+        'AS923_1',
+        'AS923_1B',
+        'KR920',
+        'IN865',
+        'EU433'
+    ],
     Powers = [30, 20, 19, 16, 14, 12, 5, 2],
     DataRates = [0, 1, 2, 3],
     [exercise_req({Region, TX, DR}) || Region <- Regions, TX <- Powers, DR <- DataRates].

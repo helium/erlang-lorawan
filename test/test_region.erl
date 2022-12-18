@@ -1122,7 +1122,12 @@ freq('IN865') ->
     #{min => 865, max => 867, default => [865.0625, 865.4025, 865.985]}.
 
 net_freqs(#network{region = Region, init_chans = Chans}) when
-    Region == 'US915'; Region == 'AU915'; Region == 'AU915_SB2'; Region == 'AU915_SB5'; Region == 'AU915_DP'; Region == 'CN470'
+    Region == 'US915';
+    Region == 'AU915';
+    Region == 'AU915_SB2';
+    Region == 'AU915_SB5';
+    Region == 'AU915_DP';
+    Region == 'CN470'
 ->
     %% convert enabled channels to frequencies
     lists:map(
@@ -1221,7 +1226,11 @@ cf_list_for_channel_mask_table(ChMaskTable) ->
 %% link_adr_req command
 
 set_channels_(Region, {0, <<"NoChange">>, Chans}, FOptsOut) when
-    Region == 'US915'; Region == 'AU915'; Region == 'AU915_SB2'; Region == 'AU915_SB5'; Region == 'AU915_DP'
+    Region == 'US915';
+    Region == 'AU915';
+    Region == 'AU915_SB2';
+    Region == 'AU915_SB5';
+    Region == 'AU915_DP'
 ->
     case all_bit({0, 63}, Chans) of
         true ->
@@ -1236,7 +1245,11 @@ set_channels_(Region, {0, <<"NoChange">>, Chans}, FOptsOut) when
             ]
     end;
 set_channels_(Region, {TXPower, DataRate, Chans}, FOptsOut) when
-    Region == 'US915'; Region == 'AU915'; Region == 'AU915_SB2'; Region == 'AU915_SB5'; Region == 'AU915_DP'
+    Region == 'US915';
+    Region == 'AU915';
+    Region == 'AU915_SB2';
+    Region == 'AU915_SB5';
+    Region == 'AU915_DP'
 ->
     case all_bit({0, 63}, Chans) of
         true ->
