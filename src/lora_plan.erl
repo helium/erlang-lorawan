@@ -8,7 +8,7 @@
     up_to_down_datarate/3,
     max_uplink_payload_size/2,
     max_downlink_payload_size/2,
-    max_payload_size/2,
+    dwelltime_payload_size/2,
     max_downlink_snr/3,
     max_uplink_snr/1,
     max_uplink_snr/2,
@@ -338,74 +338,26 @@ dr_offset_list(_Region, Index) ->
 
 -spec max_uplink_payload_size(#channel_plan{}, data_rate()) -> integer().
 max_uplink_payload_size(Plan, DataRate) ->
-    Atom = datarate_to_atom(Plan, DataRate),
-    DwellTime = Plan#channel_plan.uplink_dwell_time,
-    max_payload_size(Atom, DwellTime).
+    Index = datarate_to_index(Plan, DataRate),
+    List = (Plan#channel_plan.payload_max),
+    lists:nth(Index + 1, List).
 
 -spec max_downlink_payload_size(#channel_plan{}, data_rate()) -> integer().
 max_downlink_payload_size(Plan, DataRate) ->
-    Atom = datarate_to_atom(Plan, DataRate),
-    DwellTime = Plan#channel_plan.downlink_dwell_time,
-    max_payload_size(Atom, DwellTime).
+    Index = datarate_to_index(Plan, DataRate),
+    List = (Plan#channel_plan.payload_max),
+    lists:nth(Index + 1, List).
 
--spec max_payload_size(atom(), integer()) -> integer().
-max_payload_size(DataRate, DwellTime) ->
+% -spec max_payload_size(#channel_plan{}, data_rate()) -> integer().
+% max_payload_size(Plan, DataRate) ->
+%     Index = datarate_to_index(Plan, DataRate),
+%     List = (Plan#channel_plan.payload_max),
+%     lists:nth(Index, List).
+
+-spec dwelltime_payload_size(atom(), integer()) -> integer().
+dwelltime_payload_size(DataRate, DwellTime) ->
     case DwellTime of
-        1000 ->
-            case DataRate of
-                'SF12BW125' -> 51;
-                'SF11BW125' -> 51;
-                'SF10BW125' -> 51;
-                'SF9BW125' -> 115;
-                'SF8BW125' -> 242;
-                'SF7BW125' -> 242;
-                _ -> 250
-            end;
-        400 ->
-            case DataRate of
-                'SF12BW125' -> 59;
-                'SF11BW125' -> 59;
-                'SF10BW125' -> 59;
-                'SF9BW125' -> 123;
-                'SF8BW125' -> 250;
-                'SF7BW125' -> 250;
-                'SF12BW500' -> 61;
-                'SF11BW500' -> 137;
-                'SF10BW500' -> 250;
-                'SF9BW500' -> 250;
-                'SF8BW500' -> 250;
-                'SF7BW500' -> 250;
-                'LRFHSS1BW137' -> 50;
-                'LRFHSS2BW137' -> 115;
-                'LRFHSS1BW336' -> 50;
-                'LRFHSS2BW336' -> 115;
-                'LRFHSS1BW1523' -> 50;
-                'LRFHSS2BW1523' -> 115;
-                _ -> 250
-            end;
-        401 ->
-            case DataRate of
-                'SF12BW125' -> 11;
-                'SF11BW125' -> 11;
-                'SF10BW125' -> 11;
-                'SF9BW125' -> 53;
-                'SF8BW125' -> 125;
-                'SF7BW125' -> 242;
-                'SF12BW500' -> 53;
-                'SF11BW500' -> 129;
-                'SF10BW500' -> 242;
-                'SF9BW500' -> 242;
-                'SF8BW500' -> 242;
-                'SF7BW500' -> 242;
-                'LRFHSS1BW137' -> 50;
-                'LRFHSS2BW137' -> 115;
-                'LRFHSS1BW336' -> 50;
-                'LRFHSS2BW336' -> 115;
-                'LRFHSS1BW1523' -> 50;
-                'LRFHSS2BW1523' -> 115;
-                _ -> 250
-            end;
-        _ ->
+        0 ->
             case DataRate of
                 'SF12BW125' -> 51;
                 'SF11BW125' -> 51;
@@ -414,20 +366,57 @@ max_payload_size(DataRate, DwellTime) ->
                 'SF8BW125' -> 242;
                 'SF7BW125' -> 242;
                 'SF7BW250' -> 242;
+                'FSK50' -> 242;
+                % 'SF12BW500' -> 61;
                 'SF12BW500' -> 53;
                 'SF11BW500' -> 129;
                 'SF10BW500' -> 242;
                 'SF9BW500' -> 242;
                 'SF8BW500' -> 242;
                 'SF7BW500' -> 242;
-                'LRFHSS1BW137' -> 51;
+                'LRFHSS1BW137' -> 50;
                 'LRFHSS2BW137' -> 115;
                 'LRFHSS1BW336' -> 50;
                 'LRFHSS2BW336' -> 115;
                 'LRFHSS1BW1523' -> 50;
                 'LRFHSS2BW1523' -> 115;
-                _ -> 250
-            end
+                _ -> 0
+            end;
+        400 ->
+            case DataRate of
+                'SF10BW125' -> 11;
+                'SF9BW125' -> 53;
+                'SF8BW125' -> 125;
+                'SF7BW125' -> 242;
+                'SF7BW250' -> 242;
+                'FSK50' -> 242;
+                'SF12BW500' -> 53;
+                'SF11BW500' -> 129;
+                'SF10BW500' -> 242;
+                'SF9BW500' -> 242;
+                'SF8BW500' -> 242;
+                'SF7BW500' -> 242;
+                'LRFHSS1BW137' -> 50;
+                'LRFHSS2BW137' -> 115;
+                'LRFHSS1BW336' -> 50;
+                'LRFHSS2BW336' -> 115;
+                'LRFHSS1BW1523' -> 50;
+                'LRFHSS2BW1523' -> 125;
+                _ -> 0
+            end;
+        1000 ->
+            case DataRate of
+                'SF12BW125' -> 0;
+                'SF11BW125' -> 23;
+                'SF10BW125' -> 86;
+                'SF9BW125' -> 184;
+                'SF8BW125' -> 242;
+                'SF7BW125' -> 242;
+                'FSK50' -> 242;
+                _ -> 0
+            end;
+        _ ->
+            0
     end.
 
 -spec max_uplink_snr(#channel_plan{}, data_rate()) -> number().
@@ -767,6 +756,7 @@ plan_eu868_A() ->
             'LRFHSS2BW336'
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
+        payload_max = [51, 51, 51, 115, 242, 242, 242, 242, 50, 115, 50, 115, 0, 0, 0, 0],
         join_dr = {0, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 5},
@@ -809,6 +799,7 @@ plan_eu433_A() ->
             'FSK50'
         ],
         tx_power = [0, -2, -4, -6, -8, -10],
+        payload_max = [51, 51, 51, 115, 242, 242, 242, 242, 0, 0, 0, 0, 0, 0, 0, 0],
         join_dr = {0, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 5},
@@ -861,13 +852,14 @@ plan_us915_SB2() ->
         ],
         %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
+        payload_max = [11, 53, 125, 242, 242, 50, 125, 0, 53, 129, 242, 242, 242, 242, 0, 0],
         join_dr = {2, 4},
         mask_dr = {0, 3},
         mandatory_dr = {0, 4},
         optional_dr = {5, 6},
         max_duty_cycle = 10000,
-        uplink_dwell_time = 401,
-        downlink_dwell_time = 401,
+        uplink_dwell_time = 400,
+        downlink_dwell_time = 400,
         tx_param_setup_allowed = false,
         max_eirp_db = 30,
         rx1_offset = {0, 3},
@@ -913,13 +905,14 @@ plan_au915_SB2() ->
         ],
         %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
+        payload_max = [51, 51, 51, 115, 242, 242, 242, 50, 53, 129, 242, 242, 242, 242, 0, 0],
         join_dr = {2, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 6},
         optional_dr = {7, 7},
         max_duty_cycle = 1,
-        uplink_dwell_time = 400,
-        downlink_dwell_time = 400,
+        uplink_dwell_time = 0,
+        downlink_dwell_time = 0,
         tx_param_setup_allowed = true,
         max_eirp_db = 30,
         rx1_offset = {0, 5},
@@ -964,13 +957,14 @@ plan_au915_DP() ->
         ],
         %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
+        payload_max = [51, 51, 51, 115, 242, 242, 242, 50, 53, 129, 242, 242, 242, 242, 0, 0],
         join_dr = {2, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 6},
         optional_dr = {7, 7},
         max_duty_cycle = 1,
-        uplink_dwell_time = 400,
-        downlink_dwell_time = 400,
+        uplink_dwell_time = 0,
+        downlink_dwell_time = 0,
         tx_param_setup_allowed = true,
         max_eirp_db = 30,
         rx1_offset = {0, 5},
@@ -1015,13 +1009,14 @@ plan_au915_SB5() ->
         ],
         %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
+        payload_max = [51, 51, 51, 115, 242, 242, 242, 50, 53, 129, 242, 242, 242, 242, 0, 0],
         join_dr = {2, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 6},
         optional_dr = {7, 7},
         max_duty_cycle = 1,
-        uplink_dwell_time = 400,
-        downlink_dwell_time = 400,
+        uplink_dwell_time = 0,
+        downlink_dwell_time = 0,
         tx_param_setup_allowed = true,
         max_eirp_db = 30,
         rx1_offset = {0, 5},
@@ -1055,6 +1050,7 @@ plan_cn470_A() ->
             'SF7BW125'
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
+        payload_max = [0, 23, 86, 184, 242, 242, 242, 242, 0, 0, 0, 0, 0, 0, 0, 0],
         join_dr = {0, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 5},
@@ -1101,6 +1097,7 @@ plan_as923_A() ->
             'LRFHSS2BW336'
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
+        payload_max = [0, 0, 11, 53, 125, 242, 242, 242, 0, 0, 0, 0, 0, 0, 0, 0],
         join_dr = {2, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 5},
@@ -1147,6 +1144,7 @@ plan_as923_1A() ->
             'LRFHSS2BW336'
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
+        payload_max = [0, 0, 11, 53, 125, 242, 242, 242, 0, 0, 0, 0, 0, 0, 0, 0],
         join_dr = {2, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 5},
@@ -1197,6 +1195,7 @@ plan_as923_1B() ->
             'LRFHSS2BW336'
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
+        payload_max = [0, 0, 11, 53, 125, 242, 242, 242, 0, 0, 0, 0, 0, 0, 0, 0],
         join_dr = {2, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 5},
@@ -1243,6 +1242,7 @@ plan_as923_2A() ->
             'LRFHSS2BW336'
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
+        payload_max = [0, 0, 11, 53, 125, 242, 242, 242, 0, 0, 0, 0, 0, 0, 0, 0],
         join_dr = {2, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 5},
@@ -1289,6 +1289,7 @@ plan_as923_3A() ->
             'LRFHSS2BW336'
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
+        payload_max = [0, 0, 11, 53, 125, 242, 242, 242, 0, 0, 0, 0, 0, 0, 0, 0],
         join_dr = {2, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 5},
@@ -1335,6 +1336,7 @@ plan_as923_4A() ->
             'LRFHSS2BW336'
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
+        payload_max = [0, 0, 11, 53, 125, 242, 242, 242, 0, 0, 0, 0, 0, 0, 0, 0],
         join_dr = {2, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 5},
@@ -1375,6 +1377,7 @@ plan_kr920_A() ->
             'SF7BW125'
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12],
+        payload_max = [51, 51, 51, 115, 242, 242, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         join_dr = {0, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 5},
@@ -1417,6 +1420,7 @@ plan_in865_A() ->
             'FSK50'
         ],
         tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
+        payload_max = [51, 51, 51, 115, 242, 242, 242, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         join_dr = {0, 5},
         mask_dr = {0, 5},
         mandatory_dr = {0, 5},

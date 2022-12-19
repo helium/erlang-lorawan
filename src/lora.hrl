@@ -50,6 +50,7 @@
     join_channels :: dr_range(),
     data_rates :: [dr_atom()],
     tx_power :: [power_offset()],
+    payload_max :: [integer()],
     join_dr :: dr_range(),
     mask_dr :: dr_range(),
     mandatory_dr :: dr_range(),

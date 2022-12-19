@@ -221,12 +221,7 @@ validate_tx_power(Plan) ->
     % io:format("Plan#channel_plan.tx_powers=~w~n", [Plan#channel_plan.tx_power]),
     ?assertEqual(PT0, PT1).
 
-validate_downlink_size(Plan, _RxQ) when Plan#channel_plan.base_region == 'IN865' ->
-    ?assert(true);
-validate_downlink_size(Plan, _RxQ) when Plan#channel_plan.base_region == 'KR920' ->
-    ?assert(true);
 validate_downlink_size(Plan, DataRateAtom) ->
-    Region = Plan#channel_plan.base_region,
     M1 = lora_plan:max_uplink_payload_size(Plan, DataRateAtom),
     DRIdx = lora_plan:datarate_to_index(Plan, DataRateAtom),
     case DRIdx of
@@ -235,7 +230,8 @@ validate_downlink_size(Plan, DataRateAtom) ->
         _ ->
             DRAtom = lora_plan:datarate_to_atom(Plan, DRIdx),
             ?assertEqual(DRAtom, DataRateAtom),
-            M2 = test_region:max_payload_size(Region, DRIdx),
+            UplinkDwellTime = Plan#channel_plan.uplink_dwell_time,
+            M2 = lora_plan:dwelltime_payload_size(DRAtom, UplinkDwellTime),
             % io:format("DRAtom=~w DR~w ~w~n", [DRAtom, DRIdx, M2]),
             ?assertEqual(M2, M1)
     end.
