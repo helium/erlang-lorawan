@@ -95,7 +95,6 @@ plan_test() ->
     exercise_plan(lora_plan:plan_us915_SB2()),
     exercise_plan(lora_plan:plan_au915_SB2()),
     exercise_plan(lora_plan:plan_au915_SB5()),
-    exercise_plan(lora_plan:plan_au915_DP()),
     exercise_plan(lora_plan:plan_eu868_A()),
     exercise_plan(lora_plan:plan_as923_1A()),
     exercise_plan(lora_plan:plan_in865_A()),
@@ -141,7 +140,6 @@ dualplan_test() ->
     ?assertEqual(true, lora_plan:valid_region('AS923_1')),
     ?assertEqual(true, lora_plan:valid_region('AU915_SB1')),
     ?assertEqual(true, lora_plan:valid_region('AU915_SB5')),
-    ?assertEqual(true, lora_plan:valid_region('AU915_DP')),
     ?assertEqual(true, lora_plan:valid_region('AS923_1B')),
     ?assertEqual(true, lora_plan:valid_region('AS923_1C')),
     ?assertEqual(false, lora_plan:valid_region('ZZ915')),
@@ -153,9 +151,6 @@ dualplan_test() ->
     ?assertEqual('AU915_SB5', lora_plan:dualplan_region('AS923_1', 923.59, DR)),
     ?assertEqual('AS923_1B', lora_plan:dualplan_region('AS923_1B', 923.6, DR)),
     ?assertEqual('AS923_1C', lora_plan:dualplan_region('AS923_1C', 923.2, DR)),
-    ?assertEqual('AU915_DP', lora_plan:dualplan_region('AS923_1B', 923.0, DR)),
-    ?assertEqual('AU915_DP', lora_plan:dualplan_region('AS923_1B', 923.01, DR)),
-    ?assertEqual('AU915_DP', lora_plan:dualplan_region('AS923_1B', 922.96, DR)),
     ?assertEqual('AS923_1', lora_plan:dualplan_region('AS923_1', 923.0, DR)),
     ?assertEqual('AS923_1', lora_plan:dualplan_region('AS923_1', 924.8, DR)).
 

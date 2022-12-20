@@ -42,7 +42,6 @@
     plan_us915_SB2/0,
     plan_au915_SB1/0,
     plan_au915_SB2/0,
-    plan_au915_DP/0,
     plan_au915_SB5/0,
     plan_cn470_A/0,
     plan_kr920_A/0,
@@ -67,7 +66,6 @@ region_to_plan(Region) ->
         'EU433' -> plan_eu433_A();
         'US915' -> plan_us915_SB2();
         'AU915' -> plan_au915_SB2();
-        'AU915_DP' -> plan_au915_DP();
         'AU915_SB1' -> plan_au915_SB1();
         'AU915_SB2' -> plan_au915_SB2();
         'AU915_SB5' -> plan_au915_SB5();
@@ -91,7 +89,6 @@ valid_region(Region) ->
         'EU433' -> true;
         'US915' -> true;
         'AU915' -> true;
-        'AU915_DP' -> true;
         'AU915_SB1' -> true;
         'AU915_SB2' -> true;
         'AU915_SB5' -> true;
@@ -272,7 +269,7 @@ dr_offset_list(Region, Index) when Region == 'US915' ->
         5 -> [10, 9, 8, 8];
         6 -> [11, 10, 9, 8]
     end;
-dr_offset_list(Region, Index) when Region == 'AU915'; Region == 'AU915_SB5'; Region == 'AU915_DP' ->
+dr_offset_list(Region, Index) when Region == 'AU915'; Region == 'AU915_SB5' ->
     case Index of
         0 -> [8, 8, 8, 8, 8, 8];
         1 -> [9, 8, 8, 8, 8, 8];
@@ -604,7 +601,6 @@ rx2_tuple(Plan) ->
 %% Start
 -spec dualplan_region(atom(), number(), data_rate()) -> atom().
 dualplan_region(GatewayRegion, Freq, _DataRate) ->
-    DP_List = [922.0, 922.2, 922.4, 922.6, 922.8, 923.0],
     SB5_List = [923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
     case GatewayRegion of
         'AS923_1' ->
@@ -617,12 +613,6 @@ dualplan_region(GatewayRegion, Freq, _DataRate) ->
             IsAU915_1C = find_frequency(Freq, SB5_List),
             case IsAU915_1C of
                 true -> 'AU915_SB5';
-                false -> GatewayRegion
-            end;
-        'AS923_1B' ->
-            IsAU915DP = find_frequency(Freq, DP_List),
-            case IsAU915DP of
-                true -> 'AU915_DP';
                 false -> GatewayRegion
             end;
         _ ->
@@ -1000,58 +990,6 @@ plan_au915_SB2() ->
         %% The eight AU915 downlink channels are hard-coded in the spec
         d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5, 923.9],
         channel_count = 9,
-        bank_offset = 8,
-        join_channels = {0, 7},
-        data_rates = [
-            'SF12BW125',
-            'SF11BW125',
-            'SF10BW125',
-            'SF9BW125',
-            'SF8BW125',
-            'SF7BW125',
-            'SF8BW500',
-            'LRFHSS1BW1523',
-            'SF12BW500',
-            'SF11BW500',
-            'SF10BW500',
-            'SF9BW500',
-            'SF8BW500',
-            'SF7BW500'
-        ],
-        %% tx_power = [0,-2,-4,-6,-8,-10,-12,-14,-16,-18,-20,-22,-24,-26,-28,0],
-        tx_power = [0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
-        payload_max = [51, 51, 51, 115, 242, 242, 242, 50, 53, 129, 242, 242, 242, 242, 0, 0],
-        join_dr = {2, 5},
-        mask_dr = {0, 5},
-        mandatory_dr = {0, 6},
-        optional_dr = {7, 7},
-        max_duty_cycle = 1,
-        uplink_dwell_time = 0,
-        downlink_dwell_time = 0,
-        tx_param_setup_allowed = true,
-        max_eirp_db = 30,
-        rx1_offset = {0, 5},
-        rx2_datarate = 8,
-        rx2_freq = 923.3,
-        beacon_freq = 923.3,
-        pingslot_freq = 923.3
-    },
-    Plan.
-
-plan_au915_DP() ->
-    Plan = #channel_plan{
-        channel_plan_id = 5,
-        plan_name = 'AU915_DP',
-        base_region = 'AU915_DP',
-        dynamic_plan = false,
-        float_precision = 1,
-        min_freq = 915.0,
-        max_freq = 928.0,
-        %% AU915's subbank five set of channels
-        %% Channel 65 (fat channel) is 917.5 Mhz
-        u_channels = [922.0, 922.2, 922.4, 922.6, 922.8, 923.0, 923.2, 923.4],
-        d_channels = [924.5, 925.1, 925.7, 926.3, 926.9, 927.5, 923.3, 923.9],
-        channel_count = 8,
         bank_offset = 8,
         join_channels = {0, 7},
         data_rates = [
