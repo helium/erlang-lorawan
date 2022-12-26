@@ -46,7 +46,6 @@
     plan_cn470_A/0,
     plan_kr920_A/0,
     plan_in865_A/0,
-    plan_as923_A/0,
     plan_as923_1A/0,
     plan_as923_1B/0,
     plan_as923_1C/0,
@@ -72,7 +71,7 @@ region_to_plan(Region) ->
         'CN470' -> plan_cn470_A();
         'KR920' -> plan_kr920_A();
         'IN865' -> plan_in865_A();
-        'AS923' -> plan_as923_A();
+        'AS923' -> plan_as923_1A();
         'AS923_1' -> plan_as923_1A();
         'AS923_2' -> plan_as923_2A();
         'AS923_3' -> plan_as923_3A();
@@ -745,7 +744,7 @@ plan_eu868_A() ->
         d_channels = [867.1, 867.3, 867.5, 867.7, 867.9, 868.1, 868.3, 868.5],
         channel_count = 8,
         bank_offset = 0,
-        join_channels = {0, 2},
+        join_channels = {5, 7},
         data_rates = [
             'SF12BW125',
             'SF11BW125',
@@ -788,8 +787,8 @@ plan_eu868_B() ->
         float_precision = 1,
         min_freq = 863.0,
         max_freq = 870.0,
-        u_channels = [867.1, 867.3, 867.5],
-        d_channels = [867.1, 867.3, 867.5],
+        u_channels = [868.1, 868.3, 868.5],
+        d_channels = [868.1, 868.3, 868.5],
         channel_count = 3,
         bank_offset = 0,
         join_channels = {0, 2},
@@ -1121,53 +1120,6 @@ plan_cn470_A() ->
     },
     Plan.
 
-plan_as923_A() ->
-    Plan = #channel_plan{
-        channel_plan_id = 7,
-        plan_name = 'AS923_1A',
-        base_region = 'AS923',
-        dynamic_plan = true,
-        float_precision = 1,
-        min_freq = 915.0,
-        max_freq = 928.0,
-        u_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
-        d_channels = [923.2, 923.4, 923.6, 923.8, 924.0, 924.2, 924.4, 924.6],
-        channel_count = 8,
-        bank_offset = 0,
-        join_channels = {0, 1},
-        data_rates = [
-            'SF12BW125',
-            'SF11BW125',
-            'SF10BW125',
-            'SF9BW125',
-            'SF8BW125',
-            'SF7BW125',
-            'SF7BW250',
-            'FSK50',
-            'LRFHSS1BW137',
-            'LRFHSS2BW137',
-            'LRFHSS1BW336',
-            'LRFHSS2BW336'
-        ],
-        tx_power = [0, -2, -4, -6, -8, -10, -12, -14],
-        payload_max = [0, 0, 11, 53, 125, 242, 242, 242, 0, 0, 0, 0, 0, 0, 0, 0],
-        join_dr = {2, 5},
-        mask_dr = {0, 5},
-        mandatory_dr = {0, 5},
-        optional_dr = {6, 7},
-        max_duty_cycle = 1,
-        uplink_dwell_time = 400,
-        downlink_dwell_time = 400,
-        tx_param_setup_allowed = true,
-        max_eirp_db = 16,
-        rx1_offset = {0, 7},
-        rx2_datarate = 2,
-        rx2_freq = 923.2,
-        beacon_freq = 923.4,
-        pingslot_freq = 923.4
-    },
-    Plan.
-
 plan_as923_1A() ->
     Plan = #channel_plan{
         channel_plan_id = 7,
@@ -1257,7 +1209,7 @@ plan_as923_1B() ->
         uplink_dwell_time = 400,
         downlink_dwell_time = 400,
         tx_param_setup_allowed = true,
-        max_eirp_db = 16,
+        max_eirp_db = 22,
         rx1_offset = {0, 7},
         rx2_datarate = 2,
         rx2_freq = 923.2,
@@ -1304,7 +1256,7 @@ plan_as923_1C() ->
         uplink_dwell_time = 0,
         downlink_dwell_time = 0,
         tx_param_setup_allowed = true,
-        max_eirp_db = 30,
+        max_eirp_db = 27,
         rx1_offset = {0, 7},
         rx2_datarate = 2,
         rx2_freq = 923.2,
