@@ -932,7 +932,7 @@ plan_au915_SB1() ->
         max_freq = 928.0,
         %% AU915's subbank two set of channels
         %% Channel 65 (fat channel) is 915.9 Mhz
-        u_channels = [915.2, 915.4, 915.6, 915.8, 916.9, 916.2, 916.4, 916.6, 915.9],
+        u_channels = [915.2, 915.4, 915.6, 915.8, 916.0, 916.2, 916.4, 916.6, 915.9],
         %% The eight AU915 downlink channels are hard-coded in the spec
         d_channels = [923.3, 923.9, 924.5, 925.1, 925.7, 926.3, 926.9, 927.5, 923.9],
         channel_count = 9,
