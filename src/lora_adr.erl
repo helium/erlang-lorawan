@@ -424,6 +424,7 @@ adr_sf_range(Region) ->
     case Region of
         'US915' -> {7, 10};
         'EU868' -> {7, 12};
+        'EU868_A' -> {7, 12};
         'EU868_B' -> {7, 12};
         'AU915' -> {7, 12};
         'AU915_SB1' -> {7, 12};
@@ -440,6 +441,7 @@ adr_datarate_range(Region) ->
     case Region of
         'US915' -> {0, 3};
         'EU868' -> {0, 5};
+        'EU868_A' -> {0, 5};
         'EU868_B' -> {0, 5};
         'AU915' -> {0, 5};
         'AU915_SB1' -> {0, 5};

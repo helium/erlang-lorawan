@@ -61,6 +61,7 @@
 region_to_plan(Region) ->
     case Region of
         'EU868' -> plan_eu868_A();
+        'EU868_A' -> plan_eu868_A();
         'EU868_B' -> plan_eu868_B();
         'EU433' -> plan_eu433_A();
         'US915' -> plan_us915_SB2();
@@ -84,6 +85,7 @@ region_to_plan(Region) ->
 valid_region(Region) ->
     case Region of
         'EU868' -> true;
+        'EU868_A' -> true;
         'EU868_B' -> true;
         'EU433' -> true;
         'US915' -> true;
