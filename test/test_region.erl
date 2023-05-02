@@ -372,7 +372,6 @@ rx2_rf(Region, #rxq{codr = Codr, time = Time}) when Region == 'AU915_SB5' ->
         time = Time
     }.
 
-
 -spec window2_dr(atom()) -> dr().
 window2_dr('US915') -> 8;
 window2_dr('AU915') -> 8;

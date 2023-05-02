@@ -251,7 +251,7 @@ up_to_down_datarate(Plan, Index, Offset) ->
         % Respond with RX2 default datarate
         _Class:_Reason:_Stacktrace ->
             lager:error(
-                "lora_plan=up_to_down_datarate unknown datarate index Region=~p Index=~p Offset=~p~n",
+                "lora_plan=up_to_down_datarate unkn datarate index Region=~p Index=~p Offset=~p~n",
                 [
                     Region, Index, Offset
                 ]
