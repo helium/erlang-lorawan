@@ -414,9 +414,9 @@ validate_req(Plan, TxPower, DataRate) ->
             _ -> [{0, 7}]
         end,
     M1 = make_link_adr_req(Region, {TxPower, DataRate, Chans}, []),
-    io:format("M1=~w~n", [M1]),
+    % io:format("M1=~w~n", [M1]),
     B1 = build_link_adr_req(Plan, {TxPower, DataRate}, []),
-    io:format("B1=~w ~n", [B1]),
+    % io:format("B1=~w ~n", [B1]),
     ?_assertEqual(M1, B1).
 
 exercise_req({Region, TxPower, DataRate}) ->
