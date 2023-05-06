@@ -86,11 +86,17 @@ join_cf_list('US915') ->
     cflist_type_1({8, 15});
 join_cf_list('AU915') ->
     cflist_type_1({8, 15});
-join_cf_list('AU915_DP') ->
-    cflist_type_1({34, 41});
+join_cf_list('AU915_SB1') ->
+    cflist_type_1({0, 7});
+join_cf_list('AU915_SB2') ->
+    cflist_type_1({8, 15});
 join_cf_list('AU915_SB5') ->
     cflist_type_1({40, 47});
 join_cf_list('EU868') ->
+    cflist_type_0([8671000, 8673000, 8675000, 8677000, 8679000]);
+join_cf_list('EU868_A') ->
+    cflist_type_0([8671000, 8673000, 8675000, 8677000, 8679000]);
+join_cf_list('EU868_B') ->
     cflist_type_0([8671000, 8673000, 8675000, 8677000, 8679000]);
 join_cf_list('EU433') ->
     cflist_type_0([4331750, 4333750, 4335750, 0, 0]);
@@ -100,6 +106,8 @@ join_cf_list('AS923_1') ->
     cflist_type_0([9236000, 9238000, 9240000, 9242000, 9244000]);
 join_cf_list('AS923_1B') ->
     cflist_type_0([9220000, 9222000, 9234000, 9228000, 9230000]);
+join_cf_list('AS923_1C') ->
+    cflist_type_0([9236000, 9238000, 9240000, 9242000, 9244000]);
 join_cf_list('AS923_2') ->
     cflist_type_0([9218000, 9220000, 9222000, 9224000, 9226000]);
 join_cf_list('AS923_3') ->
@@ -134,7 +142,11 @@ make_link_adr_req(Region, Tuple, FOptsOut) ->
 %% link_adr_req command
 
 make_link_adr_req_(Region, {0, <<"NoChange">>, Chans}, FOptsOut) when
-    Region == 'US915'; Region == 'AU915'; Region == 'AU915_SB5'; Region == 'AU915_DP'
+    Region == 'US915';
+    Region == 'AU915';
+    Region == 'AU915_SB1';
+    Region == 'AU915_SB2';
+    Region == 'AU915_SB5'
 ->
     case all_bit({0, 63}, Chans) of
         true ->
@@ -149,7 +161,11 @@ make_link_adr_req_(Region, {0, <<"NoChange">>, Chans}, FOptsOut) when
             ]
     end;
 make_link_adr_req_(Region, {TXPower, DataRate, Chans}, FOptsOut) when
-    Region == 'US915'; Region == 'AU915'; Region == 'AU915_SB5'; Region == 'AU915_DP'
+    Region == 'US915';
+    Region == 'AU915';
+    Region == 'AU915_SB1';
+    Region == 'AU915_SB2';
+    Region == 'AU915_SB5'
 ->
     Plan = lora_plan:region_to_plan(Region),
     DRIndex = lora_plan:datarate_to_index(Plan, DataRate),
@@ -256,14 +272,20 @@ build_link_adr_req(Plan, {TXPower0, DataRate}, FOptsOut) ->
                 {link_adr_req, DRIndex1, TXPower1, 0, 7, 0}
                 | append_mask(Region, 3, {TXPower1, DataRate, Chans}, FOptsOut)
             ];
-        'AU915_SB5' ->
-            Chans = [{40, 47}],
+        'AU915_SB1' ->
+            Chans = [{0, 7}],
             [
                 {link_adr_req, DRIndex1, TXPower1, 0, 7, 0}
                 | append_mask(Region, 3, {TXPower1, DataRate, Chans}, FOptsOut)
             ];
-        'AU915_DP' ->
-            Chans = [{34, 41}],
+        'AU915_SB2' ->
+            Chans = [{8, 15}],
+            [
+                {link_adr_req, DRIndex1, TXPower1, 0, 7, 0}
+                | append_mask(Region, 3, {TXPower1, DataRate, Chans}, FOptsOut)
+            ];
+        'AU915_SB5' ->
+            Chans = [{40, 47}],
             [
                 {link_adr_req, DRIndex1, TXPower1, 0, 7, 0}
                 | append_mask(Region, 3, {TXPower1, DataRate, Chans}, FOptsOut)
@@ -386,8 +408,9 @@ validate_req(Plan, TxPower, DataRate) ->
         case Region of
             'US915' -> [{8, 15}];
             'AU915' -> [{8, 15}];
+            'AU915_SB1' -> [{0, 7}];
+            'AU915_SB2' -> [{8, 15}];
             'AU915_SB5' -> [{40, 47}];
-            'AU915_DP' -> [{34, 41}];
             _ -> [{0, 7}]
         end,
     M1 = make_link_adr_req(Region, {TxPower, DataRate, Chans}, []),
@@ -405,12 +428,16 @@ exercise_req({Region, TxPower, DataRate}) ->
 exercise_req_test_() ->
     Regions = [
         'EU868',
+        'EU868_B',
         'US915',
         'AU915',
+        'AU915_SB1',
+        'AU915_SB2',
         'AU915_SB5',
         'CN470',
         'AS923_1',
         'AS923_1B',
+        'AS923_1C',
         'KR920',
         'IN865',
         'EU433'
@@ -447,6 +474,11 @@ join_cf_list_test_() ->
             join_cf_list('AU915')
         ),
         ?_assertEqual(
+            %% Active Channels 8-15
+            <<255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1>>,
+            join_cf_list('AU915_SB1')
+        ),
+        ?_assertEqual(
             %% Active Channels 40-47
             <<0, 0, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1>>,
             join_cf_list('AU915_SB5')
@@ -460,6 +492,11 @@ join_cf_list_test_() ->
             %% Freqs 923.6, 923.8, 924.0, 924.2, 924.4
             <<160, 175, 140, 112, 183, 140, 80, 230, 140, 224, 206, 140, 176, 214, 140, 0>>,
             join_cf_list('AS923_1B')
+        ),
+        ?_assertEqual(
+            %% Freqs 923.6, 923.8, 924.0, 924.2, 924.4
+            <<32, 238, 140, 240, 245, 140, 192, 253, 140, 144, 5, 141, 96, 13, 141, 0>>,
+            join_cf_list('AS923_1C')
         ),
         ?_assertEqual(
             %% Freqs 921.8, 922.0, 922.2, 922.4, 922.6
