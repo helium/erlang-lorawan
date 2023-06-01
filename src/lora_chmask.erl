@@ -129,6 +129,8 @@ join_cf_list(_Region) ->
 %% ------------------------------------------------------------------
 -spec top_level_region(atom()) -> atom().
 top_level_region('AS923_1') -> 'AS923';
+top_level_region('AS923_1B') -> 'AS923';
+top_level_region('AS923_1C') -> 'AS923';
 top_level_region('AS923_2') -> 'AS923';
 top_level_region('AS923_3') -> 'AS923';
 top_level_region('AS923_4') -> 'AS923';
